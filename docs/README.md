@@ -6,11 +6,11 @@ Chinese versions of these manuals are in [`zh/`](zh/README.md).
 
 | Manual | Content |
 | --- | --- |
-| [Development](development.md) | Environment, project layout, web and desktop development, quality gates, and maintenance |
-| [Operations](operations.md) | Source deployment, image deployment, access configuration, backup, restore, and troubleshooting |
-| [Usage](usage.md) | Installation, accounts and data, workspace, graph, dashboard, and upgrade |
+| [Development](development.md) | Environment, development commands, desktop build, checks, and release |
+| [Operations](operations.md) | Source and image deployment, update, access configuration, and backup |
+| [Usage](usage.md) | Installation, update, and uninstall |
 | [CI/CD pipeline](ci-cd.md) | Pull request checks, versioning, release candidates, publication, and repository policy |
-| [Contributing](contributing.md) | How to propose and verify a change |
+| [Contributing](contributing.md) | How to propose and check a change |
 
 ## Manual maintenance
 

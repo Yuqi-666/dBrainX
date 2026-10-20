@@ -2,7 +2,7 @@
 
 dBrain 是一个知识工作空间：用节点记录内容，用关系连接知识，用图谱和 Dashboard 组织工作。Web 端连接自托管服务，桌面端在设备上运行完整本地后端，支持离线使用。
 
-当前源码版本见 [`release.json`](scripts/release/release.json)。项目以 Apache-2.0 许可证开源，仍处于早期开发阶段。Linux 容器支持 amd64 / arm64；桌面发行平台以版本声明为准。
+当前源码版本见 [`release.json`](scripts/release/release.json)。项目以 AGPL-3.0-only 许可证开源，仍处于早期开发阶段。Linux 容器支持 amd64 / arm64；桌面发行平台以版本声明为准。
 
 ## 能做什么
 
@@ -17,13 +17,13 @@ dBrain 是一个知识工作空间：用节点记录内容，用关系连接知�
 
 | 我想做什么 | 阅读入口 |
 | --- | --- |
-| 安装、开始使用、备份个人数据 | [使用手册](docs/zh/usage.md) |
-| 配置开发环境、理解目录、修改和检查代码 | [开发手册](docs/zh/development.md) |
-| 部署容器、监控、升级、备份和恢复 | [运维手册](docs/zh/operations.md) |
+| 安装、升级与卸载 | [使用手册](docs/zh/usage.md) |
+| 配置开发环境、运行和检查代码 | [开发手册](docs/zh/development.md) |
+| 部署容器、更新、备份和恢复 | [运维手册](docs/zh/operations.md) |
 | 了解 CI/CD、四端构建、签名和发布门禁 | [CI/CD 流水线](docs/zh/ci-cd.md) |
 | 报告问题或安全漏洞 | [贡献指南](docs/zh/contributing.md)、[安全策略](SECURITY.md) |
 
-完整索引见 [docs](docs/README.md)（英文）与 [docs/zh](docs/zh/README.md)（中文）。项目由所有者独立开发，不接受外部 PR。版本标签触发可用平台的候选构建和发行草稿；正式发布由所有者手动确认。
+完整索引见 [docs](docs/README.md)（英文）与 [docs/zh](docs/zh/README.md)（中文）。项目由所有者独立开发，仅协作者可提交与创建 PR。版本标签触发可用平台的候选构建和发行草稿；正式发布由所有者手动确认。
 
 ## 开发快速开始
 
@@ -51,4 +51,4 @@ apps/web、apps/desktop → packages（界面、状态、客户端）
 
 ## 授权
 
-本项目采用 [Apache License 2.0](LICENSE)。第三方组件遵循各自许可证，其声明及所需源码材料应随发行提供。
+本项目采用 [GNU Affero General Public License v3.0](LICENSE)（AGPL-3.0-only）。修改后的版本通过网络向用户提供服务时，必须向这些用户提供对应源码。仓库内源码文件均带 `SPDX-License-Identifier: AGPL-3.0-only` 头，生成文件除外。第三方组件遵循各自许可证，其声明及所需源码材料应随发行提供。
