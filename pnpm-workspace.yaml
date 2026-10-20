@@ -1,4 +1,6 @@
 packages:
   - "apps/*"
+  # apps/marketing is a submodule with its own repository. It is not a package.
+  - "!apps/marketing"
   - "packages/*"
   - "backend/*"

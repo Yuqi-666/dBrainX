@@ -1,0 +1,4 @@
+[submodule "apps/marketing"]
+	path = apps/marketing
+	url = https://github.com/Yuqi-666/dBrain-marketing.git
+	branch = main

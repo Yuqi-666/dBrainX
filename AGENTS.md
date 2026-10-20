@@ -22,7 +22,7 @@ The product is in early public development. The source version is in `scripts/re
 
 | Directory | Content | Read next |
 | --- | --- | --- |
-| `apps/` | The web, desktop, and server programs | [apps/AGENTS.md](apps/AGENTS.md) |
+| `apps/` | The web, desktop, and server programs, plus the marketing submodule | [apps/AGENTS.md](apps/AGENTS.md) |
 | `packages/` | Shared UI, editor, graph, data view, state, client | [packages/AGENTS.md](packages/AGENTS.md) |
 | `backend/` | Domain model, use cases, storage, adapters | [backend/AGENTS.md](backend/AGENTS.md) |
 | `scripts/` | Development and release automation | [scripts/AGENTS.md](scripts/AGENTS.md) |

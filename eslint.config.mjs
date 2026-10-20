@@ -13,6 +13,7 @@ export default [
       "**/runtime/**",
       "**/.runtime-staging/**",
       ".scratch/**",
+      "apps/marketing/**",
       "**/public/pdfjs/**",
       "pb/pb_data/**",
       "pb/pb_migrations/**",
