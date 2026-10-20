@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -67,11 +69,11 @@ export async function checkRelease(tag) {
       ),
       "PocketBase checksum drift",
     );
-  assert.equal((await json("package.json")).license, "Apache-2.0");
+  assert.equal((await json("package.json")).license, "AGPL-3.0-only");
   assert.ok(
-    (await read("LICENSE")).includes("Apache License") &&
-      (await read("LICENSE")).includes("Version 2.0, January 2004"),
-    "Apache-2.0 distribution license missing",
+    (await read("LICENSE")).includes("GNU AFFERO GENERAL PUBLIC LICENSE") &&
+      (await read("LICENSE")).includes("Version 3, 19 November 2007"),
+    "AGPL-3.0-only distribution license missing",
   );
   if (tag)
     assert.equal(

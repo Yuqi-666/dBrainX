@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, readdir, writeFile, rm } from "node:fs/promises";
@@ -72,7 +74,7 @@ async function fixture(signed = true, plan = expected) {
       installers,
       updater,
     });
-    files.LICENSE = "Apache License\nVersion 2.0, January 2004";
+    files.LICENSE = "GNU AFFERO GENERAL PUBLIC LICENSE\nVersion 3, 19 November 2007";
     const sums = [];
     for (const [name, data] of Object.entries(files)) {
       await writeFile(join(path, name), data);
