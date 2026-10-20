@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The content swap, pinned: *when* a body takes the capsule over from another,
  * and — just as load-bearing — that the layer being left keeps its **key**.

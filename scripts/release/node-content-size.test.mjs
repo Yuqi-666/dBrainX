@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The JSON ceiling of `nodes.content` and the migration that retires it.
  *

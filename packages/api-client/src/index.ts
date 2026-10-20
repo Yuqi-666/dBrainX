@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { trpcClient, createClient } from "./trpc/client";
 export { TRPCReactProvider, trpc } from "./trpc/provider";
 export * from "./trpc/hooks/useGraph";

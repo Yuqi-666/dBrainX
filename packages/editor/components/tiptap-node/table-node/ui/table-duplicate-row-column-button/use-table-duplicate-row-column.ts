@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { useLocaleMemo } from "@workspace/ui/lib/i18n";
 import { useI18n } from "@workspace/ui/lib/i18n";

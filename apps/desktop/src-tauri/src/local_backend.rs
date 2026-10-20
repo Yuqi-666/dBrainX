@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use serde_json::Value;
 use std::{fs::{self, OpenOptions}, io::Write, path::PathBuf, process::{Child, Command, Stdio}, sync::Mutex, time::{Duration, Instant}};
 use tauri::{AppHandle, Manager, State};

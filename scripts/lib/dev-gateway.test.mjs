@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Tests for the development gateway: routing decisions and the live proxy path.
  *

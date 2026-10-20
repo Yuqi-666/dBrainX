@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ViewId, VisualConfig, ViewType } from "./value-objects";
 import { FilterConfig } from "../filter/value-objects";
 interface ViewProps {

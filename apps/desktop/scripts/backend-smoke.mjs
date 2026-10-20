@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Exercise the packaged backend outside the checkout, with a fresh device database. */
 import { pdfFixture } from "../../../scripts/lib/smoke-fixtures.mjs";
 import { stopRuntimeChild } from "../../../scripts/lib/stop-runtime-child.mjs";

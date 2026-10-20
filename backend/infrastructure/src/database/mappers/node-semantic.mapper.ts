@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { RecordModel } from "pocketbase";
 import { NodeSemantic } from "@workspace/domain/models/semantic/entities";
 import { SemanticId } from "@workspace/domain/models/semantic/value-objects";

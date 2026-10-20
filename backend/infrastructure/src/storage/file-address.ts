@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** `/api/files/<collection>/<record>/<filename>` — nothing else is allowed. */
 const FILE_PATH_PATTERN = /^\/api\/files\/[A-Za-z0-9_]+\/[A-Za-z0-9]+\/[^/]+$/;
 

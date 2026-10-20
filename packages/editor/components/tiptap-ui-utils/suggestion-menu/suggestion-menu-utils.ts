@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Node } from "@tiptap/pm/model";
 import type { SuggestionItem } from "@workspace/editor/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-types";
 

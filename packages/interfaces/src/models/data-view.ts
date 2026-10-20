@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * DataView — the multi-shape data browsing layer embedded in `database` and
  * `collection` node contents.

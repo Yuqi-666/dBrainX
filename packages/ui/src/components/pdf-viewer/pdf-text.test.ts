@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The pdf viewer's pure half, pinned. Run with:
  *

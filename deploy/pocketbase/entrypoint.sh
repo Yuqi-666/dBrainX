@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Container entrypoint: hand the deployment its PocketBase operator account, then
 # serve.
 #

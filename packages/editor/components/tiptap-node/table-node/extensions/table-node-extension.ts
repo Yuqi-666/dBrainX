@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { ViewMutationRecord } from "@tiptap/pm/view";
 import { Table } from "@tiptap/extension-table/table";
 import type {

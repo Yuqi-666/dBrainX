@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * What yt-dlp wrote, and what the import may call it.
  *

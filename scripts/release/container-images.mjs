@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Build/run candidates in the workflow first; publish exactly those local images. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";

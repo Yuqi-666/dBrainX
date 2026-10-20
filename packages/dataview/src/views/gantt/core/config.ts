@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { getLocale, translate } from "@workspace/ui/lib/i18n/runtime";
 /**
  * Gantt config resolution — the self-healing layer between a persisted

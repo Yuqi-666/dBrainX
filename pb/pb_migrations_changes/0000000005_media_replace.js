@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // An owner may now replace the stored blob of a `files` record in place, with
 // the same record id. The Excalidraw save is the first caller: it keeps one
 // storage unit per drawing, so the preview PNG overwrites the record instead of

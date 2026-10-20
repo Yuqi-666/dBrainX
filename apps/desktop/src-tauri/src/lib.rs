@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 mod local_backend;
 use local_backend::{LocalBackend, start_local_backend};
 use std::sync::Mutex;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The shared **viewport transform** — the one contract that lets a base surface
  * (an image today, a pdf page strip later) and the annotation layer painted on

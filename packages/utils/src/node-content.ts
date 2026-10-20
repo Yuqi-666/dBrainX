@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The "clear the node" action: keep the node, remove the payload.
  *

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { useDataStore } from "./dataStore";
 export type { DataStore } from "./dataStore";
 

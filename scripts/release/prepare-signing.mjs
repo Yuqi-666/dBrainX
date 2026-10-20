@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** CI-only setup. Secrets are read from the environment, never from CLI arguments. */
 import { randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import PocketBase, { BaseAuthStore } from "pocketbase";
 import { readAuthSessionToken } from "./auth/session";
 

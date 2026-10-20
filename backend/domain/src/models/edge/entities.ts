@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { EdgeStateData } from "@workspace/interfaces/models/edge/types";
 import type { NodeId } from "@workspace/interfaces/models/node/base";
 import { EdgeId, EdgeDirection } from "./value-objects";

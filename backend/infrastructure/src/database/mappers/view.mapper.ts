@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { RecordModel } from "pocketbase";
 import { View } from "@workspace/domain/models/view/entities";
 import { ViewId, VisualConfig, ViewType } from "@workspace/domain/models/view/value-objects";

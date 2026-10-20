@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Run in the directory containing docker-compose.yml and .env.
 set -eu
 umask 077

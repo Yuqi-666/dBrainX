@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // The `edges.direction` select listed "unidirectional" while the domain, the
 // API, and the UI all say "undirected". Those two words mean opposite things:
 // forward and reverse are the unidirectional states, while this state draws

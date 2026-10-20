@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Only the native WebView and the documented development frontend can reach the gateway. */
 const origins = new Set([
   "tauri://localhost", "http://tauri.localhost", "https://tauri.localhost",

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Legacy tokens retain their theme-aware appearance in existing annotations. */
 export const LEGACY_ANNOTATION_COLORS = {
   red: "#ef4444",

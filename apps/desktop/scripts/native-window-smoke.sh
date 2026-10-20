@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Run through dbus-run-session + xvfb-run on a Linux build machine.
 set -euo pipefail
 package_path=$1

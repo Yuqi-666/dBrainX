@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Colour maths shared by every view that paints a colour into a place that
  * cannot inherit the theme's text colour.

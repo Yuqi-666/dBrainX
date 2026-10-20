@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Grid rendering: a single world-anchored `Graphics` (simulation space,
  * under the world transform) rebuilt only when the viewport or dims

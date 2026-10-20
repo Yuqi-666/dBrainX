@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * 单选 / 多选 cells as colour capsules (胶囊).
  *

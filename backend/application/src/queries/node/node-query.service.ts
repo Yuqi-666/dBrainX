@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { INodeRepository, NodeQuery } from "@workspace/domain";
 import { NodeId } from "@workspace/domain";
 import type {

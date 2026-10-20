@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { getLocale } from "@workspace/ui/lib/i18n/runtime";
 /**
  * The single conversion hub between `DatabaseCell` and whatever shape a view

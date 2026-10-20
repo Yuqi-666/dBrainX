@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { IUserRepository } from "@workspace/domain/repositories";
 import type { User } from "@workspace/domain/models/user";
 import type { Email } from "@workspace/domain/models/user/value-objects";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Gallery geometry — the numbers that turn a card size into a grid, and a
  * scroll position into a slice of cards.

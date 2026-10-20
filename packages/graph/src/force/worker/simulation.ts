@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * d3-force simulation core (runs inside the WebWorker).
  *

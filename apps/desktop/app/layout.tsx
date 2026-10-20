@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "@workspace/ui/globals.css";

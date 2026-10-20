@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Kanban config resolution — the self-healing layer between a persisted
  * `KanbanViewConfig` and the concrete fields a board is built from.

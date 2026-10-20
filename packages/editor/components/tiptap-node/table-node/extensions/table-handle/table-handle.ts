@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Extension } from "@tiptap/core";
 import type { TableHandlesState } from "@workspace/editor/components/tiptap-node/table-node/extensions/table-handle";
 import {

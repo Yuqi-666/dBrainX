@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // A workspace shows an icon in front of its name in the workspace picker, and
 // the edit dialog lets the owner pick an emoji or a Lucide graphic. The value is
 // the same JSON shape a node uses (`{ kind: "emoji" | "icon", value, color? }`),

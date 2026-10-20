@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Dependency Injection Factory for Adapter-Back
  * Provides singleton instances of repositories and factory functions for DAOs.

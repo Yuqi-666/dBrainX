@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // A web page node stores its HTML source in `nodes.content`, and PocketBase caps
 // a JSON field at 1 MiB unless the field sets a size. The web page file category
 // accepts sources up to `DBRAIN_STORAGE_MAX_WEBPAGE_BYTES` (16 MiB by default),

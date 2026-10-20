@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Attrs, Node } from "@tiptap/pm/model";
 import {
   findNodePosition,

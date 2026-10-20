@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 /**
  * Gallery geometry config — the self-healing layer over the wall's own two keys

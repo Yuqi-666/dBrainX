@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only
+
 set -euo pipefail
 # Version and digests come from the official rhysd/actionlint release assets.
 # Linux amd64 validation tool; container arm64 jobs do not invoke it.

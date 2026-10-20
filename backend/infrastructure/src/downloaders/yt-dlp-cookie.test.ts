@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** The temporary cookie file a run hands to yt-dlp. */
 import assert from "node:assert/strict";
 import { test } from "node:test";

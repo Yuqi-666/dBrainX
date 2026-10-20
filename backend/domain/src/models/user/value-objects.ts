@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Value Objects for User aggregate.
  * Immutable types with validation and equality checks.

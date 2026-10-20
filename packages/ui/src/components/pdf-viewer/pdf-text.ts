@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Pure text arithmetic shared by the search scanner and the highlight painter.
  *

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The pdf.js data trees the browser viewer fetches at run time.
  *

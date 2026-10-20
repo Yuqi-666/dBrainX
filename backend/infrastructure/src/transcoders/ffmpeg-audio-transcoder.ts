@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Audio container compatibility adapter (ffmpeg spawned as a child process).
  *

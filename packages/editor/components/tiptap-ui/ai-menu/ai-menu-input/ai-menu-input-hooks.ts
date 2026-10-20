@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { isHotkey } from "is-hotkey";
 import { useCallback } from "react";
 

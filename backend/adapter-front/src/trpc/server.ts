@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { runWithToken } from "@workspace/infrastructure";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";

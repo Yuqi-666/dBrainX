@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+
 set -eu
 data_dir="${DBRAIN_PB_DATA_DIR:-/pb_data}"
 run_dir="$data_dir/pb_migrations"

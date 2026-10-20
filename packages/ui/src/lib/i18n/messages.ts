@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { resourceLibraryMessages } from "./messages-resources.ts";
 import { resourceSelectorMessages } from "./messages-resource-selector.ts";
 import { nodeDispositionMessages } from "./messages-node-disposition.ts";

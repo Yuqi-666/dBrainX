@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Server-side state of one media import, kept so a closed dialog or a restarted
  * server can find its way back.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useWorkspaceStore } from "@workspace/store";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 

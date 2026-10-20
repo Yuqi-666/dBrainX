@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Start the same migrations/hooks used by containers; keep local data in pb/pb_data. */
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";

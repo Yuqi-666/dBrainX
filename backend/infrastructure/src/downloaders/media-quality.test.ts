@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** The picker mapping of a site's format table. */
 import assert from "node:assert/strict";
 import { test } from "node:test";

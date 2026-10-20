@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Interface copy of the resource selector and the drop zone's 「从资源库选择」
  * method card.

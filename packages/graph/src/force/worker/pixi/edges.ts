@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Edge + node-outline rendering: style-bucketed Graphics.
  *

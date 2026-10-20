@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Turns the format list a site reports into the quality picker's options.
  *

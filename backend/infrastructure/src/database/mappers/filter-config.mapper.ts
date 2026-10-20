@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { FilterConfig } from "@workspace/domain/models/filter/value-objects";
 import { NodeId } from "@workspace/domain/models/node/value-objects";
 

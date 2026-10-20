@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Editor } from "@tiptap/core";
 import type { Node as TiptapNode } from "@tiptap/pm/model";
 import type { PluginView, Transaction } from "@tiptap/pm/state";

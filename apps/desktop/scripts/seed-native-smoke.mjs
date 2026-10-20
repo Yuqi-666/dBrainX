@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Send backend events into the actual native window for the visual smoke check. */
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";

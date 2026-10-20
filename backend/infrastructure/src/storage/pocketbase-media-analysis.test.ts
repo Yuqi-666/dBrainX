@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The cache on a resource record is what makes a second reference cheap, so the
  * cases below pin its contract: the analysis maps from the record, a refused or

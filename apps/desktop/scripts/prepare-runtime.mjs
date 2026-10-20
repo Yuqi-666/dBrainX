@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Prepare on the target platform: native libraries and executables cannot be cross-copied. */
 import { signWindowsRuntime } from "../../../scripts/lib/windows-signing.mjs";
 import {

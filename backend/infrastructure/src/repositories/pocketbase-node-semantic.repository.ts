@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { RecordModel } from "pocketbase";
 
 import type { INodeSemanticRepository, NodeSemanticQuery } from "@workspace/domain/repositories";

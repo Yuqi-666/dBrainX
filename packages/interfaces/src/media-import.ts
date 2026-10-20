@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Cross-boundary shapes of the media import (video and audio).
  *

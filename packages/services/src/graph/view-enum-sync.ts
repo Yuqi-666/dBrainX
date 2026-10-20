@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { NodeData, NodeId, View } from "@workspace/interfaces";
 import { useDataStore, useUIStore } from "@workspace/store";
 import { filterByViewFilterConfig } from "@workspace/utils";

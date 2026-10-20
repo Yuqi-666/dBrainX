@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+
 /* System fonts keep the desktop build and launch independent of Google Fonts. */
 :root {
   --font-sans:

@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+
 set -eu
 
 # The compose file sets this working directory. A test overrides it.

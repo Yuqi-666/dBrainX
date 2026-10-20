@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The video.js v10 controller bridge, pinned. Run with:
  *

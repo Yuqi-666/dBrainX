@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Remote media download adapter (yt-dlp spawned as a child process).
  *

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Replaying annotations onto a canvas — the `perfect-freehand` wrapper and the
  * five item renderers. **No React, no DOM lookups, no state**: design §5.3 needs

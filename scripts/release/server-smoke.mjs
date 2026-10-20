@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Fresh DB, isolated bundled backend, and two-user release/security regression. */
 import assert from "node:assert/strict";
 import { pdfFixture } from "../lib/smoke-fixtures.mjs";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Storage accounting contract shared by the browser, the API and PocketBase.
  *

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The pure card layer: one record as a card, and the 卡片配置 settings behind it.
  *

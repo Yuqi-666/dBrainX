@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Derived media artifacts, and their lifetime.
 //
 // A PDF cover, a video's HLS playlist, its segments and its poster are stored

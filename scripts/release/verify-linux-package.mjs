@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Verify the actual DEB and AppImage runtimes outside the checkout. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { createRequire } from "node:module";
 import { dirname, join, sep } from "node:path";
 import type {

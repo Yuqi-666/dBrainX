@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useI18n } from "@workspace/ui/lib/i18n";
 import { useEffect, useState } from "react";
 import { type Editor } from "@tiptap/react";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export * from "./empty-state";
 export * from "./data-view-placeholder";
 export * from "./data-view-config-placeholder";

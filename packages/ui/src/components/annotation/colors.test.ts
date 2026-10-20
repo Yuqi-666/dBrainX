@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import {

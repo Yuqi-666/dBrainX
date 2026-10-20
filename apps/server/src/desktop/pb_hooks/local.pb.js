@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Shipped only in Desktop resources; the Web server uses its existing PocketBase setup.
 routerUse((event) => {
   const secret = $os.getenv("DBRAIN_PB_SECRET");

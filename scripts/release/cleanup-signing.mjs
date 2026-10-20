@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { execFileSync } from "node:child_process";
 import { rm } from "node:fs/promises";
 if (process.env.DBRAIN_SIGNING_KEYCHAIN && process.platform === "darwin") {

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Storage policy for uploads into the `files` collection.
 //
 // This module is the server-side enforcement of the contract in

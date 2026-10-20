@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { DEFAULT_FORCE_CONFIG } from "@workspace/graph";
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 

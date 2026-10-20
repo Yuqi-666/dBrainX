@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { View } from "../models/view/entities";
 import type { ViewId, ViewType } from "../models/view/value-objects";
 import type { NodeId } from "../models/node/value-objects";

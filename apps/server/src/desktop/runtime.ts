@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Desktop composition root: the SAME container/router as apps/server, with a local lifecycle. */
 import { prepareUpgradeBackup, commitReleaseState } from "./upgrade-backup";
 import { spawn, type ChildProcess } from "node:child_process";

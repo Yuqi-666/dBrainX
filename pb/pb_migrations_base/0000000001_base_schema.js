@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Full schema for new databases. Update this with every new schema change.
 // Existing databases use immutable scripts in pb_migrations_changes instead.
 /// <reference path="../pb_data/types.d.ts" />

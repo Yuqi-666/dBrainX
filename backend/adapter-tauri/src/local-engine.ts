@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Desktop procedure adapter. Storage and the future sync transport stay outside this engine. */
 import {
   DEFAULT_VIEW_NAME,

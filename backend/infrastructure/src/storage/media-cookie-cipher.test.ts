@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { statSync } from "node:fs";

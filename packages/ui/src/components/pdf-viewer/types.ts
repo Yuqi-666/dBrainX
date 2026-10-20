@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { ReactNode } from "react";
 import type { Annotation } from "@workspace/interfaces";
 import type { PDFPageProxy } from "pdfjs-dist";

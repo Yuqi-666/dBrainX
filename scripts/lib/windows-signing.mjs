@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { readdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
