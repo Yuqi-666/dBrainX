@@ -268,7 +268,15 @@ export function MediaUrlImportDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
+        {/*
+          Same shape as the node editor's window dialog: a fixed design width
+          that a viewport-relative max caps on a smaller screen, rather than a
+          small `max-w` token the parsed result outgrows. A long title, the
+          site capsules and the quality tiers all need that room; `min-w-0` on
+          the body keeps the column inside the dialog instead of running past
+          its edge.
+        */}
+        <DialogContent className="w-[800px] sm:max-w-[80%]">
           <DialogHeader>
             <DialogTitle>
               {kind === "video" ? t("从视频网站添加") : t("从音乐网站添加")}
@@ -280,7 +288,7 @@ export function MediaUrlImportDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-4 flex min-w-0 flex-col gap-3">
             <div className="grid gap-2">
               <Label htmlFor={inputId}>
                 {kind === "video" ? t("视频页面链接") : t("音乐页面链接")}
@@ -339,7 +347,10 @@ export function MediaUrlImportDialog({
                 </p>
               )}
               {error && (
-                <p role="alert" className="text-xs text-destructive">
+                <p
+                  role="alert"
+                  className="text-xs break-words text-destructive"
+                >
                   {error}
                 </p>
               )}

@@ -27,6 +27,11 @@ import { useI18n } from "@workspace/ui/lib/i18n";
  *   subscription per tab would attach and detach on every switch.
  * - **One `TooltipProvider`.** Radix's tooltip context has no default, and the
  *   alternative — a provider per card — is a provider per row.
+ * - **The collapse button.** `onCollapse` is optional: the button beside the
+ *   tabs only exists when the host can hide this panel (`MediaNodeLayout` owns
+ *   the collapsed state and draws the rail that brings the panel back). The
+ *   panel stays **mounted** while hidden, because a draft note in 笔记 and the
+ *   tab selection are local state that a collapse must not discard.
  *
  * It is deliberately **stateless about the node**: it receives the timeline and
  * the transport, and reports changes and intents upward. The host
@@ -52,8 +57,15 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui/components/ui/tabs";
-import { TooltipProvider } from "@workspace/ui/components/ui/tooltip";
+import { Button } from "@workspace/ui/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@workspace/ui/components/ui/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
+import { PanelRightCloseIcon } from "lucide-react";
 
 import { subtitlesOf } from "../media-player/types";
 import type {
@@ -86,6 +98,11 @@ export interface MediaSidebarProps {
   onConvertNote: (note: TimestampNoteData) => Promise<NodeId | null>;
   /** 「打开节点」 on a 节点引用 card. */
   onOpenNode: (nodeId: NodeId) => void;
+  /**
+   * Hide the panel. The host owns the collapsed state and the rail that brings
+   * it back; no button is rendered when the host does not pass this.
+   */
+  onCollapse?: () => void;
   className?: string;
 }
 
@@ -112,6 +129,7 @@ export function MediaSidebar({
   onGenerateSubtitles,
   onConvertNote,
   onOpenNode,
+  onCollapse,
   className,
 }: MediaSidebarProps) {
   const { t } = useI18n();
@@ -169,13 +187,35 @@ export function MediaSidebar({
         className={cn("flex h-full min-h-0 flex-col gap-2", className)}
         data-slot="media-sidebar"
       >
-        <TabsList className="w-full shrink-0">
-          <TabsTrigger value="subtitles">
-            {tabLabel(t("字幕"), subtitles.length)}
-          </TabsTrigger>
-          <TabsTrigger value="notes">{t("笔记")}</TabsTrigger>
-          <TabsTrigger value="summary">{t("AI 总结")}</TabsTrigger>
-        </TabsList>
+        {/* The tabs share the row with the collapse button. `min-w-0 flex-1`
+            rather than `w-full`: the list has to give the button its 32px even
+            when the labels already want more than the panel has. */}
+        <div className="flex shrink-0 items-center gap-1">
+          <TabsList className="min-w-0 flex-1">
+            <TabsTrigger value="subtitles">
+              {tabLabel(t("字幕"), subtitles.length)}
+            </TabsTrigger>
+            <TabsTrigger value="notes">{t("笔记")}</TabsTrigger>
+            <TabsTrigger value="summary">{t("AI 总结")}</TabsTrigger>
+          </TabsList>
+          {onCollapse ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t("收起侧栏")}
+                  onClick={onCollapse}
+                  className="text-muted-foreground"
+                >
+                  <PanelRightCloseIcon />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">{t("收起侧栏")}</TooltipContent>
+            </Tooltip>
+          ) : null}
+        </div>
 
         {/* `min-h-0` on each panel is what lets the tab's own scroll area be the
             thing that shrinks, instead of the list pushing the box past the

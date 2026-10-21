@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { extname } from "node:path";
 
 import type {
@@ -524,6 +524,7 @@ export class MediaImportService {
         try {
           const packaged = await this.packageVideo(
             stored.url,
+            downloaded.path,
             onProgress
               ? (progress: { percent: number }) => {
                   emit(
@@ -838,9 +839,15 @@ export class MediaImportService {
    * private here because the two services have different dependencies and the
    * contract keeps them independent. A package already cached on the resource
    * answers without another download or FFmpeg run.
+   *
+   * `localPath` is the file the download just wrote. An import has the source on
+   * this machine already, so the transcoder reads that file and the store is not
+   * asked to hand the same bytes back; only a packaging call without a local
+   * file (a cache miss for a resource someone else imported) downloads it.
    */
   private async packageVideo(
     fileUrl: string,
+    localPath?: string,
     onProgress?: VideoTranscodeProgressListener,
   ): Promise<{
     hlsUrl: string;
@@ -861,10 +868,18 @@ export class MediaImportService {
     }
 
     const fileName = fileNameFromUrl(fileUrl);
-    const source = await this.fileStore.downloadToTempFile(
-      fileUrl,
-      sourceSuffix(fileName),
-    );
+    let source: { path: string; cleanup: () => Promise<void> };
+    const local = localPath ? await stat(localPath).catch(() => null) : null;
+    if (localPath && local?.isFile() && local.size > 0) {
+      // The download owns this file; the work directory is removed with the
+      // job, so there is nothing to clean up on this path.
+      source = { path: localPath, cleanup: () => Promise.resolve() };
+    } else {
+      source = await this.fileStore.downloadToTempFile(
+        fileUrl,
+        sourceSuffix(fileName),
+      );
+    }
 
     try {
       const result = await this.videoTranscoder.transcodeToHls(

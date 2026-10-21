@@ -40,9 +40,11 @@ test("builds the video download arguments", () => {
   assertPair(args, "--concurrent-fragments", String(CONCURRENT_FRAGMENTS));
   assertPair(args, "--merge-output-format", "mp4/mkv");
   assertPair(args, "-f", "137+ba/b");
+  // H.264 is the one codec the HLS packager can copy instead of re-encoding.
+  assertPair(args, "-S", "vcodec:h264");
   assertPair(args, "--max-filesize", "1024");
   assertPair(args, "-o", "/tmp/job/download/source.%(ext)s");
-  assertPair(args, "--sub-langs", "all,-live_chat");
+  assertPair(args, "--sub-langs", "all,-live_chat,-danmaku");
   assertPair(args, "--convert-subs", "vtt");
   assertPair(args, "--convert-thumbnails", "jpg");
   assertPair(args, "--", "https://www.bilibili.com/video/BV1");
@@ -58,6 +60,7 @@ test("asks for the best video and audio when no format was chosen", () => {
   });
 
   assertPair(args, "-f", "bv*+ba/b");
+  assertPair(args, "-S", "vcodec:h264");
 });
 
 test("builds the audio download arguments", () => {
@@ -71,8 +74,9 @@ test("builds the audio download arguments", () => {
 
   assert.ok(!args.includes("--merge-output-format"));
   assert.ok(!args.includes("--write-auto-subs"));
+  assert.ok(!args.includes("-S"));
   assertPair(args, "-f", "standard/bestaudio/best");
-  assertPair(args, "--sub-langs", "lyrics,all");
+  assertPair(args, "--sub-langs", "lyrics,all,-live_chat,-danmaku");
   assertPair(args, "--max-filesize", "2048");
 });
 
@@ -141,6 +145,7 @@ test("passes the FFmpeg location when one was configured", () => {
 test("builds the probe arguments without downloading the media", () => {
   const args = buildProbeArgs({
     url: "https://youtu.be/abc",
+    kind: "video",
     workDir: "/tmp/probe",
     cookieFile: "/tmp/probe/cookies.txt",
   });
@@ -150,10 +155,28 @@ test("builds the probe arguments without downloading the media", () => {
   assert.ok(args.includes("--no-simulate"));
   assert.ok(args.includes("--skip-download"));
   assert.ok(args.includes("--write-thumbnail"));
+  // yt-dlp only asks the site for its subtitle tracks when a download would
+  // write them, so the probe asks for them explicitly; nothing is written
+  // because `--skip-download` is passed.
+  assert.ok(args.includes("--write-subs"));
+  assert.ok(args.includes("--write-auto-subs"));
+  assertPair(args, "--sub-langs", "all,-live_chat,-danmaku");
   assertPair(args, "--convert-thumbnails", "jpg");
   assertPair(args, "--cookies", "/tmp/probe/cookies.txt");
   assertPair(args, "-o", "/tmp/probe/source.%(ext)s");
   assertPair(args, "--", "https://youtu.be/abc");
+});
+
+test("asks an audio probe for the lyric track", () => {
+  const args = buildProbeArgs({
+    url: "https://music.163.com/song?id=1",
+    kind: "audio",
+    workDir: "/tmp/probe",
+  });
+
+  assert.ok(args.includes("--write-subs"));
+  assert.ok(!args.includes("--write-auto-subs"));
+  assertPair(args, "--sub-langs", "lyrics,all,-live_chat,-danmaku");
 });
 
 test("reads the FFmpeg directory from the environment", () => {

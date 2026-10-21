@@ -174,3 +174,83 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
+
+/* --------------------------------------------------------- seek bar dot --- */
+
+/*
+  The shipped hover dot is `Preview:before`. `Preview` is an absolutely
+  positioned box whose `left` is *clamped* to the slider (that is what keeps the
+  time label on screen at the ends), and the dot is centred in that box — so
+  near either end the clamp drags the dot inward by half the box's width and it
+  can never reach the first or last pixel. The video preset draws its own dot in
+  the slider's coordinate space (`media-skin.tsx`) and hides the shipped one.
+*/
+.video-skin .media-slider-preview:before {
+  display: none;
+}
+
+.vjs-time-slider-dot {
+  position: absolute;
+  top: 50%;
+  /* The slider publishes the pointer position as a percentage of itself. */
+  left: var(--media-slider-pointer, 0%);
+  z-index: 2;
+  width: var(--media-spacing);
+  height: var(--media-spacing);
+  border-radius: var(--media-control-radius);
+  background-color: currentColor;
+  opacity: 0;
+  scale: 0.5;
+  translate: -50% -50%;
+  /* Never a hit target: the slider root owns the pointer gesture. */
+  pointer-events: none;
+  transition-property: opacity, scale;
+  transition-duration: var(--media-duration-slow, 150ms);
+  transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Hidden while dragging: the thumb already marks the pointer there. */
+.media-time-slider[data-pointing]:not([data-dragging]) .vjs-time-slider-dot {
+  opacity: 1;
+  scale: 1;
+}
+
+/* -------------------------------------------------------- subtitles --- */
+
+/*
+  The cue being spoken, over the picture: white on a translucent black plate,
+  the readable default a video site's own subtitles use. It sits above the video
+  and the poster but below the control bar (z-index 30 in the shipped
+  stylesheet), and it moves up while the controls are out so a two-row bar does
+  not cover the line.
+*/
+.vjs-subtitle-overlay {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--media-spacing) * 6);
+  z-index: 20;
+  max-width: min(92%, 56rem);
+  padding: calc(var(--media-spacing) * 0.5) calc(var(--media-spacing) * 2);
+  border-radius: calc(var(--media-spacing) * 1.5);
+  background-color: rgb(0 0 0 / 0.65);
+  color: #fff;
+  font-size: calc(var(--media-spacing) * 3.5);
+  line-height: 1.5;
+  text-align: center;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  translate: -50% 0;
+  pointer-events: none;
+  transition: bottom var(--media-duration-controls, 150ms) ease-out;
+}
+
+.video-skin[data-controls-visible] .vjs-subtitle-overlay {
+  bottom: calc(var(--media-spacing) * 16);
+}
+
+/* The "no track imported" state: still in the bar, visibly inert. */
+.vjs-captions-button[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.4;
+}

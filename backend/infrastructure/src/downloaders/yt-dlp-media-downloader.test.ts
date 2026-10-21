@@ -97,6 +97,17 @@ ${OUTPUT_LOOKUP}
 printf '%s' '{"title":"empty","duration":1,"formats":[]}'
 `;
 
+/**
+ * A stand-in that writes only a subtitle side file, as a download whose subtitles
+ * were the only thing yt-dlp saved would.
+ */
+const FAKE_SIDE_FILE_ONLY = `#!/bin/sh
+set -eu
+${OUTPUT_LOOKUP}
+printf '<i>danmaku</i>' > "$directory/source.danmaku.xml"
+printf '%s' '{"title":"side files only","duration":1,"formats":[]}'
+`;
+
 /** A stand-in that starts, marks the directory, and then waits. */
 const FAKE_SLOW = `#!/bin/sh
 set -eu
@@ -211,7 +222,7 @@ test("downloads a video and maps yt-dlp's files and metadata", async () => {
     assert.ok(hasPair(args, "-f", "137+ba/b"));
     assert.ok(hasPair(args, "--concurrent-fragments", "4"));
     assert.ok(hasPair(args, "--merge-output-format", "mp4/mkv"));
-    assert.ok(hasPair(args, "--sub-langs", "all,-live_chat"));
+    assert.ok(hasPair(args, "--sub-langs", "all,-live_chat,-danmaku"));
     assert.ok(hasPair(args, "--convert-subs", "vtt"));
     assert.ok(!args.includes("--cookies"));
     assert.equal(args.at(-1), PUBLIC_IP_URL);
@@ -283,7 +294,7 @@ test("downloads audio with a Unicode name and its lyric track", async () => {
     assert.ok(!args.includes("--merge-output-format"));
     assert.ok(!args.includes("--write-auto-subs"));
     assert.ok(hasPair(args, "-f", "bestaudio/best"));
-    assert.ok(hasPair(args, "--sub-langs", "lyrics,all"));
+    assert.ok(hasPair(args, "--sub-langs", "lyrics,all,-live_chat,-danmaku"));
     await media.cleanup();
   } finally {
     await work.cleanup();
@@ -524,6 +535,26 @@ test("rejects an empty file yt-dlp reported as success", async () => {
         assert.equal(error.code, "no_media");
         return true;
       },
+    );
+  } finally {
+    await work.cleanup();
+    await fake.cleanup();
+  }
+});
+
+test("never treats a subtitle side file as the media", async () => {
+  const fake = await fakeYtDlp(FAKE_SIDE_FILE_ONLY);
+  const work = await workDirectory();
+  try {
+    const downloader = new YtDlpMediaDownloader(fake.command);
+    await assert.rejects(
+      downloader.download({
+        url: PUBLIC_IP_URL,
+        kind: "video",
+        maxBytes: 1024,
+        workDir: work.path,
+      }),
+      /produced no media file/,
     );
   } finally {
     await work.cleanup();

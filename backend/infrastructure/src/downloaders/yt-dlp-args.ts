@@ -14,7 +14,11 @@
  *   size because not every site declares one.
  * - `--concurrent-fragments 4` is a fixed server policy, not a user setting.
  * - Subtitles and thumbnails are requested on every run; a site without them
- *   simply writes no file, which is not an error.
+ *   simply writes no file, which is not an error. A track that is not a caption
+ *   of the media is excluded by name, because converting some of them fails and
+ *   would abort the whole download; see {@link captionLanguages}.
+ * - A video stream the HLS packager can copy (H.264) is preferred over one it
+ *   would have to re-encode; see {@link buildDownloadArgs}.
  * - A cookie is passed by file path (`--cookies`) or by browser name
  *   (`--cookies-from-browser`), never as text in argv.
  */
@@ -22,6 +26,8 @@
 import { dirname, join } from "node:path";
 
 import type { MediaKind } from "@workspace/interfaces";
+
+import { NON_CAPTION_SUBTITLE_LANGUAGES } from "./yt-dlp-subtitles.ts";
 
 /** Fixed fragment concurrency; the site is asked for at most four at once. */
 export const CONCURRENT_FRAGMENTS = 4;
@@ -33,11 +39,11 @@ export const CONCURRENT_FRAGMENTS = 4;
 export const PROGRESS_TEMPLATE =
   "download:%(progress.downloaded_bytes)s/%(progress.total_bytes)s/%(progress.speed)s/%(progress.eta)s";
 
-/** Video subtitle selection: every language, minus the chat replay. */
-const VIDEO_SUBTITLE_LANGUAGES = "all,-live_chat";
+/** Video subtitle selection: every language the site offers as captions. */
+const VIDEO_SUBTITLE_LANGUAGES = captionLanguages("all");
 
-/** Audio subtitle selection: the lyrics track, then every other track. */
-const AUDIO_SUBTITLE_LANGUAGES = "lyrics,all";
+/** Audio subtitle selection: the lyrics track, then every caption track. */
+const AUDIO_SUBTITLE_LANGUAGES = captionLanguages("lyrics", "all");
 
 /** How one download is asked for. */
 export interface DownloadArgsOptions {
@@ -63,6 +69,8 @@ export interface DownloadArgsOptions {
 export interface ProbeArgsOptions {
   /** Validated page address. */
   url: string;
+  /** Whether the address is read as a video or as an audio track. */
+  kind: MediaKind;
   /** Absolute temporary directory; the probe removes it afterwards. */
   workDir: string;
   /** See {@link DownloadArgsOptions.cookieFile}. */
@@ -108,6 +116,12 @@ export function buildDownloadArgs(options: DownloadArgsOptions): string[] {
     // `+ba/b` pairs the chosen picture with the best audio, and `b` is the
     // fallback when the site offers only a combined stream.
     args.push("-f", `${options.formatId ?? "bv*"}+ba/b`);
+    // The HLS packager copies an H.264 stream into MPEG-TS and must re-encode
+    // every other codec, which costs minutes for a full-length video. yt-dlp's
+    // default sort prefers AV1, so the codec preference is stated here; the
+    // resolution still wins, because `-S` only orders the codecs of one
+    // resolution. The picker applies the same rule (`videoQualities`).
+    args.push("-S", "vcodec:h264");
   } else {
     // A music site normally offers an audio-only format. The fallback keeps an
     // import working when the requested format disappears between probe and
@@ -161,8 +175,16 @@ export function buildDownloadArgs(options: DownloadArgsOptions): string[] {
  * `--no-simulate` is load-bearing here: `-J` implies simulation, and a simulated
  * run writes no thumbnail at all. `--skip-download` keeps the media itself off
  * the network while the thumbnail is still written.
+ *
+ * The subtitle flags are load-bearing for the same reason on a different site:
+ * yt-dlp's own extractor only asks the site for its subtitle tracks when a
+ * download would write them. A Bilibili or TikTok probe without `--write-subs`
+ * therefore reports no tracks at all, and the picker can never tell the user a
+ * subtitle will come with the media. `--skip-download` still keeps every track
+ * off the disk; only the track list appears in the JSON.
  */
 export function buildProbeArgs(options: ProbeArgsOptions): string[] {
+  const isVideo = options.kind === "video";
   const args = [
     "--ignore-config",
     "--no-playlist",
@@ -179,6 +201,15 @@ export function buildProbeArgs(options: ProbeArgsOptions): string[] {
     "-o",
     join(options.workDir, "source.%(ext)s"),
   ];
+
+  // The same selection a download asks for, so the list the picker shows is the
+  // list the import would actually fetch.
+  args.push("--write-subs");
+  if (isVideo) args.push("--write-auto-subs");
+  args.push(
+    "--sub-langs",
+    isVideo ? VIDEO_SUBTITLE_LANGUAGES : AUDIO_SUBTITLE_LANGUAGES,
+  );
 
   if (options.ffmpegLocation) {
     args.push("--ffmpeg-location", options.ffmpegLocation);
@@ -199,6 +230,22 @@ export function buildProbeArgs(options: ProbeArgsOptions): string[] {
 export function ffmpegLocationFromEnvironment(): string | undefined {
   const ffmpegPath = process.env.FFMPEG_PATH;
   return ffmpegPath ? dirname(ffmpegPath) : undefined;
+}
+
+/**
+ * Builds the `--sub-langs` value: the requested picks, then one exclusion per
+ * track that is not a caption.
+ *
+ * `danmaku` has to be excluded here, not later: yt-dlp downloads it as an
+ * `xml` file and `--convert-subs vtt` then fails, which turns a successful
+ * media download into a failed import. `live_chat` is a chat replay, never
+ * captions of the media.
+ */
+function captionLanguages(...wanted: string[]): string {
+  const excluded = NON_CAPTION_SUBTITLE_LANGUAGES.map(
+    (language) => `-${language}`,
+  );
+  return [...wanted, ...excluded].join(",");
 }
 
 /**

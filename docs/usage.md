@@ -98,15 +98,17 @@ The imported file counts in the storage quota and against the category limit: 2 
 Some content needs a login: a high video quality, a high audio tier, member content, or age-restricted content. The login area sits inside the import dialog: open it with 站点登录 or select a site capsule. dBrain stores no account password.
 
 - Method A, local backend only: select a browser that is installed on this machine. The server reads the cookies of that browser at download time and stores only the browser name, so the cookies never go stale. A remote deployment does not show this method.
-- Method B, web and desktop: select or drop a `cookies.txt` file that a browser extension exported. One file can contain the cookies of several sites, so a single export can light the capsules of several sites. dBrain keeps only the cookies of the listed sites and discards every other domain before it stores anything.
+- Method B, web and desktop: select or drop a `cookies.txt` file that a browser extension exported. The login area links to [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc), which writes this file in the browser. One file can contain the cookies of several sites, so a single export can light the capsules of several sites. dBrain keeps only the cookies of the listed sites and discards every other domain before it stores anything.
 
 A capsule shows the login state. A login error turns the capsule to the expired state. Connect the site again in the login area, then select 解析 again. A public page still imports without a login.
 
 #### Subtitles, lyrics, and cover
 
-At each import, dBrain asks the site for one subtitle track or lyric track. It selects the track automatically: the interface language first, then the original language, then English, then the first manual track, then the first automatic track. The track enters the 字幕 tab of the media sidebar. Select a line there to jump to that point. dBrain stores no subtitle file, so the track does not count in the quota. A page without a subtitle imports without one. This version does not switch between languages and does not create a subtitle.
+At each import, dBrain asks the site for one subtitle track or lyric track. It selects the track automatically: the interface language first, then the original language, then English, then the first manual track, then the first automatic track. The track enters the 字幕 tab of the media sidebar. Select a line there to jump to that point. While a video node plays, the current subtitle line is drawn over the picture as white text on a black plate; the subtitle button in the control bar turns it on and off, and hovering that button shows 显示字幕 or 隐藏字幕. A node without an imported track has a greyed-out button and no line to draw. dBrain stores no subtitle file, so the track does not count in the quota. A page without a subtitle imports without one. This version does not switch between languages and does not create a subtitle.
 
 A site thumbnail becomes the cover of the node and of its preview card. The server stores the cover as a derived image of the resource. The library does not list it, and it counts in the quota. A video without a site thumbnail uses a frame of the video. An audio file without a cover shows no cover.
+
+The media sidebar collapses. Select the button beside its tabs to hide the panel and give the picture the full width. A narrow strip beside the player brings it back. 加笔记 or a note tick on the progress bar expands it again, because both put something in the panel.
 
 #### Import errors
 
