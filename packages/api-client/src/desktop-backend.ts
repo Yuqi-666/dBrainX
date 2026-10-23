@@ -23,7 +23,14 @@ export function initializeDesktopBackend(retry = false): Promise<DesktopBackend>
       __TAURI__?: { core: { invoke<T>(command: string): Promise<T> } };
     }).__TAURI__;
     if (!native) throw new Error("请通过 Desktop 应用启动，本地后端需要 Tauri 运行环境。");
-    const result = await native.core.invoke<DesktopBackend>("start_local_backend");
+    // Tauri rejects a command with the plain string the native supervisor
+    // returned. Keep it as an Error: the caller would otherwise fall back to the
+    // generic message and hide the log path that names the actual failure.
+    const result = await native.core
+      .invoke<DesktopBackend>("start_local_backend")
+      .catch((error: unknown) => {
+        throw error instanceof Error ? error : new Error(String(error));
+      });
     const session = await fetch(`${result.pocketbase}/session`, { method: "POST", signal: AbortSignal.timeout(5000) });
     if (!session.ok) throw new Error("本地身份初始化失败");
     result.token = (await session.json() as { token: string }).token;
