@@ -4,7 +4,7 @@
 
 /**
  * The audio node's player: **video.js v10** (`@videojs/react/audio`) with the
- * shared dBrain skin.
+ * shared dBrainX skin.
  *
  * It replaces the self-drawn transport M6 shipped, and the reason is the same
  * one the video side had: a hand-rolled bar cannot put a note tick *inside* a
@@ -18,7 +18,7 @@
  * container), and an audio keyboard with no fullscreen / picture-in-picture.
  * The volume control is the shared mute toggle — the shipped audio skin wraps
  * it in a volume popover, whose styling the shipped stylesheet only defines for
- * a multi-part menu surface dBrain has no other use for.
+ * a multi-part menu surface dBrainX has no other use for.
  *
  * The packed stylesheet is imported **here**, so a video-only page never
  * downloads the audio preset's CSS (and vice versa).

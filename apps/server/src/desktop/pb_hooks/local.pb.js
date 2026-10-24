@@ -2,8 +2,8 @@
 
 // Shipped only in Desktop resources; the Web server uses its existing PocketBase setup.
 routerUse((event) => {
-  const secret = $os.getenv("DBRAIN_PB_SECRET");
-  if (!secret || event.request.header.get("X-DBrain-Internal") !== secret) {
+  const secret = $os.getenv("DBRAINX_PB_SECRET");
+  if (!secret || event.request.header.get("X-DBrainX-Internal") !== secret) {
     throw new ForbiddenError("Local database access requires the backend");
   }
   return event.next();

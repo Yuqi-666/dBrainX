@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { validateRun } from "./validate-run.mjs";
 test("publication accepts only successful tag or manual candidate runs from the same repository", () => {
-  const repository = "Yuqi-666/dBrain";
+  const repository = "Yuqi-666/dBrainX";
   const run = {
     id: 123,
     repository: { full_name: repository },

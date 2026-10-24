@@ -11,7 +11,7 @@ export function useToolbarPreference<T>(
   validate: (value: unknown) => value is T,
   persist = true,
 ) {
-  const key = `dbrain:annotation:toolbar:v1:${name}`;
+  const key = `dbrainx:annotation:toolbar:v1:${name}`;
   const [value, setValue] = useState<T>(initial);
   const [ready, setReady] = useState(false);
   const validateRef = useRef(validate);

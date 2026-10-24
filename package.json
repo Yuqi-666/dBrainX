@@ -1,5 +1,5 @@
 {
-  "name": "dBrain",
+  "name": "dBrainX",
   "private": true,
   "scripts": {
     "icons:generate": "node scripts/generate-icons.mjs",

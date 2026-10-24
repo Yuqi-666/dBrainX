@@ -54,7 +54,7 @@ exit 1
 
 /** One fake executable in its own directory. */
 async function fakeFfmpeg(script: string) {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-audio-transcoder-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-audio-transcoder-test-"));
   const command = join(dir, "fake-ffmpeg");
   await writeFile(command, script, "utf8");
   await chmod(command, 0o755);
@@ -69,7 +69,7 @@ async function inputFile(name: string): Promise<{
   path: string;
   cleanup: () => Promise<void>;
 }> {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-audio-input-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-audio-input-test-"));
   const path = join(dir, name);
   await writeFile(path, "input audio");
   return {

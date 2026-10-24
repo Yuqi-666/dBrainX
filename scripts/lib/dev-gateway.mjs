@@ -95,15 +95,15 @@ function readUpstream(value, fallback, name) {
  * @returns {GatewayConfig}
  */
 export function readGatewayConfig(env = process.env) {
-  const port = Number(env.DBRAIN_GATEWAY_PORT ?? 3000);
+  const port = Number(env.DBRAINX_GATEWAY_PORT ?? 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535)
-    throw new Error(`Invalid DBRAIN_GATEWAY_PORT: ${env.DBRAIN_GATEWAY_PORT}`);
+    throw new Error(`Invalid DBRAINX_GATEWAY_PORT: ${env.DBRAINX_GATEWAY_PORT}`);
   return {
-    host: (env.DBRAIN_GATEWAY_HOST ?? "").trim() || "0.0.0.0",
+    host: (env.DBRAINX_GATEWAY_HOST ?? "").trim() || "0.0.0.0",
     port,
-    web: readUpstream(env.DBRAIN_WEB_URL, "http://127.0.0.1:3002", "DBRAIN_WEB_URL"),
-    server: readUpstream(env.DBRAIN_SERVER_URL, "http://127.0.0.1:3001", "DBRAIN_SERVER_URL"),
-    pocketbase: readUpstream(env.DBRAIN_PB_URL, "http://127.0.0.1:8090", "DBRAIN_PB_URL"),
+    web: readUpstream(env.DBRAINX_WEB_URL, "http://127.0.0.1:3002", "DBRAINX_WEB_URL"),
+    server: readUpstream(env.DBRAINX_SERVER_URL, "http://127.0.0.1:3001", "DBRAINX_SERVER_URL"),
+    pocketbase: readUpstream(env.DBRAINX_PB_URL, "http://127.0.0.1:8090", "DBRAINX_PB_URL"),
   };
 }
 

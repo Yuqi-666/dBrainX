@@ -8,7 +8,7 @@ use tauri_plugin_updater::UpdaterExt;
 
 async fn update_on_start(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
   if let Some(update) = app.updater()?.check().await? {
-    log::info!("New dBrain release available: {}", update.version);
+    log::info!("New dBrainX release available: {}", update.version);
     update.download_and_install(|_, _| {}, || {}).await?;
     app.restart();
   }

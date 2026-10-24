@@ -33,7 +33,7 @@ class Clock {
 }
 
 async function tempRoot(): Promise<string> {
-  return mkdtemp(join(tmpdir(), "dbrain-upload-test-"));
+  return mkdtemp(join(tmpdir(), "dbrainx-upload-test-"));
 }
 
 function input(
@@ -70,24 +70,24 @@ function part(
   return { index, bytes, data: octets(actualBytes, marker) };
 }
 
-test("defaultUploadDir follows DBRAIN_UPLOAD_DIR and falls back to the temp directory", () => {
-  const previous = process.env.DBRAIN_UPLOAD_DIR;
+test("defaultUploadDir follows DBRAINX_UPLOAD_DIR and falls back to the temp directory", () => {
+  const previous = process.env.DBRAINX_UPLOAD_DIR;
   try {
-    delete process.env.DBRAIN_UPLOAD_DIR;
-    assert.equal(defaultUploadDir(), join(tmpdir(), "dbrain-uploads"));
+    delete process.env.DBRAINX_UPLOAD_DIR;
+    assert.equal(defaultUploadDir(), join(tmpdir(), "dbrainx-uploads"));
 
-    process.env.DBRAIN_UPLOAD_DIR = "/mnt/dbrain/spool";
-    assert.equal(defaultUploadDir(), "/mnt/dbrain/spool");
+    process.env.DBRAINX_UPLOAD_DIR = "/mnt/dbrainx/spool";
+    assert.equal(defaultUploadDir(), "/mnt/dbrainx/spool");
 
     // A compose file passes an unset variable through as an empty string; that
     // must fall back rather than become a relative root.
-    process.env.DBRAIN_UPLOAD_DIR = "";
-    assert.equal(defaultUploadDir(), join(tmpdir(), "dbrain-uploads"));
-    process.env.DBRAIN_UPLOAD_DIR = "   ";
-    assert.equal(defaultUploadDir(), join(tmpdir(), "dbrain-uploads"));
+    process.env.DBRAINX_UPLOAD_DIR = "";
+    assert.equal(defaultUploadDir(), join(tmpdir(), "dbrainx-uploads"));
+    process.env.DBRAINX_UPLOAD_DIR = "   ";
+    assert.equal(defaultUploadDir(), join(tmpdir(), "dbrainx-uploads"));
   } finally {
-    if (previous === undefined) delete process.env.DBRAIN_UPLOAD_DIR;
-    else process.env.DBRAIN_UPLOAD_DIR = previous;
+    if (previous === undefined) delete process.env.DBRAINX_UPLOAD_DIR;
+    else process.env.DBRAINX_UPLOAD_DIR = previous;
   }
 });
 

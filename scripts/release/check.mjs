@@ -47,7 +47,7 @@ export async function checkRelease(tag) {
   assert.ok(config.app.security.csp, "Desktop CSP must not be disabled");
   assert.equal(
     config.identifier,
-    "cn.dbrain.desktop",
+    "cn.dbrainx.desktop",
     "Changing identifier relocates existing user data",
   );
   assert.equal((await json("package.json")).packageManager, "pnpm@9.0.0");

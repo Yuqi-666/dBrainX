@@ -99,7 +99,7 @@ export class FfmpegAudioTranscoder implements IAudioTranscoder {
       };
     }
 
-    const workDir = await mkdtemp(join(tmpdir(), "dbrain-audio-convert-"));
+    const workDir = await mkdtemp(join(tmpdir(), "dbrainx-audio-convert-"));
     let removed = false;
     const cleanup = async (): Promise<void> => {
       if (removed) return;

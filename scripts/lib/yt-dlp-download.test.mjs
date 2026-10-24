@@ -36,7 +36,7 @@ import {
 
 /** A repository root and cache path under the system temporary directory. */
 async function fixtureRoot() {
-  const root = await mkdtemp(join(tmpdir(), "dbrain-yt-dlp-download-"));
+  const root = await mkdtemp(join(tmpdir(), "dbrainx-yt-dlp-download-"));
   return { root, cleanup: () => rm(root, { recursive: true, force: true }) };
 }
 

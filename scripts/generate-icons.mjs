@@ -20,7 +20,7 @@ const sourceDir = join(root, "packages/ui/src/img/icon");
 const nativeDir = join(root, "apps/desktop/src-tauri/icons");
 const requireDesktop = createRequire(join(root, "apps/desktop/package.json"));
 const tauriCli = requireDesktop.resolve("@tauri-apps/cli/tauri.js");
-const scratch = await mkdtemp(join(tmpdir(), "dbrain-icons-"));
+const scratch = await mkdtemp(join(tmpdir(), "dbrainx-icons-"));
 
 // Keep the original paths; remove empty Excalidraw elements and export padding.
 function artwork(source, name, dark, tile = false) {
@@ -41,7 +41,7 @@ function artwork(source, name, dark, tile = false) {
   const background = tile
     ? `<rect x="${x}" y="${y}" width="${side}" height="${side}" rx="${side * 0.18}" fill="${dark ? "#18181b" : "#f5f5f4"}"/>`
     : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${side} ${side}" width="512" height="512"><title>${name === "logo" ? "dBrain" : "Graph"}</title>${background}${paths}</svg>\n`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${side} ${side}" width="512" height="512"><title>${name === "logo" ? "dBrainX" : "Graph"}</title>${background}${paths}</svg>\n`;
 }
 
 function generate(input, output, png) {

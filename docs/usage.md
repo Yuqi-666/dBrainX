@@ -1,6 +1,6 @@
 # Usage manual
 
-This manual covers the installation, the update, and the removal of dBrain.
+This manual covers the installation, the update, and the removal of dBrainX.
 For the product functions, see the app.
 
 ## Install the desktop app
@@ -22,14 +22,14 @@ Replace the file names in these examples with the downloaded files.
 
 ```bash
 # Linux AppImage
-chmod +x dBrain.AppImage
-./dBrain.AppImage
+chmod +x dBrainX.AppImage
+./dBrainX.AppImage
 
 # Debian and Ubuntu
-sudo apt install ./dBrain.deb
+sudo apt install ./dBrainX.deb
 
 # Fedora and other RPM systems
-sudo dnf install ./dBrain.rpm
+sudo dnf install ./dBrainX.rpm
 ```
 
 The installer contains the runtime.
@@ -73,8 +73,8 @@ The app keeps the data, but a backup is the only copy that a failed update canno
 2. Remove the program. Use the package manager for a DEB or an RPM. Use the Windows uninstaller for an EXE or an MSI. On macOS, move the app to the Trash.
 3. Decide about the data. The uninstaller does not remove it.
 
-The data is in the application data directory of the identifier `cn.dbrain.desktop`.
-On Linux the path is `$XDG_DATA_HOME/cn.dbrain.desktop`, or `~/.local/share/cn.dbrain.desktop` without that variable.
+The data is in the application data directory of the identifier `cn.dbrainx.desktop`.
+On Linux the path is `$XDG_DATA_HOME/cn.dbrainx.desktop`, or `~/.local/share/cn.dbrainx.desktop` without that variable.
 On Windows and macOS, open the application data folder of the platform.
 
 To remove the data, back it up first, then remove the complete directory by hand.

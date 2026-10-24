@@ -34,7 +34,7 @@ function uploader(platform, cookie) {
   }).outputText;
   runInNewContext(source, {
     module, exports: module.exports, XMLHttpRequest: XHR, FormData,
-    process: { env: { NEXT_PUBLIC_DBRAIN_PLATFORM: platform } },
+    process: { env: { NEXT_PUBLIC_DBRAINX_PLATFORM: platform } },
     require(id) {
       if (id === "@workspace/store") return { useWorkspaceStore: { getState: () => ({ currentWorkspaceId: "workspace" }) } };
       // The size limits are re-exported by `upload.ts`; none of the direct-path

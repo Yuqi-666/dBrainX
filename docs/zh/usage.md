@@ -1,6 +1,6 @@
 # 使用手册
 
-本手册只介绍 dBrain 的安装、更新与卸载。
+本手册只介绍 dBrainX 的安装、更新与卸载。
 产品功能请在应用内使用。
 
 ## 安装桌面版
@@ -22,14 +22,14 @@
 
 ```bash
 # Linux AppImage
-chmod +x dBrain.AppImage
-./dBrain.AppImage
+chmod +x dBrainX.AppImage
+./dBrainX.AppImage
 
 # Debian 与 Ubuntu
-sudo apt install ./dBrain.deb
+sudo apt install ./dBrainX.deb
 
 # Fedora 等 RPM 系统
-sudo dnf install ./dBrain.rpm
+sudo dnf install ./dBrainX.rpm
 ```
 
 安装包携带运行时。
@@ -73,8 +73,8 @@ Web 用户无需操作。
 2. 移除程序。DEB 或 RPM 用发行版包管理器。EXE 或 MSI 用 Windows 卸载程序。macOS 把应用移到废纸篓。
 3. 决定是否移除数据。卸载程序不会移除它。
 
-数据位于 `cn.dbrain.desktop` 的应用数据目录。
-Linux 路径为 `$XDG_DATA_HOME/cn.dbrain.desktop`，未设置该变量时为 `~/.local/share/cn.dbrain.desktop`。
+数据位于 `cn.dbrainx.desktop` 的应用数据目录。
+Linux 路径为 `$XDG_DATA_HOME/cn.dbrainx.desktop`，未设置该变量时为 `~/.local/share/cn.dbrainx.desktop`。
 Windows 与 macOS 请打开平台提供的应用数据文件夹。
 
 要移除数据，先备份，再手动移除整个目录。

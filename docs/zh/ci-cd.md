@@ -41,7 +41,7 @@ pnpm release:check
 node scripts/release/assert-next-version.mjs
 git add -A && git commit -m "chore(release): vVERSION"
 git push origin develop
-git tag -a vVERSION -m "dBrain vVERSION"
+git tag -a vVERSION -m "dBrainX vVERSION"
 git push origin vVERSION
 # 候选成功后，用合并提交把 develop 合入 main。
 gh run list --workflow release-candidate.yml
@@ -73,7 +73,7 @@ gh pr create --base main --head hotfix/NAME --title "fix(scope): what changed" -
 # 先合并 develop 的 PR。标签必须位于 develop 历史中。
 gh pr merge --merge
 node scripts/release/assert-next-version.mjs
-git tag -a vVERSION -m "dBrain vVERSION"
+git tag -a vVERSION -m "dBrainX vVERSION"
 git push origin vVERSION
 # 候选成功后，合并 main 的 PR 并正式发布。
 gh workflow run release.yml --ref main -f candidate_run_id=RUN_ID -f tag=vVERSION -f publish=true
@@ -83,7 +83,7 @@ gh workflow run release.yml --ref main -f candidate_run_id=RUN_ID -f tag=vVERSIO
 
 ## 仓库策略
 
-`pnpm policy --repo Yuqi-666/dBrain` 打印计划。这些工作流合入 `main` 且 GitHub 上出现 `checks` 后，所有者运行 `pnpm policy --apply --repo Yuqi-666/dBrain`。
+`pnpm policy --repo Yuqi-666/dBrainX` 打印计划。这些工作流合入 `main` 且 GitHub 上出现 `checks` 后，所有者运行 `pnpm policy --apply --repo Yuqi-666/dBrainX`。
 
 脚本执行以下规则。
 

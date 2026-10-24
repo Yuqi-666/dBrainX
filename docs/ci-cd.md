@@ -41,7 +41,7 @@ pnpm release:check
 node scripts/release/assert-next-version.mjs
 git add -A && git commit -m "chore(release): vVERSION"
 git push origin develop
-git tag -a vVERSION -m "dBrain vVERSION"
+git tag -a vVERSION -m "dBrainX vVERSION"
 git push origin vVERSION
 # After the candidate succeeds, merge develop into main with a merge commit.
 gh run list --workflow release-candidate.yml
@@ -73,7 +73,7 @@ gh pr create --base main --head hotfix/NAME --title "fix(scope): what changed" -
 # Merge the develop pull request first. The tag must be in the develop history.
 gh pr merge --merge
 node scripts/release/assert-next-version.mjs
-git tag -a vVERSION -m "dBrain vVERSION"
+git tag -a vVERSION -m "dBrainX vVERSION"
 git push origin vVERSION
 # After the candidate succeeds, merge the main pull request and publish.
 gh workflow run release.yml --ref main -f candidate_run_id=RUN_ID -f tag=vVERSION -f publish=true
@@ -83,7 +83,7 @@ The optional deployment updater watches successful candidates from a tag when en
 
 ## Repository policy
 
-`pnpm policy --repo Yuqi-666/dBrain` prints the plan. After these workflows merge into `main` and `checks` appears on GitHub, the owner runs `pnpm policy --apply --repo Yuqi-666/dBrain`.
+`pnpm policy --repo Yuqi-666/dBrainX` prints the plan. After these workflows merge into `main` and `checks` appears on GitHub, the owner runs `pnpm policy --apply --repo Yuqi-666/dBrainX`.
 
 The script applies these rules.
 

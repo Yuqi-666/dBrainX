@@ -37,11 +37,11 @@ test("defaults match the documented ports", () => {
 test("reads every port from the environment", () => {
   const stack = readDevStack(
     {
-      DBRAIN_WEB_PORT: "4000",
-      DBRAIN_SERVER_PORT: "4001",
-      DBRAIN_GATEWAY_PORT: "18080",
-      DBRAIN_PB_HTTP: "127.0.0.1:8091",
-      DBRAIN_DEV_DOMAIN: "dev.example.com",
+      DBRAINX_WEB_PORT: "4000",
+      DBRAINX_SERVER_PORT: "4001",
+      DBRAINX_GATEWAY_PORT: "18080",
+      DBRAINX_PB_HTTP: "127.0.0.1:8091",
+      DBRAINX_DEV_DOMAIN: "dev.example.com",
     },
     { remote: true },
   );
@@ -57,87 +57,87 @@ test("reads every port from the environment", () => {
 test("falls back to PORT for the API and treats blanks as unset", () => {
   assert.equal(readDevStack({ PORT: "4100" }).serverPort, 4100);
   assert.equal(
-    readDevStack({ PORT: "4100", DBRAIN_SERVER_PORT: "4101" }).serverPort,
+    readDevStack({ PORT: "4100", DBRAINX_SERVER_PORT: "4101" }).serverPort,
     4101,
   );
   assert.equal(
-    readDevStack({ PORT: "4100", DBRAIN_SERVER_PORT: "  " }).serverPort,
+    readDevStack({ PORT: "4100", DBRAINX_SERVER_PORT: "  " }).serverPort,
     4100,
   );
-  assert.equal(readDevStack({ DBRAIN_WEB_PORT: "" }).webPort, 3000);
+  assert.equal(readDevStack({ DBRAINX_WEB_PORT: "" }).webPort, 3000);
 });
 
 test("an explicit PocketBase URL wins over the derived one", () => {
   assert.equal(
     readDevStack({
-      DBRAIN_PB_HTTP: "127.0.0.1:8091",
-      DBRAIN_PB_URL: "http://127.0.0.1:9999",
+      DBRAINX_PB_HTTP: "127.0.0.1:8091",
+      DBRAINX_PB_URL: "http://127.0.0.1:9999",
     }).pbUrl,
     "http://127.0.0.1:9999",
   );
 });
 
 test("rejects values that are not ports", () => {
-  assert.throws(() => readDevStack({ DBRAIN_WEB_PORT: "0" }), /DBRAIN_WEB_PORT/);
-  assert.throws(() => readDevStack({ DBRAIN_WEB_PORT: "abc" }), /DBRAIN_WEB_PORT/);
+  assert.throws(() => readDevStack({ DBRAINX_WEB_PORT: "0" }), /DBRAINX_WEB_PORT/);
+  assert.throws(() => readDevStack({ DBRAINX_WEB_PORT: "abc" }), /DBRAINX_WEB_PORT/);
   assert.throws(
-    () => readDevStack({ DBRAIN_GATEWAY_PORT: "70000" }),
-    /DBRAIN_GATEWAY_PORT/,
+    () => readDevStack({ DBRAINX_GATEWAY_PORT: "70000" }),
+    /DBRAINX_GATEWAY_PORT/,
   );
-  assert.throws(() => readDevStack({ DBRAIN_PB_HTTP: "8090" }), /DBRAIN_PB_HTTP/);
+  assert.throws(() => readDevStack({ DBRAINX_PB_HTTP: "8090" }), /DBRAINX_PB_HTTP/);
   assert.throws(
-    () => readDevStack({ DBRAIN_PB_HTTP: "127.0.0.1:0" }),
-    /DBRAIN_PB_HTTP/,
+    () => readDevStack({ DBRAINX_PB_HTTP: "127.0.0.1:0" }),
+    /DBRAINX_PB_HTTP/,
   );
 });
 
 test("refuses two services on one port", () => {
-  assert.throws(() => readDevStack({ DBRAIN_WEB_PORT: "3001" }), /used by both/);
+  assert.throws(() => readDevStack({ DBRAINX_WEB_PORT: "3001" }), /used by both/);
   assert.throws(
-    () => readDevStack({ DBRAIN_GATEWAY_PORT: "3000" }, { remote: true }),
+    () => readDevStack({ DBRAINX_GATEWAY_PORT: "3000" }, { remote: true }),
     /used by both/,
   );
   // The gateway port only takes part in the remote shape.
-  assert.doesNotThrow(() => readDevStack({ DBRAIN_GATEWAY_PORT: "3000" }));
+  assert.doesNotThrow(() => readDevStack({ DBRAINX_GATEWAY_PORT: "3000" }));
 });
 
 test("the child environment follows the resolved ports", () => {
   const stack = readDevStack(
     {
-      DBRAIN_WEB_PORT: "4000",
-      DBRAIN_SERVER_PORT: "4001",
-      DBRAIN_PB_HTTP: "127.0.0.1:8091",
-      DBRAIN_GATEWAY_PORT: "18080",
+      DBRAINX_WEB_PORT: "4000",
+      DBRAINX_SERVER_PORT: "4001",
+      DBRAINX_PB_HTTP: "127.0.0.1:8091",
+      DBRAINX_GATEWAY_PORT: "18080",
     },
     { remote: true },
   );
-  const env = stackEnv(stack, { PATH: "/bin", DBRAIN_DEV_DOMAIN: "dev.example.com" });
+  const env = stackEnv(stack, { PATH: "/bin", DBRAINX_DEV_DOMAIN: "dev.example.com" });
   assert.equal(env.PORT, "4001");
-  assert.equal(env.DBRAIN_PB_HTTP, "127.0.0.1:8091");
+  assert.equal(env.DBRAINX_PB_HTTP, "127.0.0.1:8091");
   assert.equal(env.PB_URL, "http://127.0.0.1:8091");
-  assert.equal(env.DBRAIN_PB_URL, "http://127.0.0.1:8091");
-  assert.equal(env.DBRAIN_WEB_URL, "http://127.0.0.1:4000");
-  assert.equal(env.DBRAIN_SERVER_URL, "http://127.0.0.1:4001");
-  assert.equal(env.DBRAIN_GATEWAY_PORT, "18080");
+  assert.equal(env.DBRAINX_PB_URL, "http://127.0.0.1:8091");
+  assert.equal(env.DBRAINX_WEB_URL, "http://127.0.0.1:4000");
+  assert.equal(env.DBRAINX_SERVER_URL, "http://127.0.0.1:4001");
+  assert.equal(env.DBRAINX_GATEWAY_PORT, "18080");
   assert.equal(env.PATH, "/bin");
-  assert.equal(env.DBRAIN_DEV_DOMAIN, "dev.example.com");
+  assert.equal(env.DBRAINX_DEV_DOMAIN, "dev.example.com");
 });
 
 test("lists the ports the stack listens on", () => {
   assert.deepEqual(stackPorts(readDevStack({}, { remote: true })), [
-    { name: "DBRAIN_WEB_PORT", host: "127.0.0.1", port: 3000 },
-    { name: "DBRAIN_SERVER_PORT", host: "127.0.0.1", port: 3001 },
-    { name: "DBRAIN_PB_HTTP", host: "127.0.0.1", port: 8090 },
-    { name: "DBRAIN_GATEWAY_PORT", host: "127.0.0.1", port: 8080 },
+    { name: "DBRAINX_WEB_PORT", host: "127.0.0.1", port: 3000 },
+    { name: "DBRAINX_SERVER_PORT", host: "127.0.0.1", port: 3001 },
+    { name: "DBRAINX_PB_HTTP", host: "127.0.0.1", port: 8090 },
+    { name: "DBRAINX_GATEWAY_PORT", host: "127.0.0.1", port: 8080 },
   ]);
   // The gateway port only takes part in the remote shape.
   assert.deepEqual(
     stackPorts(readDevStack({})).map((entry) => entry.name),
-    ["DBRAIN_WEB_PORT", "DBRAIN_SERVER_PORT", "DBRAIN_PB_HTTP"],
+    ["DBRAINX_WEB_PORT", "DBRAINX_SERVER_PORT", "DBRAINX_PB_HTTP"],
   );
   // A wildcard listen address is probed on loopback.
   assert.equal(
-    stackPorts(readDevStack({ DBRAIN_PB_HTTP: "0.0.0.0:8092" }))[2].host,
+    stackPorts(readDevStack({ DBRAINX_PB_HTTP: "0.0.0.0:8092" }))[2].host,
     "127.0.0.1",
   );
 });
@@ -153,7 +153,7 @@ test("reports the ports that already answer", async () => {
     [3001, 8080],
   );
   assert.deepEqual(busyPortsReport(busy), [
-    "port already in use: 3001 (DBRAIN_SERVER_PORT), 8080 (DBRAIN_GATEWAY_PORT)",
+    "port already in use: 3001 (DBRAINX_SERVER_PORT), 8080 (DBRAINX_GATEWAY_PORT)",
     "a previous run may still be alive; list its listeners with: ss -ltnp | grep LISTEN",
     "stop that process, or move this stack to another port in .env",
   ]);
@@ -168,11 +168,11 @@ test("a live listener on loopback counts as busy", async () => {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   const port = typeof address === "object" && address ? address.port : 0;
-  const stack = readDevStack({ DBRAIN_WEB_PORT: String(port) });
+  const stack = readDevStack({ DBRAINX_WEB_PORT: String(port) });
   const busy = await busyStackPorts(stack);
   assert.deepEqual(
     busy.filter((entry) => entry.port === port).map((entry) => entry.name),
-    ["DBRAIN_WEB_PORT"],
+    ["DBRAINX_WEB_PORT"],
   );
   await new Promise((resolve) => server.close(resolve));
   const after = await busyStackPorts(stack);

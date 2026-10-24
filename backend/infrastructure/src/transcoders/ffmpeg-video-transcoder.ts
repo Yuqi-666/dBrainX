@@ -237,7 +237,7 @@ export class FfmpegVideoTranscoder implements IVideoTranscoder {
     source: HlsTranscodeSource,
     onProgress?: VideoTranscodeProgressListener,
   ): Promise<HlsTranscodeResult> {
-    const workDir = await mkdtemp(join(tmpdir(), "dbrain-hls-"));
+    const workDir = await mkdtemp(join(tmpdir(), "dbrainx-hls-"));
     const baseName = artifactBaseName(source.fileName);
 
     try {

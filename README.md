@@ -1,6 +1,6 @@
-# dBrain
+# dBrainX
 
-dBrain 是一个知识工作空间：用节点记录内容，用关系连接知识，用图谱和 Dashboard 组织工作。Web 端连接自托管服务，桌面端在设备上运行完整本地后端，支持离线使用。
+dBrainX 是一个知识工作空间：用节点记录内容，用关系连接知识，用图谱和 Dashboard 组织工作。Web 端连接自托管服务，桌面端在设备上运行完整本地后端，支持离线使用。
 
 当前源码版本见 [`release.json`](scripts/release/release.json)。项目以 AGPL-3.0-only 许可证开源，仍处于早期开发阶段。Linux 容器支持 amd64 / arm64；桌面发行平台以版本声明为准。
 
@@ -32,7 +32,7 @@ dBrain 是一个知识工作空间：用节点记录内容，用关系连接知�
 ```bash
 pnpm install --frozen-lockfile
 cp .env.example .env
-# 编辑 .env，填写 DBRAIN_ADMIN_EMAIL 和 DBRAIN_ADMIN_PASSWORD
+# 编辑 .env，填写 DBRAINX_ADMIN_EMAIL 和 DBRAINX_ADMIN_PASSWORD
 pnpm dev
 ```
 

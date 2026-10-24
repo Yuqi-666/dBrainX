@@ -7,7 +7,7 @@ import {
   type PendingChange,
 } from "./local-engine";
 
-const DATABASE_NAME = "dbrain-desktop-v1";
+const DATABASE_NAME = "dbrainx-desktop-v1";
 let opening: Promise<IDBDatabase> | undefined;
 function openDatabase(): Promise<IDBDatabase> {
   if (!opening) {

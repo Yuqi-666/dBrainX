@@ -22,7 +22,7 @@ const binary = join(
 // takes the other processes down with it) instead of leaving the developer on a
 // placeholder account they cannot use.
 const admin = requireAdminConfig();
-const dataDir = resolve(process.env.DBRAIN_PB_DATA_DIR ?? join(root, "pb/pb_data"));
+const dataDir = resolve(process.env.DBRAINX_PB_DATA_DIR ?? join(root, "pb/pb_data"));
 const runDir = join(dataDir, "pb_migrations");
 await prepareMigrations({
   dataDir,
@@ -41,7 +41,7 @@ const child = spawn(
   binary,
   [
     "serve",
-    `--http=${process.env.DBRAIN_PB_HTTP ?? "127.0.0.1:8090"}`,
+    `--http=${process.env.DBRAINX_PB_HTTP ?? "127.0.0.1:8090"}`,
     `--dir=${dataDir}`,
     `--migrationsDir=${runDir}`,
     `--hooksDir=${join(root, "pb/pb_hooks")}`,

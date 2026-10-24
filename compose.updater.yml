@@ -1,4 +1,4 @@
-name: dbrain-updater
+name: dbrainx-updater
 
 services:
   updater:

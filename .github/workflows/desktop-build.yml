@@ -57,8 +57,8 @@ jobs:
     env:
       NODE_OPTIONS: --max-old-space-size=4096
       CARGO_BUILD_JOBS: "2"
-      DBRAIN_BUILD_SIGNED: ${{ inputs.signed }}
-      DBRAIN_GIT_SHA: ${{ github.sha }}
+      DBRAINX_BUILD_SIGNED: ${{ inputs.signed }}
+      DBRAINX_GIT_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -108,7 +108,7 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
           workspaces: apps/desktop/src-tauri -> target
-          prefix-key: dbrain-rust-v1
+          prefix-key: dbrainx-rust-v1
           shared-key: ${{ matrix.target }}-${{ inputs.signed && 'signed' || 'unsigned' }}
           cache-workspace-crates: false
           cache-on-failure: false
@@ -136,14 +136,14 @@ jobs:
         run: |
           # Tauri treats a present-but-empty identity as a request to sign.
           # Unsigned diagnostics must omit signing variables entirely.
-          if [ "$RUNNER_OS" = "macOS" ] && [ "$DBRAIN_BUILD_SIGNED" != "true" ]; then
+          if [ "$RUNNER_OS" = "macOS" ] && [ "$DBRAINX_BUILD_SIGNED" != "true" ]; then
             unset APPLE_SIGNING_IDENTITY APPLE_API_KEY APPLE_API_ISSUER
           fi
           verbosity=()
           if [ "$RUNNER_OS" = "Linux" ]; then verbosity=(--verbose); fi
           configs=()
-          if [ -n "${DBRAIN_TAURI_SIGNING_CONFIG:-}" ]; then configs+=(--config "$DBRAIN_TAURI_SIGNING_CONFIG"); fi
-          if [ "$DBRAIN_BUILD_SIGNED" = "true" ]; then configs+=(--config '{"bundle":{"createUpdaterArtifacts":true}}'); fi
+          if [ -n "${DBRAINX_TAURI_SIGNING_CONFIG:-}" ]; then configs+=(--config "$DBRAINX_TAURI_SIGNING_CONFIG"); fi
+          if [ "$DBRAINX_BUILD_SIGNED" = "true" ]; then configs+=(--config '{"bundle":{"createUpdaterArtifacts":true}}'); fi
           pnpm --filter desktop tauri build --ci "${verbosity[@]}" "${configs[@]}" -- --locked
         env:
           APPLE_SIGNING_IDENTITY: ${{ inputs.signed && secrets.APPLE_SIGNING_IDENTITY || '' }}
@@ -163,7 +163,7 @@ jobs:
             codesign --verify --deep --strict "$app"
             spctl --assess --type execute "$app"
           done
-          echo "DBRAIN_SIGNING_VERIFIED=true" >> "$GITHUB_ENV"
+          echo "DBRAINX_SIGNING_VERIFIED=true" >> "$GITHUB_ENV"
       - if: inputs.signed && runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -171,9 +171,9 @@ jobs:
           if ($installers.Count -eq 0) { throw 'No Windows installer produced' }
           foreach ($file in $installers) {
             $signature = Get-AuthenticodeSignature $file.FullName
-            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Thumbprint -ne $env:DBRAIN_WINDOWS_THUMBPRINT) { throw "Invalid signature: $($file.Name)" }
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Thumbprint -ne $env:DBRAINX_WINDOWS_THUMBPRINT) { throw "Invalid signature: $($file.Name)" }
           }
-          "DBRAIN_SIGNING_VERIFIED=true" >> $env:GITHUB_ENV
+          "DBRAINX_SIGNING_VERIFIED=true" >> $env:GITHUB_ENV
       - run: node scripts/release/collect-desktop.mjs
       - name: Save desktop Next.js build cache
         if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && steps.next-cache.outputs.cache-hit != 'true'

@@ -10,7 +10,7 @@ import { Providers } from "./providers";
 import { LocaleInitializer } from "@workspace/ui/lib/i18n";
 
 export const metadata: Metadata = {
-  title: "dBrain",
+  title: "dBrainX",
   description: "本地优先的知识工作空间",
   icons: {
     icon: [

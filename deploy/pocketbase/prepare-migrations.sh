@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 set -eu
-data_dir="${DBRAIN_PB_DATA_DIR:-/pb_data}"
+data_dir="${DBRAINX_PB_DATA_DIR:-/pb_data}"
 run_dir="$data_dir/pb_migrations"
-state_file="$run_dir/.dbrain-migration-origin"
+state_file="$run_dir/.dbrainx-migration-origin"
 mkdir -p "$run_dir"
 if [ ! -f "$state_file" ]; then
   if [ -f "$data_dir/data.db" ] || find "$run_dir" -maxdepth 1 -name '*.js' -print -quit | grep -q .; then

@@ -1,4 +1,4 @@
-# dBrain manuals
+# dBrainX manuals
 
 These manuals describe the current code and workflows for developers, operators, and users.
 

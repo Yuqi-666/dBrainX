@@ -24,7 +24,7 @@ export function isLoopbackHostname(hostname: string): boolean {
  *
  * Two shapes are legitimate, and they disagree about ports:
  *
- * 1. **Proxied** (the container stack, and `DBRAIN_PUBLIC_ORIGIN` when set):
+ * 1. **Proxied** (the container stack, and `DBRAINX_PUBLIC_ORIGIN` when set):
  *    nginx fronts web and API on one public host and forwards `$http_host`, so
  *    `Origin` and `Host` agree exactly.
  * 2. **Split development** (`pnpm dev`): the app is served by the web dev

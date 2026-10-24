@@ -208,7 +208,7 @@ export class AppContainer {
       createMediaBrowserDetector(),
       // Method A reads the browser the server itself runs on, so it is only
       // offered by a local backend: the desktop app, a local dev server, or an
-      // operator who sets DBRAIN_LOCAL_MODE. A remote deployment hides it,
+      // operator who sets DBRAINX_LOCAL_MODE. A remote deployment hides it,
       // because reading the server's browsers would be useless there.
       { browserLoginEnabled: isLocalBackend() },
     );
@@ -336,15 +336,15 @@ const MEDIA_IMPORT_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 /**
  * True when this server runs on the user's own machine.
  *
- * The desktop app launches its backend with `DBRAIN_DESKTOP=1`; a local
- * development server and an operator who opts in with `DBRAIN_LOCAL_MODE` are
+ * The desktop app launches its backend with `DBRAINX_DESKTOP=1`; a local
+ * development server and an operator who opts in with `DBRAINX_LOCAL_MODE` are
  * local as well. A remote deployment says none of these, so the "use my browser"
  * login method is hidden there: reading the server's browsers would sign the
  * server in, not the user.
  */
 function isLocalBackend(): boolean {
-  const localMode = process.env.DBRAIN_LOCAL_MODE?.trim().toLowerCase();
+  const localMode = process.env.DBRAINX_LOCAL_MODE?.trim().toLowerCase();
   if (localMode === "1" || localMode === "true") return true;
-  if (process.env.DBRAIN_DESKTOP === "1") return true;
+  if (process.env.DBRAINX_DESKTOP === "1") return true;
   return process.env.NODE_ENV !== "production";
 }

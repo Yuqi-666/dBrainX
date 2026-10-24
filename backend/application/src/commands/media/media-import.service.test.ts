@@ -661,7 +661,7 @@ test("a video is downloaded, stored, packaged and recorded as a job", async () =
 });
 
 test("a site thumbnail is preferred over the FFmpeg poster frame", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-media-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-media-test-"));
   const thumbnailPath = join(dir, "thumb.jpg");
   await writeFile(thumbnailPath, new Uint8Array([1, 2, 3, 4]));
 

@@ -46,7 +46,7 @@ request token without modifying the shared PocketBase authentication store.
 The Zustand store is an optimistic cache. Saves are serialized per scope; failures
 roll back unsaved edits, conflicts load the latest server version, and the page
 shows an error with **重新加载**. Reconnects refresh server state after pending
-saves. Existing `dbrain-dashboards-v1` browser layouts import on first load when
+saves. Existing `dbrainx-dashboards-v1` browser layouts import on first load when
 the server has no saved revision; failed imports preserve the local copy.
 
 ## Validation

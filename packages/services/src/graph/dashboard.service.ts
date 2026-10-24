@@ -37,7 +37,7 @@ function legacy(scope: string): DashboardWorkspace | null {
   if (typeof localStorage === "undefined") return null;
   try {
     const value = JSON.parse(
-      localStorage.getItem("dbrain-dashboards-v1") ?? "null",
+      localStorage.getItem("dbrainx-dashboards-v1") ?? "null",
     )?.state?.workspaces?.[scope];
     return value &&
       Array.isArray(value.pages) &&
@@ -51,11 +51,11 @@ function legacy(scope: string): DashboardWorkspace | null {
 function clearLegacy(scope: string): void {
   try {
     const value = JSON.parse(
-      localStorage.getItem("dbrain-dashboards-v1") ?? "null",
+      localStorage.getItem("dbrainx-dashboards-v1") ?? "null",
     );
     if (!value?.state?.workspaces?.[scope]) return;
     delete value.state.workspaces[scope];
-    localStorage.setItem("dbrain-dashboards-v1", JSON.stringify(value));
+    localStorage.setItem("dbrainx-dashboards-v1", JSON.stringify(value));
   } catch {
     /* A saved server copy is authoritative even if browser storage is unavailable. */
   }

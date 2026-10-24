@@ -21,7 +21,7 @@ import {
 } from "./yt-dlp-cookie.ts";
 
 test("writes the cookie text with mode 0600 and removes it again", async () => {
-  const workDir = await mkdtemp(join(tmpdir(), "dbrain-cookie-test-"));
+  const workDir = await mkdtemp(join(tmpdir(), "dbrainx-cookie-test-"));
   try {
     const cookieText =
       "Netscape HTTP Cookie File\n.example.test\tTRUE\t/\tFALSE\t0\tSESSION\tabc\n";
@@ -39,7 +39,7 @@ test("writes the cookie text with mode 0600 and removes it again", async () => {
 });
 
 test("rewrites a wider mode to 0600", async () => {
-  const workDir = await mkdtemp(join(tmpdir(), "dbrain-cookie-test-"));
+  const workDir = await mkdtemp(join(tmpdir(), "dbrainx-cookie-test-"));
   try {
     const path = join(workDir, COOKIE_FILE_NAME);
     await writeFile(path, "old");
@@ -54,7 +54,7 @@ test("rewrites a wider mode to 0600", async () => {
 
 test("removing a missing cookie file is not an error", async () => {
   await removeCookieFile(
-    join(tmpdir(), "dbrain-does-not-exist", "cookies.txt"),
+    join(tmpdir(), "dbrainx-does-not-exist", "cookies.txt"),
   );
   await removeCookieFile(undefined);
 });

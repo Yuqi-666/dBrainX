@@ -82,7 +82,7 @@ export class YtDlpMediaProbe implements IMediaProbe {
     // Validation runs before the temporary directory exists: a refused
     // address must not leave anything behind.
     const url = await assertDownloadableUrl(request.url);
-    const workDir = await mkdtemp(join(tmpdir(), "dbrain-yt-dlp-probe-"));
+    const workDir = await mkdtemp(join(tmpdir(), "dbrainx-yt-dlp-probe-"));
 
     const useBrowser = Boolean(request.cookiesFromBrowser?.trim());
     const cookieText = request.cookies?.trim();

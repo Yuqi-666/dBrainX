@@ -15,7 +15,7 @@ Run `git submodule update --init apps/marketing` to fill it after a clone.
 | `web` | Browser client. Next.js App Router. | [web/AGENTS.md](web/AGENTS.md) |
 | `desktop` | Tauri 2 shell with a local backend | [desktop/AGENTS.md](desktop/AGENTS.md) |
 | `server` | Node process that hosts `backend/` | [server/AGENTS.md](server/AGENTS.md) |
-| `marketing` | Not a package. A submodule of the private repository `Yuqi-666/dBrain-marketing`. It holds the marketing material. | none |
+| `marketing` | Not a package. A submodule of the private repository `Yuqi-666/dBrainX-marketing`. It holds the marketing material. | none |
 | `docs` | Not a package. It holds a stale docsify install only. | none |
 
 ## Composition

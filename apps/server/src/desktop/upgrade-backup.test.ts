@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { prepareUpgradeBackup, commitReleaseState, pruneUpgradeBackups } from "./upgrade-backup.ts";
 test("upgrade snapshots a WAL database, attachments and identity; repeat launch does not back up again", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-upgrade-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-upgrade-test-"));
   let db: DatabaseSync | undefined;
   try {
     assert.equal(await prepareUpgradeBackup(dir, "v1"), undefined);
@@ -18,21 +18,21 @@ test("upgrade snapshots a WAL database, attachments and identity; repeat launch 
     await writeFile(join(dir, "pb_data/storage/file.txt"), "attachment");
     await writeFile(join(dir, "local-identity.json"), '{"identity":"same"}');
     await mkdir(join(dir, "pb_migrations"));
-    await writeFile(join(dir, "pb_migrations/.dbrain-migration-origin"), "base 2000000000 base.js hash\n");
+    await writeFile(join(dir, "pb_migrations/.dbrainx-migration-origin"), "base 2000000000 base.js hash\n");
     await commitReleaseState(dir, "v1");
     const target = await prepareUpgradeBackup(dir, "v2"); assert.ok(target);
     const snapshot = new DatabaseSync(join(target, "pb_data/data.db"), { readOnly: true });
     assert.equal(snapshot.prepare("SELECT value FROM fixture").get()!.value, "preserved"); snapshot.close();
     assert.equal(await readFile(join(target, "pb_data/storage/file.txt"), "utf8"), "attachment");
     assert.equal(await readFile(join(target, "local-identity.json"), "utf8"), '{"identity":"same"}');
-    assert.equal(await readFile(join(target, "pb_migrations/.dbrain-migration-origin"), "utf8"), "base 2000000000 base.js hash\n");
+    assert.equal(await readFile(join(target, "pb_migrations/.dbrainx-migration-origin"), "utf8"), "base 2000000000 base.js hash\n");
     await commitReleaseState(dir, "v2");
     assert.equal(await prepareUpgradeBackup(dir, "v2"), undefined);
   } finally { db?.close(); await rm(dir, { recursive: true, force: true }); }
 });
 
 test("upgrade retention keeps the two newest snapshots by timestamp and is idempotent", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-upgrade-retention-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-upgrade-retention-"));
   try {
     const backups = join(dir, "backups");
     for (const name of ["before-upgrade-1000", "before-upgrade-3000", "before-upgrade-2000"]) {
@@ -48,7 +48,7 @@ test("upgrade retention keeps the two newest snapshots by timestamp and is idemp
 });
 
 test("upgrade retention keeps a single snapshot and tolerates an absent backup directory", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-upgrade-retention-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-upgrade-retention-"));
   try {
     const backups = join(dir, "backups");
     await pruneUpgradeBackups(dir);
@@ -59,7 +59,7 @@ test("upgrade retention keeps a single snapshot and tolerates an absent backup d
 });
 
 test("upgrade keeps the newest two snapshots and never deletes the current one", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-upgrade-retention-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-upgrade-retention-"));
   let db: DatabaseSync | undefined;
   try {
     await mkdir(join(dir, "pb_data"), { recursive: true });

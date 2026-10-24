@@ -32,7 +32,7 @@ async function collect(dir) {
 await collect(source);
 if (!installers.length) throw new Error("No installer produced");
 let updater = null;
-if (process.env.DBRAIN_BUILD_SIGNED === "true") {
+if (process.env.DBRAINX_BUILD_SIGNED === "true") {
   const asset = process.platform === "linux"
     ? [...updaterFiles.keys()].find((name) => name.endsWith(".AppImage"))
     : process.platform === "darwin"
@@ -59,9 +59,9 @@ await writeFile(
       runtimeHashScope: "prepared-runtime-before-installer-transforms",
       version: manifest.version,
       commit: manifest.commit,
-      signed: process.env.DBRAIN_BUILD_SIGNED === "true",
+      signed: process.env.DBRAINX_BUILD_SIGNED === "true",
       // Native installer verification runs before collection in the signed workflow.
-      signingVerified: process.env.DBRAIN_SIGNING_VERIFIED === "true",
+      signingVerified: process.env.DBRAINX_SIGNING_VERIFIED === "true",
       runId: process.env.GITHUB_RUN_ID ?? null,
       runAttempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
       installers: installers.sort(),

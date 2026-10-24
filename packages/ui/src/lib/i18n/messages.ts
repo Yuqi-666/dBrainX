@@ -45,9 +45,9 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
     "zh-CN": "创建账号",
     en: "Create Account",
   },
-  "Join dBrain to build your knowledge graph": {
-    "zh-CN": "加入 dBrain，构建你的知识图谱",
-    en: "Join dBrain to build your knowledge graph",
+  "Join dBrainX to build your knowledge graph": {
+    "zh-CN": "加入 dBrainX，构建你的知识图谱",
+    en: "Join dBrainX to build your knowledge graph",
   },
   Nickname: {
     "zh-CN": "昵称",

@@ -217,8 +217,8 @@ export function buildUploadUrl(
 ): string {
   const pb = getPocketbaseClient();
   if (
-    process.env.NEXT_PUBLIC_DBRAIN_PLATFORM === "desktop" ||
-    process.env.NEXT_PUBLIC_DBRAIN_BACKEND_MODE === "same-origin"
+    process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop" ||
+    process.env.NEXT_PUBLIC_DBRAINX_BACKEND_MODE === "same-origin"
   ) {
     return `/api/files/${record.collectionId || FILES_COLLECTION}/${record.id}/${storedName}`;
   }
@@ -363,7 +363,7 @@ const writeAttachment = (write: AttachmentWrite): Promise<IAttachment> => {
     // Read the web cookie for every write so renewal/logout cannot leave a
     // stale SDK token in use. PB requires Authorization for record writes.
     const token =
-      process.env.NEXT_PUBLIC_DBRAIN_PLATFORM === "desktop"
+      process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop"
         ? pb.authStore?.token
         : readAuthSessionToken();
     if (token) xhr.setRequestHeader("Authorization", token);

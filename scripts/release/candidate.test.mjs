@@ -21,8 +21,8 @@ const expected = {
   commit: "a".repeat(40),
   runId: "123",
   runAttempt: "1",
-  repository: "Yuqi-666/dBrain",
-  imagePrefix: "ghcr.io/yuqi-666/dbrain",
+  repository: "Yuqi-666/dBrainX",
+  imagePrefix: "ghcr.io/yuqi-666/dbrainx",
   desktopTargets: ["linux-x64", "win32-x64", "darwin-x64", "darwin-arm64"],
   containerPlatforms: ["linux/amd64", "linux/arm64"],
 };
@@ -32,7 +32,7 @@ test('an explicit none selection keeps skipped desktop targets out of a candidat
   assert.deepEqual(candidateTargets('linux-x64', expected.desktopTargets, 'desktop target'), ['linux-x64']);
 });
 async function fixture(signed = true, plan = expected) {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-candidate-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-candidate-test-"));
   const incoming = join(dir, "incoming"),
     output = join(dir, "candidate");
   await mkdir(incoming);
@@ -46,10 +46,10 @@ async function fixture(signed = true, plan = expected) {
         : platform === "win32"
           ? ["exe", "msi"]
           : ["dmg"];
-    const installers = extensions.map((ext) => `${target}-dBrain.${ext}`);
+    const installers = extensions.map((ext) => `${target}-dBrainX.${ext}`);
     const updater = signed ? {
-      asset: platform === "darwin" ? `${target}-dBrain.app.tar.gz` : platform === "linux" ? `${target}-dBrain.AppImage` : `${target}-dBrain-setup.exe`,
-      signature: platform === "darwin" ? `${target}-dBrain.app.tar.gz.sig` : platform === "linux" ? `${target}-dBrain.AppImage.sig` : `${target}-dBrain-setup.exe.sig`,
+      asset: platform === "darwin" ? `${target}-dBrainX.app.tar.gz` : platform === "linux" ? `${target}-dBrainX.AppImage` : `${target}-dBrainX-setup.exe`,
+      signature: platform === "darwin" ? `${target}-dBrainX.app.tar.gz.sig` : platform === "linux" ? `${target}-dBrainX.AppImage.sig` : `${target}-dBrainX-setup.exe.sig`,
     } : null;
     if (signed && platform === "win32") installers[0] = updater.asset;
     const files = Object.fromEntries(
@@ -131,7 +131,7 @@ test("modified installers, missing targets, different commits and run attempts f
     );
     await assembleCandidate(f.incoming, f.output, expected);
     await writeFile(
-      join(f.output, "linux-x64/linux-x64-dBrain.deb"),
+      join(f.output, "linux-x64/linux-x64-dBrainX.deb"),
       "modified",
     );
     await assert.rejects(
@@ -189,7 +189,7 @@ test("single product families assemble and publish without the other family", as
       await prepareReleaseAssets(f.output, assets, plan);
       const names = await readdir(assets);
       assert.equal(names.includes("latest.json"), plan.desktopTargets.length > 0);
-      assert.equal(names.includes(`dbrain-deploy-v${plan.version}.tar.gz`), plan.containerPlatforms.length > 0);
+      assert.equal(names.includes(`dbrainx-deploy-v${plan.version}.tar.gz`), plan.containerPlatforms.length > 0);
     } finally {
       await rm(f.dir, { recursive: true, force: true });
     }
@@ -212,12 +212,12 @@ test("published assets preserve hashes and deploy verified digests without stale
     }
     const deployment = join(f.dir, "deployment");
     await mkdir(deployment);
-    await execFileAsync("tar", ["-xzf", join(assets, `dbrain-deploy-v${expected.version}.tar.gz`), "-C", deployment]);
+    await execFileAsync("tar", ["-xzf", join(assets, `dbrainx-deploy-v${expected.version}.tar.gz`), "-C", deployment]);
     assert.deepEqual((await readdir(deployment)).sort(), [
       ".env.example", "compose.release.yml", "compose.updater.yml", "container-report.json", "deploy", "docker-compose.yml", "nginx.conf", "update.sh",
     ]);
     assert.match(await readFile(join(deployment, "compose.release.yml"), "utf8"), /pocketbase@sha256:[b]+/);
-    assert.match(await readFile(join(deployment, "deploy/updater/watch.sh"), "utf8"), /DBRAIN_AUTO_UPDATE/);
+    assert.match(await readFile(join(deployment, "deploy/updater/watch.sh"), "utf8"), /DBRAINX_AUTO_UPDATE/);
     const latest = JSON.parse(await readFile(join(assets, "latest.json"), "utf8"));
     assert.equal(latest.version, expected.version);
     assert.equal(Object.keys(latest.platforms).length, expected.desktopTargets.length);

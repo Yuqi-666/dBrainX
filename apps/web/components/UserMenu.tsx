@@ -51,7 +51,7 @@ export function UserMenu() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuLabel>{user.nickname}</DropdownMenuLabel>
-          {process.env.NEXT_PUBLIC_DBRAIN_PLATFORM !== "desktop" && (
+          {process.env.NEXT_PUBLIC_DBRAINX_PLATFORM !== "desktop" && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleLogout}>

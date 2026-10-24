@@ -3,7 +3,7 @@
 "use client";
 
 /**
- * The dBrain media skin — video.js v10's control bar, composed from its public
+ * The dBrainX media skin — video.js v10's control bar, composed from its public
  * parts, plus the timestamp extensions and the two presets.
  *
  * **Why this file exists.** v10 ships two ways to have a player. The packaged
@@ -30,7 +30,7 @@
  *
  * **What is deliberately not here.** The shipped skins also carry captions, a
  * settings menu (speed / quality / audio track), cast, AirPlay, a title overlay
- * and an error dialog. A dBrain media node is a single HLS or progressive
+ * and an error dialog. A dBrainX media node is a single HLS or progressive
  * rendition with no text tracks, and its node content draws its own failure
  * screens, so those controls could only ever be inert. The playback keys the
  * shipped skins bind are kept (see {@link PlaybackHotkeys}), so replacing a
@@ -189,7 +189,7 @@ function TransportSeekButton({ seconds }: { seconds: number }) {
 /**
  * The speed control.
  *
- * Rendered as a numeric label rather than the shipped icon: a dBrain media node
+ * Rendered as a numeric label rather than the shipped icon: a dBrainX media node
  * has no settings menu to hold a speed list, so this button *is* the cycle, and
  * a bare "1.5×" says what it will do next better than a glyph does. (The video
  * preset's stylesheet defines no class for a standalone rate button, so both

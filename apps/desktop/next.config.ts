@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
     "@workspace/editor",
     "@workspace/dataview",
   ],
-  env: { NEXT_PUBLIC_DBRAIN_PLATFORM: "desktop" },
+  env: { NEXT_PUBLIC_DBRAINX_PLATFORM: "desktop" },
 };
 
 export default nextConfig;

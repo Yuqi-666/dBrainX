@@ -4,7 +4,7 @@
  * `pnpm pb:admin`
  *
  * Applies the operator account configured in `.env` to the local PocketBase
- * database (`pb/pb_data`, or `DBRAIN_PB_DATA_DIR`) without restarting the stack —
+ * database (`pb/pb_data`, or `DBRAINX_PB_DATA_DIR`) without restarting the stack —
  * `pnpm dev` already does this on every start, so this is only for "I changed
  * `.env` and PocketBase is already running".
  *

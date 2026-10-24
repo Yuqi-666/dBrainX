@@ -13,7 +13,7 @@ const docker = (...args) =>
     stdio: ["ignore", "pipe", "inherit"],
   }).trim();
 const release = JSON.parse(await readFile("scripts/release/release.json"));
-const prefix = process.env.DBRAIN_IMAGE_PREFIX;
+const prefix = process.env.DBRAINX_IMAGE_PREFIX;
 assert.match(prefix ?? "", /^ghcr\.io\/[a-z0-9_.-]+\/[a-z0-9_.-]+$/);
 const commit = process.env.GITHUB_SHA;
 assert.match(commit ?? "", /^[a-f0-9]{40}$/);
@@ -25,9 +25,9 @@ const tag = `candidate-${runId}-${runAttempt}`;
 const services = ["pocketbase", "server", "web"];
 await mkdir("release-artifacts/containers", { recursive: true });
 if (process.argv[2] === "push") {
-  const arch = process.env.DBRAIN_CONTAINER_ARCH;
+  const arch = process.env.DBRAINX_CONTAINER_ARCH;
   assert.ok(["amd64", "arm64"].includes(arch));
-  assert.equal(process.env.DBRAIN_VERSION, `${tag}-${arch}`);
+  assert.equal(process.env.DBRAINX_VERSION, `${tag}-${arch}`);
   const images = {};
   for (const service of services) {
     const image = `${prefix}-${service}:${tag}-${arch}`;
@@ -67,8 +67,8 @@ if (process.argv[2] === "push") {
 } else if (process.argv[2] === "merge") {
   // A release may build a part of the declared list. The platforms of this
   // candidate therefore come from the start, not from a constant.
-  const platforms = splitNames(process.env.DBRAIN_CONTAINER_PLATFORMS);
-  assert.ok(platforms.length > 0, "DBRAIN_CONTAINER_PLATFORMS is empty.");
+  const platforms = splitNames(process.env.DBRAINX_CONTAINER_PLATFORMS);
+  assert.ok(platforms.length > 0, "DBRAINX_CONTAINER_PLATFORMS is empty.");
   const archs = archsOf(platforms);
   const reports = await Promise.all(
     archs.map(async (arch) =>

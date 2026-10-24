@@ -82,7 +82,7 @@ export function resolveBackendUrls(): BackendUrls {
     return LOOPBACK_URLS;
   }
 
-  if (process.env.NEXT_PUBLIC_DBRAIN_PLATFORM === "desktop") {
+  if (process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop") {
     // Desktop reaches everything through the per-run session base
     // (`/session/<secret>`), which the native supervisor routes to the local
     // server; the upload routes ride on the same base as PocketBase.
@@ -95,7 +95,7 @@ export function resolveBackendUrls(): BackendUrls {
   }
 
   const { hostname, host, origin, protocol } = window.location;
-  if (isLoopbackHostname(hostname) && process.env.NEXT_PUBLIC_DBRAIN_BACKEND_MODE !== "same-origin") {
+  if (isLoopbackHostname(hostname) && process.env.NEXT_PUBLIC_DBRAINX_BACKEND_MODE !== "same-origin") {
     // Cookies are scoped by hostname, not port. Keep the browser's hostname
     // so media requests opened at 127.0.0.1 also carry its session to PB.
     const loopbackHost = hostname === "::1" ? "[::1]" : hostname;

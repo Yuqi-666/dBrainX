@@ -10,7 +10,7 @@ import { binaryArchitecture, hashFile } from "../lib/runtime-manifest.mjs";
 assert.equal(process.platform, "linux");
 const root = process.cwd();
 const release = JSON.parse(await readFile("scripts/release/release.json"));
-const temp = await mkdtemp(join(tmpdir(), "dbrain-linux-package-smoke-"));
+const temp = await mkdtemp(join(tmpdir(), "dbrainx-linux-package-smoke-"));
 async function findRuntime(dir) {
   const manifests = [];
   async function walk(path) {
@@ -34,7 +34,7 @@ async function smoke(extracted, name, allowElfTransforms) {
     `${process.platform}-${process.arch}`,
   );
   assert.equal(manifest.version, release.version);
-  assert.equal(manifest.commit, process.env.DBRAIN_GIT_SHA ?? "local");
+  assert.equal(manifest.commit, process.env.DBRAINX_GIT_SHA ?? "local");
   let transformed = 0;
   for (const [file, hash] of Object.entries(manifest.hashes)) {
     assert.ok(
@@ -67,7 +67,7 @@ async function smoke(extracted, name, allowElfTransforms) {
     );
   execFileSync(process.execPath, ["apps/desktop/scripts/backend-smoke.mjs"], {
     cwd: root,
-    env: { ...process.env, DBRAIN_SMOKE_RUNTIME_DIR: runtime },
+    env: { ...process.env, DBRAINX_SMOKE_RUNTIME_DIR: runtime },
     stdio: "inherit",
   });
   console.log(

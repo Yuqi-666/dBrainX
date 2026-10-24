@@ -15,7 +15,7 @@ const script = fileURLToPath(new URL("../../deploy/updater/watch.sh", import.met
 // The updater image has no test harness. This stub replaces curl and records
 // the response that the test wants.
 const curlStub = `#!/bin/sh
-printf '%s\\n' "$*" >> "$DBRAIN_STUB_CURL_LOG"
+printf '%s\\n' "$*" >> "$DBRAINX_STUB_CURL_LOG"
 body=''
 headers=''
 etag_save=''
@@ -29,10 +29,10 @@ while [ "$#" -gt 0 ]; do
     *) shift ;;
   esac
 done
-[ -z "$body" ] || printf '%s' "$DBRAIN_STUB_BODY" > "$body"
-[ -z "$headers" ] || printf '%s' "$DBRAIN_STUB_HEADERS" > "$headers"
+[ -z "$body" ] || printf '%s' "$DBRAINX_STUB_BODY" > "$body"
+[ -z "$headers" ] || printf '%s' "$DBRAINX_STUB_HEADERS" > "$headers"
 [ -z "$etag_save" ] || printf '%s\\n' 'W/"stub"' > "$etag_save"
-printf '%s' "$DBRAIN_STUB_STATUS"
+printf '%s' "$DBRAINX_STUB_STATUS"
 exit 0
 `;
 
@@ -44,7 +44,7 @@ const runs = (id, attempt) =>
   });
 
 async function scenario(t, options = {}) {
-  const root = await realpath(await mkdtemp(join(tmpdir(), "dbrain-watch-")));
+  const root = await realpath(await mkdtemp(join(tmpdir(), "dbrainx-watch-")));
   t.after(() => rm(root, { recursive: true, force: true }));
   const bin = join(root, "bin");
   const state = join(root, "state");
@@ -52,10 +52,10 @@ async function scenario(t, options = {}) {
   await mkdir(state, { recursive: true });
   await writeFile(join(bin, "curl"), curlStub);
   await chmod(join(bin, "curl"), 0o755);
-  await writeFile(join(root, ".env"), options.env ?? "DBRAIN_AUTO_UPDATE=true\n");
+  await writeFile(join(root, ".env"), options.env ?? "DBRAINX_AUTO_UPDATE=true\n");
   await writeFile(
     join(root, "update.sh"),
-    '#!/bin/sh\nprintf \'%s\\n\' "$1" >> "$DBRAIN_STUB_UPDATE_LOG"\n',
+    '#!/bin/sh\nprintf \'%s\\n\' "$1" >> "$DBRAINX_STUB_UPDATE_LOG"\n',
   );
   await writeFile(join(root, ".current-version"), `${options.current ?? "candidate-100-1"}\n`);
   if (options.lastRun) await writeFile(join(root, ".auto-update-last-run"), `${options.lastRun}\n`);
@@ -66,12 +66,12 @@ async function scenario(t, options = {}) {
     env: {
       PATH: `${bin}:${process.env.PATH}`,
       TMPDIR: state,
-      DBRAIN_DEPLOYMENT_PATH: root,
-      DBRAIN_STUB_CURL_LOG: join(root, "curl.log"),
-      DBRAIN_STUB_UPDATE_LOG: join(root, "update.log"),
-      DBRAIN_STUB_BODY: options.body ?? runs(200, 1),
-      DBRAIN_STUB_HEADERS: options.headers ?? "",
-      DBRAIN_STUB_STATUS: options.status ?? "200",
+      DBRAINX_DEPLOYMENT_PATH: root,
+      DBRAINX_STUB_CURL_LOG: join(root, "curl.log"),
+      DBRAINX_STUB_UPDATE_LOG: join(root, "update.log"),
+      DBRAINX_STUB_BODY: options.body ?? runs(200, 1),
+      DBRAINX_STUB_HEADERS: options.headers ?? "",
+      DBRAINX_STUB_STATUS: options.status ?? "200",
     },
   };
 }
@@ -127,11 +127,11 @@ test("a recorded failure pauses the checks without a request", async (t) => {
 
 test("a token from .env becomes an authenticated request", async (t) => {
   const deployment = await scenario(t, {
-    env: "DBRAIN_AUTO_UPDATE=true\nDBRAIN_GITHUB_TOKEN=stub-token\n",
+    env: "DBRAINX_AUTO_UPDATE=true\nDBRAINX_GITHUB_TOKEN=stub-token\n",
   });
   await once(deployment);
   assert.equal(
-    await readFile(join(deployment.state, "dbrain-watch", "auth.conf"), "utf8"),
+    await readFile(join(deployment.state, "dbrainx-watch", "auth.conf"), "utf8"),
     'header = "Authorization: Bearer stub-token"\n',
   );
   assert.match(await readFile(join(deployment.root, "curl.log"), "utf8"), /-K /);

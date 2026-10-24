@@ -9,11 +9,11 @@
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-export const rulesetName = 'dBrain open source main';
-export const tagRulesetName = 'dBrain version tags';
-export const developRulesetName = 'dBrain develop';
-export const legacyRulesetName = 'dBrain protected branches gate';
-export const olderRulesetName = 'dBrain main gate';
+export const rulesetName = 'dBrainX open source main';
+export const tagRulesetName = 'dBrainX version tags';
+export const developRulesetName = 'dBrainX develop';
+export const legacyRulesetName = 'dBrainX protected branches gate';
+export const olderRulesetName = 'dBrainX main gate';
 export const requiredCheck = 'checks';
 // The GitHub Actions application. A required check from another application
 // cannot satisfy the rule.

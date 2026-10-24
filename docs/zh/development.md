@@ -20,7 +20,7 @@ pnpm install --frozen-lockfile
 
 ```bash
 cp .env.example .env
-# 填写 DBRAIN_ADMIN_EMAIL 与 DBRAIN_ADMIN_PASSWORD
+# 填写 DBRAINX_ADMIN_EMAIL 与 DBRAINX_ADMIN_PASSWORD
 pnpm dev
 ```
 
@@ -30,10 +30,10 @@ pnpm dev
 
 | 服务 | 变量 | 默认 | 地址 |
 | --- | --- | --- | --- |
-| Web | `DBRAIN_WEB_PORT` | 3000 | <http://localhost:3000> |
-| Server | `DBRAIN_SERVER_PORT` | 3001 | <http://localhost:3001> |
-| PocketBase | `DBRAIN_PB_HTTP` | 127.0.0.1:8090 | <http://127.0.0.1:8090> |
-| 网关（仅 `dev:remote`） | `DBRAIN_GATEWAY_PORT` | 8080 | <https://p8080>.<开发域名> |
+| Web | `DBRAINX_WEB_PORT` | 3000 | <http://localhost:3000> |
+| Server | `DBRAINX_SERVER_PORT` | 3001 | <http://localhost:3001> |
+| PocketBase | `DBRAINX_PB_HTTP` | 127.0.0.1:8090 | <http://127.0.0.1:8090> |
+| 网关（仅 `dev:remote`） | `DBRAINX_GATEWAY_PORT` | 8080 | <https://p8080>.<开发域名> |
 
 端口来自根 `.env`。同名的 shell 变量优先。
 开发数据写入 `pb/pb_data`。
@@ -55,7 +55,7 @@ sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev librsvg2-d
 ```
 
 应用从 `pb/pocketbase` 读取 PocketBase，从 PATH 查找 FFmpeg 和 FFprobe。
-可以用 `DBRAIN_POCKETBASE_PATH`、`FFMPEG_PATH`、`FFPROBE_PATH` 指定其他路径。
+可以用 `DBRAINX_POCKETBASE_PATH`、`FFMPEG_PATH`、`FFPROBE_PATH` 指定其他路径。
 安装包位于 `apps/desktop/src-tauri/target/release/bundle`。
 发行目标是 Linux x64、Windows x64 和 macOS x64 / arm64。
 

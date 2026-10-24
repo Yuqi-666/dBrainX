@@ -121,11 +121,11 @@ test("an empty secret is a configuration error, not an unprotected cipher", () =
 });
 
 test("fromEnvironment reads the configured secret before generating one", () => {
-  const previousBranded = process.env.DBRAIN_MEDIA_COOKIE_SECRET;
+  const previousBranded = process.env.DBRAINX_MEDIA_COOKIE_SECRET;
   const previousLegacy = process.env.MEDIA_COOKIE_SECRET;
   try {
     process.env.MEDIA_COOKIE_SECRET = "legacy-secret";
-    process.env.DBRAIN_MEDIA_COOKIE_SECRET = "branded-secret";
+    process.env.DBRAINX_MEDIA_COOKIE_SECRET = "branded-secret";
     // The branded variable wins.
     assert.equal(
       new MediaCookieCipher("branded-secret").decrypt(
@@ -136,7 +136,7 @@ test("fromEnvironment reads the configured secret before generating one", () => 
 
     // The legacy variable is the fallback for a deployment written before the
     // rename.
-    delete process.env.DBRAIN_MEDIA_COOKIE_SECRET;
+    delete process.env.DBRAINX_MEDIA_COOKIE_SECRET;
     assert.equal(
       new MediaCookieCipher("legacy-secret").decrypt(
         MediaCookieCipher.fromEnvironment().encrypt("cookie"),
@@ -145,7 +145,7 @@ test("fromEnvironment reads the configured secret before generating one", () => 
     );
 
     // A blank value counts as unset, exactly like every other variable here.
-    process.env.DBRAIN_MEDIA_COOKIE_SECRET = "   ";
+    process.env.DBRAINX_MEDIA_COOKIE_SECRET = "   ";
     assert.equal(
       new MediaCookieCipher("legacy-secret").decrypt(
         MediaCookieCipher.fromEnvironment().encrypt("cookie"),
@@ -154,18 +154,18 @@ test("fromEnvironment reads the configured secret before generating one", () => 
     );
   } finally {
     if (previousBranded === undefined)
-      delete process.env.DBRAIN_MEDIA_COOKIE_SECRET;
-    else process.env.DBRAIN_MEDIA_COOKIE_SECRET = previousBranded;
+      delete process.env.DBRAINX_MEDIA_COOKIE_SECRET;
+    else process.env.DBRAINX_MEDIA_COOKIE_SECRET = previousBranded;
     if (previousLegacy === undefined) delete process.env.MEDIA_COOKIE_SECRET;
     else process.env.MEDIA_COOKIE_SECRET = previousLegacy;
   }
 });
 
 test("fromEnvironment generates and reuses a private development secret", () => {
-  const previousBranded = process.env.DBRAIN_MEDIA_COOKIE_SECRET;
+  const previousBranded = process.env.DBRAINX_MEDIA_COOKIE_SECRET;
   const previousLegacy = process.env.MEDIA_COOKIE_SECRET;
   try {
-    delete process.env.DBRAIN_MEDIA_COOKIE_SECRET;
+    delete process.env.DBRAINX_MEDIA_COOKIE_SECRET;
     delete process.env.MEDIA_COOKIE_SECRET;
 
     const first = MediaCookieCipher.fromEnvironment();
@@ -187,8 +187,8 @@ test("fromEnvironment generates and reuses a private development secret", () => 
     assert.equal(mode, 0o600);
   } finally {
     if (previousBranded === undefined)
-      delete process.env.DBRAIN_MEDIA_COOKIE_SECRET;
-    else process.env.DBRAIN_MEDIA_COOKIE_SECRET = previousBranded;
+      delete process.env.DBRAINX_MEDIA_COOKIE_SECRET;
+    else process.env.DBRAINX_MEDIA_COOKIE_SECRET = previousBranded;
     if (previousLegacy === undefined) delete process.env.MEDIA_COOKIE_SECRET;
     else process.env.MEDIA_COOKIE_SECRET = previousLegacy;
   }

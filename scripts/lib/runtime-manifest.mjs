@@ -115,7 +115,7 @@ export async function writeRuntimeManifest(
         versions,
         modules,
         hashes,
-        commit: process.env.DBRAIN_GIT_SHA ?? "local",
+        commit: process.env.DBRAINX_GIT_SHA ?? "local",
       },
       null,
       2,

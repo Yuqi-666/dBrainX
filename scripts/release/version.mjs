@@ -41,8 +41,8 @@ for (const file of ["docker-compose.yml", "deploy/.env.example"]) {
   await writeFile(
     path,
     value
-      .replace(/DBRAIN_VERSION:-[^}]+/g, `DBRAIN_VERSION:-${version}`)
-      .replace(/^DBRAIN_VERSION=.+$/m, `DBRAIN_VERSION=${version}`),
+      .replace(/DBRAINX_VERSION:-[^}]+/g, `DBRAINX_VERSION:-${version}`)
+      .replace(/^DBRAINX_VERSION=.+$/m, `DBRAINX_VERSION=${version}`),
   );
 }
 console.log(`Product version synchronized: ${version}`);

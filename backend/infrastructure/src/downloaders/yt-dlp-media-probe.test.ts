@@ -38,7 +38,7 @@ const { MediaImportFailure } = await import("@workspace/utils/media-import");
 const PUBLIC_IP_URL = "http://192.0.2.1/watch?v=abc";
 
 /** Environment variable the fake scripts use to report their work directory. */
-const PROBE_DIR_VARIABLE = "DBRAIN_TEST_PROBE_DIR";
+const PROBE_DIR_VARIABLE = "DBRAINX_TEST_PROBE_DIR";
 
 /** Reads the `-o` argument and reports the probe directory. */
 const OUTPUT_LOOKUP = `
@@ -86,7 +86,7 @@ exit 1
 
 /** One fake executable in its own directory. */
 async function fakeYtDlp(script: string) {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-media-probe-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-media-probe-test-"));
   const command = join(dir, "fake-yt-dlp");
   await writeFile(command, script, "utf8");
   await chmod(command, 0o755);
@@ -103,7 +103,7 @@ async function fakeYtDlp(script: string) {
  * does it in the test, so the test never needs a real encoder.
  */
 async function fakeFfmpeg() {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-probe-ffmpeg-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-probe-ffmpeg-test-"));
   const command = join(dir, "fake-ffmpeg");
   await writeFile(
     command,
@@ -121,7 +121,7 @@ async function fakeFfmpeg() {
 async function withProbeDirectory<T>(
   action: () => Promise<T>,
 ): Promise<{ result: T; directory: string | undefined }> {
-  const recordDir = await mkdtemp(join(tmpdir(), "dbrain-probe-record-"));
+  const recordDir = await mkdtemp(join(tmpdir(), "dbrainx-probe-record-"));
   const recordPath = join(recordDir, "directory.txt");
   const previous = process.env[PROBE_DIR_VARIABLE];
   process.env[PROBE_DIR_VARIABLE] = recordPath;
@@ -230,7 +230,7 @@ test("shrinks an oversized cover through FFmpeg", async () => {
 test("returns no cover when an oversized cover cannot be shrunk", async () => {
   const fake = await fakeYtDlp(FAKE_PROBE_BIG_THUMB);
   const previousFfmpeg = process.env.FFMPEG_PATH;
-  process.env.FFMPEG_PATH = "/nonexistent/dbrain-test-ffmpeg";
+  process.env.FFMPEG_PATH = "/nonexistent/dbrainx-test-ffmpeg";
   try {
     const probe = new YtDlpMediaProbe(fake.command);
     const { result } = await withProbeDirectory(() =>

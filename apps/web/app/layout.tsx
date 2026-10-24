@@ -16,7 +16,7 @@ const notoSerifHeading = Noto_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "dBrain",
+  title: "dBrainX",
   icons: {
     icon: [
       {

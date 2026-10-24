@@ -17,7 +17,7 @@ const { createTRPCClient, createWSClient, wsLink } = await import(
   pathToFileURL(require.resolve("@trpc/client")).href
 );
 const { default: superjson } = await import(pathToFileURL(require.resolve("superjson")).href);
-const temp = await mkdtemp(join(tmpdir(), "dbrain-server-smoke-"));
+const temp = await mkdtemp(join(tmpdir(), "dbrainx-server-smoke-"));
 const children = [],
   connections = [];
 let logs = "";
@@ -82,12 +82,12 @@ async function upload(token, bytes = "private file", workspaceId = "") {
 }
 const pbPort = await port(),
   serverPort = await port();
-const pbUrl = process.env.DBRAIN_SMOKE_PB_URL ?? `http://127.0.0.1:${pbPort}`;
+const pbUrl = process.env.DBRAINX_SMOKE_PB_URL ?? `http://127.0.0.1:${pbPort}`;
 const serverUrl =
-  process.env.DBRAIN_SMOKE_SERVER_URL ?? `http://127.0.0.1:${serverPort}`;
+  process.env.DBRAINX_SMOKE_SERVER_URL ?? `http://127.0.0.1:${serverPort}`;
 if (
-  Boolean(process.env.DBRAIN_SMOKE_PB_URL) !==
-  Boolean(process.env.DBRAIN_SMOKE_SERVER_URL)
+  Boolean(process.env.DBRAINX_SMOKE_PB_URL) !==
+  Boolean(process.env.DBRAINX_SMOKE_SERVER_URL)
 )
   throw new Error("Supply both smoke URLs");
 const deadline = setTimeout(() => {
@@ -96,7 +96,7 @@ const deadline = setTimeout(() => {
   process.exitCode = 1;
 }, 90_000);
 try {
-  if (!process.env.DBRAIN_SMOKE_PB_URL) {
+  if (!process.env.DBRAINX_SMOKE_PB_URL) {
     const { prepareMigrations } = await import("../lib/pocketbase-migrations.mjs");
     await prepareMigrations({
       dataDir: join(temp, "data"),
@@ -105,7 +105,7 @@ try {
       runDir: join(temp, "migrations"),
     });
     launch(
-      process.env.DBRAIN_POCKETBASE_PATH ??
+      process.env.DBRAINX_POCKETBASE_PATH ??
         join(
           root,
           "pb",
@@ -125,15 +125,15 @@ try {
   // Only the container job configures an operator account (`docker-compose.yml`
   // requires one and the image entrypoint upserts it before serving); when it is
   // present, prove that the credential it created actually authenticates.
-  if (process.env.DBRAIN_SMOKE_ADMIN_EMAIL) {
+  if (process.env.DBRAINX_SMOKE_ADMIN_EMAIL) {
     const response = await fetch(
       `${pbUrl}/api/collections/_superusers/auth-with-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          identity: process.env.DBRAIN_SMOKE_ADMIN_EMAIL,
-          password: process.env.DBRAIN_SMOKE_ADMIN_PASSWORD,
+          identity: process.env.DBRAINX_SMOKE_ADMIN_EMAIL,
+          password: process.env.DBRAINX_SMOKE_ADMIN_PASSWORD,
         }),
       },
     );
@@ -144,7 +144,7 @@ try {
     );
     console.log("PASS container operator account authenticates");
   }
-  if (!process.env.DBRAIN_SMOKE_SERVER_URL) {
+  if (!process.env.DBRAINX_SMOKE_SERVER_URL) {
     await cp(join(root, "apps/server/dist"), join(temp, "server"), {
       recursive: true,
       dereference: true,
@@ -155,14 +155,14 @@ try {
     });
   }
   await ready(`${serverUrl}/health`);
-  if (process.env.DBRAIN_SMOKE_WEB_URL) {
+  if (process.env.DBRAINX_SMOKE_WEB_URL) {
     for (const path of ["/", "/login", "/register"])
       assert.ok(
-        (await fetch(`${process.env.DBRAIN_SMOKE_WEB_URL}${path}`)).ok,
+        (await fetch(`${process.env.DBRAINX_SMOKE_WEB_URL}${path}`)).ok,
         `Web ${path}`,
       );
     assert.equal(
-      (await fetch(`${process.env.DBRAIN_SMOKE_WEB_URL}/pb/_/`)).status,
+      (await fetch(`${process.env.DBRAINX_SMOKE_WEB_URL}/pb/_/`)).status,
       404,
     );
     console.log("PASS production Web endpoints and reverse proxy");
