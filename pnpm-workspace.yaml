@@ -2,5 +2,7 @@ packages:
   - "apps/*"
   # apps/marketing is a submodule with its own repository. It is not a package.
   - "!apps/marketing"
+  # The marketing repository is separate; its Next.js app consumes shared packages.
+  - "apps/marketing/site"
   - "packages/*"
   - "backend/*"
