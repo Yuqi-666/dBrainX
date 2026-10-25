@@ -55,7 +55,6 @@ pb/pb_data/
 pb/pb_migrations/
 pb/pocketbase
 pb/pocketbase.exe
-.agents/
 .omo/
 .codegraph/
 .sisyphus/
