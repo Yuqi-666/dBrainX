@@ -194,8 +194,15 @@ export interface ForceConfig {
    * looks at node positions, so the boundary cannot be dragged outward
    * by a drifting node, and no connectivity analysis is needed. Raise
    * the density for a tighter boundary, lower it for a looser one.
+   * Ignored when `boundaryRadius` is set.
    */
   boundaryDensity?: number;
+  /**
+   * Explicit boundary radius, in simulation px. When set it replaces the
+   * density-derived radius, so the frame stays fixed while nodes are
+   * added or removed. `0` or undefined keeps the density formula.
+   */
+  boundaryRadius?: number;
   /**
    * Stiffness of the spring a node feels beyond the boundary, in
    * px/tick² per px of overshoot:

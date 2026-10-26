@@ -210,9 +210,10 @@ function rebuildQuadtree(): void {
  * Soft circular wall around the layout centre.
  *
  * Two rules, nothing else:
- *   1. `radius = sqrt(nodeCount / density)` — the radius follows the node
- *      count and the tunable density only. It never looks at positions,
- *      so it cannot chase a node and needs no connectivity analysis;
+ *   1. `radius = sqrt(nodeCount / density)` when no explicit radius is
+ *      set; an explicit radius holds one frame regardless of node count.
+ *      It never looks at positions, so it cannot chase a node and needs
+ *      no connectivity analysis;
  *   2. a node outside the boundary feels a spring anchored at it,
  *      `v += -r̂ * strength * (r - radius) * alpha`. Inside the boundary
  *      the force is exactly zero.
@@ -227,10 +228,16 @@ function createBoundaryForce(
   centerY: number,
   strength: number,
   density: number,
+  fixedRadius?: number,
 ): Force<SimNode, SimLink> {
   return (alpha: number): void => {
-    if (strength <= 0 || density <= 0 || nodes.length === 0) return;
-    const radius = Math.sqrt(nodes.length / density);
+    const radius =
+      fixedRadius != null && fixedRadius > 0
+        ? fixedRadius
+        : density > 0
+          ? Math.sqrt(nodes.length / density)
+          : 0;
+    if (strength <= 0 || !(radius > 0) || nodes.length === 0) return;
     const radius2 = radius * radius;
 
     for (const node of nodes) {
@@ -282,6 +289,7 @@ function applyConfig(forceCfg: ForceConfig): void {
         centerY,
         cfg.boundaryStrength ?? DEFAULT_FORCE_CONFIG.boundaryStrength,
         cfg.boundaryDensity ?? DEFAULT_FORCE_CONFIG.boundaryDensity,
+        cfg.boundaryRadius,
       ),
     )
     .alphaMin(cfg.alphaMin ?? DEFAULT_FORCE_CONFIG.alphaMin)
