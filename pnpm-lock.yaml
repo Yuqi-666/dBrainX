@@ -108,9 +108,21 @@ importers:
 
   apps/marketing/site:
     dependencies:
+      '@workspace/interfaces':
+        specifier: workspace:*
+        version: link:../../../packages/interfaces
       '@workspace/ui':
         specifier: workspace:*
         version: link:../../../packages/ui
+      comlink:
+        specifier: ^4.4.2
+        version: 4.4.2
+      d3-force:
+        specifier: ^3.0.0
+        version: 3.0.0
+      d3-quadtree:
+        specifier: ^3.0.1
+        version: 3.0.1
       gsap:
         specifier: ^3.15.0
         version: 3.15.0
@@ -120,6 +132,9 @@ importers:
       next:
         specifier: 16.3.8
         version: 16.3.8(@types/node@25.3.5)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.99.0)
+      pixi.js:
+        specifier: ^8.19.0
+        version: 8.19.0
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -130,6 +145,12 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.2.1
+      '@types/d3-force':
+        specifier: ^3.0.10
+        version: 3.0.10
+      '@types/d3-quadtree':
+        specifier: ^3.0.6
+        version: 3.0.6
       '@types/node':
         specifier: ^25.1.0
         version: 25.3.5
