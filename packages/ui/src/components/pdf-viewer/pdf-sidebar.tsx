@@ -4,9 +4,10 @@ import { useI18n } from "@workspace/ui/lib/i18n";
 /**
  * The viewer's left rail: page thumbnails and the document outline.
  *
- * Both lists share one panel, so the two entry points in the toolbar are a tab
- * strip rather than two independently movable panes — one rail is all a dialog
- * that is 80vh tall can afford.
+ * Both lists share one panel, so the two lists are a tab strip at the top of
+ * this rail rather than two independently movable panes — one rail is all a
+ * dialog that is 80vh tall can afford. The toolbar's single switch opens the
+ * rail, and it opens on 大纲; the tab strip here switches to 缩略图.
  *
  * Thumbnails are rendered *only when scrolled near*, at the width they are
  * displayed at: a 500-page document would otherwise paint 500 canvases before

@@ -23,6 +23,13 @@ export type PdfSpread = "single" | "double";
 
 export type PdfSidebarTab = "thumbs" | "outline";
 
+/**
+ * The tab the rail lands on when it opens. 大纲 is the better first look: a
+ * table of contents is navigable at a glance, while thumbnails are a wall of
+ * pages the reader still has to scroll through.
+ */
+export const PDF_DEFAULT_SIDEBAR_TAB: PdfSidebarTab = "outline";
+
 /** One outline entry, with its destination already resolved to a page. */
 export interface PdfOutlineEntry {
   title: string;
@@ -377,9 +384,15 @@ export interface PdfToolbarProps {
     onNext: () => void;
   };
 
+  /**
+   * The rail has one switch here, not one button per tab: 缩略图/大纲 are tabs
+   * *inside* the rail, so the toolbar only needs to open and close it.
+   */
   sidebar: {
-    tab: PdfSidebarTab | null;
-    onTabChange: (tab: PdfSidebarTab | null) => void;
+    /** Whether the rail is showing. */
+    open: boolean;
+    /** Opens the rail on `PDF_DEFAULT_SIDEBAR_TAB`, or closes it. */
+    onToggle: () => void;
   };
 
   downloadUrl: string;

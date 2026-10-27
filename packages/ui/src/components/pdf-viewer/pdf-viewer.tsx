@@ -87,6 +87,7 @@ import { readPdfProgress, writePdfProgress } from "./pdf-progress";
 import { usePdfSearch } from "./use-pdf-search";
 import {
   PDF_DEFAULT_MODE,
+  PDF_DEFAULT_SIDEBAR_TAB,
   PDF_MAX_DPR,
   PDF_MAX_PIXELS,
   PDF_MAX_SCALE,
@@ -314,6 +315,15 @@ export function PdfViewer({
 
   const horizontal = mode.direction === "horizontal";
   const pagesPerSlot = pdfSpreadStep(mode.spread);
+
+  /**
+   * One switch for the rail: the first press opens it on its default tab (大纲),
+   * the second closes it again. 缩略图/大纲 are tabs inside the rail, so the
+   * toolbar no longer needs a button per tab.
+   */
+  const toggleSidebar = useCallback(() => {
+    setSidebarTab((tab) => (tab === null ? PDF_DEFAULT_SIDEBAR_TAB : null));
+  }, []);
 
   const search = usePdfSearch({
     getTextContent,
@@ -1954,7 +1964,7 @@ export function PdfViewer({
           onPrev: search.prev,
           onNext: search.next,
         }}
-        sidebar={{ tab: sidebarTab, onTabChange: setSidebarTab }}
+        sidebar={{ open: sidebarTab !== null, onToggle: toggleSidebar }}
         downloadUrl={url}
         onDownload={handleDownload}
         title={title}

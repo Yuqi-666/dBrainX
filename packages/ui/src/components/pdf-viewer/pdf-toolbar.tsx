@@ -16,6 +16,10 @@ import { useI18n } from "@workspace/ui/lib/i18n";
  * - **Nothing is lost when space runs out.** Every control that is hidden below
  *   a container width is reachable from the 更多 menu, which is itself hidden
  *   once the wide layout returns.
+ *
+ * The rail has exactly one control here: an open/close switch at the far left.
+ * 缩略图 and 大纲 are tabs *inside* the rail, so a top-row button per tab was the
+ * same switch twice — and it spent two of the row's scarce slots doing it.
  */
 import { useEffect, useState } from "react";
 import {
@@ -30,10 +34,9 @@ import {
   Download,
   ExternalLink,
   File,
-  LayoutGrid,
-  ListTree,
   Loader2,
   MoreHorizontal,
+  PanelLeft,
   Rows3,
   ScrollText,
   Search,
@@ -77,7 +80,6 @@ import {
   pdfSpreadStep,
   type PdfDirection,
   type PdfScrollMode,
-  type PdfSidebarTab,
   type PdfSpread,
   type PdfToolbarProps,
 } from "./types";
@@ -212,10 +214,6 @@ export function PdfToolbar({
     onModeChange({ ...mode, spread: value as PdfSpread });
   };
 
-  const toggleSidebar = (tab: PdfSidebarTab) => {
-    sidebar.onTabChange(sidebar.tab === tab ? null : tab);
-  };
-
   return (
     <TooltipProvider delayDuration={200}>
       <div
@@ -229,7 +227,18 @@ export function PdfToolbar({
           className,
         )}
       >
-        {/* 翻页 — always first, always present. */}
+        {/* 侧栏 — the far-left switch. It opens on 大纲; the rail's own tab strip
+            switches to 缩略图. */}
+        <IconButton
+          label={t(sidebar.open ? "收起侧栏" : "展开侧栏")}
+          icon={PanelLeft}
+          active={sidebar.open}
+          onClick={sidebar.onToggle}
+        />
+
+        <Separator orientation="vertical" className="mx-0.5 h-5" />
+
+        {/* 翻页 — first of the document controls, always present. */}
         <div className="flex shrink-0 items-center gap-0.5">
           <IconButton
             label={t("上一页")}
@@ -494,20 +503,6 @@ export function PdfToolbar({
         {/* 功能组 — right-anchored, fixed size. */}
         <div className="ml-auto flex shrink-0 items-center gap-0.5">
           <IconButton
-            label={t("缩略图")}
-            icon={LayoutGrid}
-            active={sidebar.tab === "thumbs"}
-            onClick={() => toggleSidebar("thumbs")}
-            className="hidden @4xl:inline-flex"
-          />
-          <IconButton
-            label={t("大纲")}
-            icon={ListTree}
-            active={sidebar.tab === "outline"}
-            onClick={() => toggleSidebar("outline")}
-            className="hidden @4xl:inline-flex"
-          />
-          <IconButton
             label={t("下载")}
             icon={Download}
             onClick={onDownload}
@@ -587,21 +582,6 @@ export function PdfToolbar({
               >
                 <BookOpen className="size-4" />
                 {t("双页显示")}{" "}
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={sidebar.tab === "thumbs"}
-                onCheckedChange={() => toggleSidebar("thumbs")}
-              >
-                <LayoutGrid className="size-4" />
-                {t("缩略图")}{" "}
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={sidebar.tab === "outline"}
-                onCheckedChange={() => toggleSidebar("outline")}
-              >
-                <ListTree className="size-4" />
-                {t("大纲")}{" "}
               </DropdownMenuCheckboxItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={onDownload}>
