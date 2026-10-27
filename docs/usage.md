@@ -56,6 +56,8 @@ The node types are text, rich text, image, PDF, video, audio, web page, website,
 
 The workspace selector is in the graph sidebar and in the left Dashboard sidebar. A workspace that you own shows a ⋯ menu with 编辑. A non-default workspace also shows 删除. Only the owner sees these entries. A user who is not the owner cannot edit or delete a shared workspace.
 
+The browser remembers the last workspace that you opened. The app opens that workspace the next time you open the app. When the workspace no longer exists, the app opens the first workspace instead. The 最近打开 list in the graph sidebar is also stored in the browser, so it stays after a refresh. The list shows only the nodes that still exist in the open workspace.
+
 编辑 changes the name and the icon. The dialog shows the current name and icon. The create entry offers the same icon picker. The app trims the name. The name must have 1 to 50 characters and cannot be blank. The icon picker offers an emoji or a Lucide graphic; a workspace without an icon shows a globe. An edit changes the workspace only. The nodes, the relations, and the views stay.
 
 删除 deletes a non-default workspace. The confirmation shows the name. The delete removes the nodes, the relations, the views, the semantics, the tags, and the Dashboard pages of the workspace. It cannot be undone. Files in the resource library are not deleted. They stay in the library. When you delete the open workspace, the app opens another workspace.
@@ -146,7 +148,7 @@ A PDF larger than 256 MiB skips the analysis. The app stores the file only. You 
 
 The PDF viewer shows the stored cover of the first page immediately, then replaces it with the rendered page. The viewer reads only the parts it needs. It does not download the whole file first, and it locates a page through that page's entry in the document's page tree instead of reading every entry, so a large scan opens quickly even when its pages are stored far apart. The viewer reads the later pages when you scroll to them.
 
-The app remembers the last page for each reader and each node. Reopen the node and the viewer continues from that page. The outline folds by level. Select a parent entry to open or close it. A long title wraps to the next line.
+The app remembers the last page for each reader and each node. Reopen the node and the viewer continues from that page. The outline folds by level. Select a parent entry to open or close it. A long title wraps to the next line. The button at the far left of the toolbar opens the left sidebar. Its tabs switch between thumbnails and the outline. The sidebar opens on the outline.
 
 ## Resource library and references
 
