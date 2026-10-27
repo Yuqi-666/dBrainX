@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-only
-
 "use client";
 
 /**
@@ -28,13 +26,20 @@
  * — transport, time readout, speed, 加笔记, the ticks — is shared, so the two
  * players cannot drift apart.
  *
- * **What is deliberately not here.** The shipped skins also carry captions, a
- * settings menu (speed / quality / audio track), cast, AirPlay, a title overlay
- * and an error dialog. A dBrainX media node is a single HLS or progressive
- * rendition with no text tracks, and its node content draws its own failure
- * screens, so those controls could only ever be inert. The playback keys the
- * shipped skins bind are kept (see {@link PlaybackHotkeys}), so replacing a
- * native control bar does not take the keyboard away.
+ * **What is deliberately not here.** The shipped skins also carry a settings
+ * menu (speed / quality / audio track), cast, AirPlay, a title overlay and an
+ * error dialog. A dBrainX media node is a single HLS or progressive rendition,
+ * and its node content draws its own failure screens, so those controls could
+ * only ever be inert. The playback keys the shipped skins bind are kept (see
+ * {@link PlaybackHotkeys}), so replacing a native control bar does not take the
+ * keyboard away.
+ *
+ * **Subtitles are the exception.** The packaged skins' captions button toggles
+ * a v10 text track; a dBrainX node has none — its cues live in the stored
+ * timeline — so the video preset draws the current cue in its own overlay and
+ * switches it with its own button ({@link SubtitleOverlay},
+ * {@link SubtitleToggleButton}). The audio preset has no overlay: its 字幕 tab
+ * carries lyrics, which belong in the list, not over a progress bar.
  */
 import * as React from "react";
 import {
@@ -56,6 +61,8 @@ import {
   Tooltip,
 } from "@videojs/react";
 import {
+  CaptionsOffIcon,
+  CaptionsOnIcon,
   FullscreenEnterIcon,
   FullscreenExitIcon,
   PauseIcon,
@@ -69,12 +76,17 @@ import {
   VolumeLowIcon,
   VolumeOffIcon,
 } from "@videojs/react/icons";
-import type { TimestampNoteData } from "@workspace/interfaces";
+import type {
+  TimestampNoteData,
+  TimestampSubtitleData,
+} from "@workspace/interfaces";
 
+import { useI18n } from "@workspace/ui/lib/i18n";
 import { cn } from "@workspace/ui/lib/utils";
 
 import { AddNoteButton } from "./add-note-button";
 import { NoteMarks } from "./note-marks";
+import { activeCueIndex } from "./types";
 import type { MediaController, TimestampNoteActivation } from "./types";
 
 /**
@@ -102,6 +114,12 @@ export interface MediaSkinProps {
   controls?: boolean;
   /** The notes drawn as ticks on the seek bar. */
   notes?: readonly TimestampNoteData[];
+  /**
+   * The node's subtitle cues, ascending by start time (`useMediaTimestamps`
+   * sorts them). Non-empty turns on the control bar's subtitle button; the
+   * overlay draws whichever cue spans the playhead.
+   */
+  subtitles?: readonly TimestampSubtitleData[];
   /** The 「加笔记」 button's gesture, with the playhead in milliseconds. */
   onAddNote?: (timeMs: number) => void;
   /** A tick was clicked: the host focuses that position's cards. */
@@ -110,6 +128,9 @@ export interface MediaSkinProps {
 
 /** A stable empty list, so a host that passes nothing does not defeat the memo. */
 const NO_NOTES: readonly TimestampNoteData[] = [];
+
+/** The same, for a node that was imported without a subtitle track. */
+const NO_SUBTITLES: readonly TimestampSubtitleData[] = [];
 
 /**
  * One tooltip-wrapped icon button, the shape the shipped skins use.
@@ -214,6 +235,118 @@ function TransportRateButton() {
   );
 }
 
+/**
+ * The cue that spans the playhead, drawn over the picture.
+ *
+ * **Why the controller and not `usePlayer`.** The skin is shared by both
+ * presets; `MediaController` is the one transport either host passes in, and
+ * its `subscribe` reports once per animation frame while playing. The state
+ * update is guarded by the cue index, so playing through a transcript costs one
+ * render per line, not sixty per second.
+ *
+ * Nothing here is announced: the 字幕 tab is the accessible copy (real buttons,
+ * real text), and an `aria-live` region re-reading a line every few seconds
+ * would talk over the player.
+ */
+function SubtitleOverlay({
+  controller,
+  subtitles,
+}: {
+  controller: MediaController | null;
+  subtitles: readonly TimestampSubtitleData[];
+}) {
+  const [activeIndex, setActiveIndex] = React.useState(-1);
+
+  React.useEffect(() => {
+    if (!controller) {
+      setActiveIndex(-1);
+      return;
+    }
+    const apply = (timeMs: number) => {
+      const next = activeCueIndex(subtitles, timeMs);
+      setActiveIndex((current) => (current === next ? current : next));
+    };
+    // A node opened mid-playback shows the line already being spoken rather
+    // than waiting for the next cue boundary.
+    apply(controller.getCurrentTimeMs());
+    return controller.subscribe(apply);
+  }, [controller, subtitles]);
+
+  const cue = activeIndex >= 0 ? subtitles[activeIndex] : undefined;
+  // A cue with no text is a real gap marker in a transcript (`（空白字幕）`);
+  // printing an empty black strip over the picture would only look broken.
+  if (!cue || cue.content.length === 0) return null;
+
+  return (
+    <div className="vjs-subtitle-overlay" data-slot="subtitle-overlay">
+      {cue.content}
+    </div>
+  );
+}
+
+/**
+ * The control bar's subtitle switch.
+ *
+ * A plain `<button>` rather than the shipped `CaptionsButton`: that one toggles
+ * a v10 *text track*, and a dBrainX node's cues are stored timeline data, not a
+ * track the element knows about. The shipped stylesheet still does the icon
+ * work — `data-active` is what swaps `media-captions-button-on-icon` for
+ * `…-off-icon` — and `media-button` supplies size, focus ring and hover wash.
+ *
+ * `aria-disabled` rather than the native `disabled` attribute is the "this node
+ * imported without a track" state: the button is where the user looks for
+ * subtitles, so it stays in the bar and says why nothing happens instead of
+ * vanishing — and a natively disabled button never fires the hover events that
+ * would show that tooltip. The shipped `media-button` rules already key the
+ * inert lookup on `aria-disabled`, so nothing else is needed.
+ *
+ * It builds its own tooltip instead of using {@link ControlTooltip}: that
+ * helper's `<Tooltip.Label>` reads the content a v10 media button registers, and
+ * this is a plain `<button>`, so the label is passed to the popup directly.
+ */
+function SubtitleToggleButton({
+  available,
+  visible,
+  onToggle,
+}: {
+  available: boolean;
+  visible: boolean;
+  onToggle: () => void;
+}) {
+  const { t } = useI18n();
+  const label = !available
+    ? t("无字幕")
+    : visible
+      ? t("隐藏字幕")
+      : t("显示字幕");
+
+  return (
+    <Tooltip.Root side="top">
+      <Tooltip.Trigger
+        render={
+          <button
+            type="button"
+            className="media-button media-captions-button vjs-captions-button"
+            data-active={visible && available ? "" : undefined}
+            aria-label={label}
+            aria-pressed={available ? visible : undefined}
+            aria-disabled={!available || undefined}
+            onClick={() => {
+              if (available) onToggle();
+            }}
+          >
+            <CaptionsOnIcon className="media-button-icon media-captions-button-on-icon" />
+            <CaptionsOffIcon className="media-button-icon media-captions-button-off-icon" />
+          </button>
+        }
+      />
+      <Tooltip.Popup className="media-popup media-popup-safe-area media-popup-transition media-popup-surface media-tooltip">
+        <span>{label}</span>
+      </Tooltip.Popup>
+    </Tooltip.Root>
+  );
+}
+
 /** The seek bar's ticks, wired to this skin's controller and duration. */
 function TrackTicks({
   notes,
@@ -279,8 +412,20 @@ function VideoTimeSlider({
           </div>
         )}
       />
+      {/* The hover dot, in the slider's own coordinate space. The shipped one
+          sits inside `Preview`, whose box is clamped to the bar, so near either
+          end the clamp drags the dot inward with the box and it cannot reach
+          the ends. `media-player.css` hides the shipped dot for this preset. */}
+      <span aria-hidden="true" className="vjs-time-slider-dot" />
       <TimeSlider.Thumb className="media-slider-thumb media-time-slider-thumb" />
-      <TimeSlider.Preview className="media-slider-preview">
+      {/* `overflow="visible"`, like the dot above: the default clamp keeps the
+          preview box inside the bar, which near either end drags the time label
+          inward with it, so the label stops short instead of staying under the
+          pointer. This preset's preview is text only (the shipped skins put a
+          thumbnail in the box, which is why they clamp), and the seek bar is
+          inset by the control padding + the time readouts, so the label still
+          lands inside the player at both ends. */}
+      <TimeSlider.Preview className="media-slider-preview" overflow="visible">
         <span className="media-slider-preview-content media-time-slider-preview-content">
           <TimeSlider.ChapterTitle className="media-time-slider-chapter-title" />
           <TimeSlider.Value
@@ -406,9 +551,16 @@ function VideoControlGroups({
   notes,
   controller,
   durationSeconds,
+  subtitles,
+  subtitlesVisible,
+  onToggleSubtitles,
   onAddNote,
   onActivateNote,
-}: ControlGroupsProps) {
+}: ControlGroupsProps & {
+  subtitles: readonly TimestampSubtitleData[];
+  subtitlesVisible: boolean;
+  onToggleSubtitles: () => void;
+}) {
   return (
     <>
       <Controls.Group className="video-controls-primary">
@@ -441,6 +593,12 @@ function VideoControlGroups({
         </Controls.Group>
 
         <TransportRateButton />
+
+        <SubtitleToggleButton
+          available={subtitles.length > 0}
+          visible={subtitlesVisible}
+          onToggle={onToggleSubtitles}
+        />
 
         <CaptureButton controller={controller} onAddNote={onAddNote} />
       </Controls.Group>
@@ -554,6 +712,13 @@ export function MediaSkin(props: MediaSkinProps) {
 
   const isVideo = preset === "video";
 
+  // `NO_SUBTITLES` rather than a fresh `[]`: the overlay subscribes on the
+  // identity of this list, and a new array every render would resubscribe.
+  const subtitles = props.subtitles ?? NO_SUBTITLES;
+  // On when the node has cues: importing a track is the user asking to see it.
+  // The switch is per mounted player — a different node mounts its own.
+  const [showSubtitles, setShowSubtitles] = React.useState(true);
+
   return (
     <Container
       // `media-skin` + `media-container` are load-bearing: every rule in the
@@ -587,6 +752,10 @@ export function MediaSkin(props: MediaSkinProps) {
         </BufferingIndicator>
       ) : null}
 
+      {isVideo && subtitles.length > 0 && showSubtitles ? (
+        <SubtitleOverlay controller={controller} subtitles={subtitles} />
+      ) : null}
+
       {controls ? (
         <Controls.Root visibility={isVideo ? undefined : "always"}>
           {isVideo ? (
@@ -605,6 +774,11 @@ export function MediaSkin(props: MediaSkinProps) {
                   notes={notes}
                   controller={controller}
                   durationSeconds={durationSeconds}
+                  subtitles={subtitles}
+                  subtitlesVisible={showSubtitles}
+                  onToggleSubtitles={() =>
+                    setShowSubtitles((visible) => !visible)
+                  }
                   onAddNote={onAddNote}
                   onActivateNote={onActivateNote}
                 />

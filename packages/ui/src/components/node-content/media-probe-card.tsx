@@ -96,6 +96,18 @@ export function MediaProbeCard({
         ? t("将同时导入歌词")
         : t("将同时导入字幕")
       : null;
+  // A site can hide its track list from a signed-out viewer: Bilibili only
+  // returns its caption list to a logged-in request, so an anonymous probe shows
+  // no track even when the media has one. Say so instead of leaving the card
+  // silent, or the user reads "no subtitles" as final.
+  const subtitleMissingHint =
+    probe.subtitleLanguages.length === 0 &&
+    !probe.loggedIn &&
+    !probe.requiresLogin
+      ? kind === "audio"
+        ? t("未检测到歌词；部分站点需登录后才能获取歌词。")
+        : t("未检测到字幕；部分站点需登录后才能获取字幕。")
+      : null;
   const loginLocked =
     probe.requiresLogin ||
     probe.qualities.some(
@@ -156,6 +168,10 @@ export function MediaProbeCard({
           </p>
         </div>
       </div>
+
+      {subtitleMissingHint ? (
+        <p className="text-xs text-muted-foreground">{subtitleMissingHint}</p>
+      ) : null}
 
       {probe.qualities.length > 0 && (
         <div className="space-y-1.5">

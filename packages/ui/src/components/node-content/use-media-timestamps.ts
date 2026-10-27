@@ -35,6 +35,7 @@ import type {
   RichTextNodeData,
   TimestampData,
   TimestampNoteData,
+  TimestampSubtitleData,
 } from "@workspace/interfaces";
 
 import { NodeService } from "@workspace/services";
@@ -44,6 +45,8 @@ import {
   normalizeTimestamps,
   noteTitle,
   notesOf,
+  sortTimestamps,
+  subtitlesOf,
 } from "@workspace/ui/components/media-player/types";
 import type {
   MediaController,
@@ -87,6 +90,15 @@ export interface MediaTimestampLayer {
    * deliberately not ticks: a transcript's hundreds of them would bury the bar.
    */
   notes: TimestampNoteData[];
+  /**
+   * The subtitle cues among them, ascending by start time — what the player
+   * draws over the picture.
+   *
+   * Sorted here, not in the player: `activeCueIndex` assumes `sortTimestamps`
+   * order, and doing it once keeps the overlay and the sidebar agreeing on
+   * which line is "current" for a timeline stored out of order.
+   */
+  subtitles: TimestampSubtitleData[];
   /** The complete next timeline — the writer persists it verbatim. */
   onTimestampsChange: (timestamps: TimestampData[]) => void;
   /** The `Mod-Enter` / 加笔记 request in flight. */
@@ -136,6 +148,11 @@ export function useMediaTimestamps<C extends MediaTimestampHalves>(
   );
 
   const notes = React.useMemo(() => notesOf(timestamps), [timestamps]);
+
+  const subtitles = React.useMemo(
+    () => sortTimestamps(subtitlesOf(timestamps)),
+    [timestamps],
+  );
 
   const onTimestampsChange = React.useCallback(
     (next: TimestampData[]) => {
@@ -217,6 +234,7 @@ export function useMediaTimestamps<C extends MediaTimestampHalves>(
     onMediaController: setController,
     timestamps,
     notes,
+    subtitles,
     onTimestampsChange,
     addRequest,
     focusRequest,

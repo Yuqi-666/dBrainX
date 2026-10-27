@@ -97,6 +97,7 @@ export class YtDlpMediaProbe implements IMediaProbe {
         command: this.command,
         args: buildProbeArgs({
           url: url.href,
+          kind: request.kind,
           workDir,
           cookieFile,
           cookiesFromBrowser: request.cookiesFromBrowser,

@@ -81,6 +81,77 @@ test("estimates a video size from the declared bitrate and duration", () => {
   assert.equal(qualities[0]?.estimatedBytes, 15_000_000);
 });
 
+test("prefers an H.264 stream of the same quality, because HLS can copy it", () => {
+  const qualities = videoQualities([
+    {
+      format_id: "30077",
+      ext: "mp4",
+      vcodec: "hvc1.1.6.L150.90",
+      acodec: "none",
+      height: 1080,
+      width: 1920,
+      fps: 30,
+      tbr: 448,
+      filesize: 107_259_499,
+    },
+    {
+      format_id: "100026",
+      ext: "mp4",
+      vcodec: "av01.0.08M.08.0.110.01.01.01.0",
+      acodec: "none",
+      height: 1080,
+      width: 1920,
+      fps: 30,
+      tbr: 430,
+      filesize: 85_734_482,
+    },
+    {
+      format_id: "30080",
+      ext: "mp4",
+      vcodec: "avc1.640032",
+      acodec: "none",
+      height: 1080,
+      width: 1920,
+      fps: 30,
+      tbr: 447,
+      filesize: 107_162_775,
+    },
+  ]);
+
+  assert.deepEqual(
+    qualities.map((quality) => quality.id),
+    ["best", "1080p"],
+  );
+  assert.equal(qualities[1]?.formatId, "30080");
+});
+
+test("keeps a higher frame rate over a copyable codec", () => {
+  const qualities = videoQualities([
+    {
+      format_id: "h264-30",
+      ext: "mp4",
+      vcodec: "avc1.640028",
+      acodec: "none",
+      height: 1080,
+      width: 1920,
+      fps: 30,
+      tbr: 6000,
+    },
+    {
+      format_id: "vp9-60",
+      ext: "webm",
+      vcodec: "vp9",
+      acodec: "none",
+      height: 1080,
+      width: 1920,
+      fps: 60,
+      tbr: 5000,
+    },
+  ]);
+
+  assert.equal(qualities[1]?.formatId, "vp9-60");
+});
+
 test("keeps only the best selector when the site offers combined streams", () => {
   const qualities = videoQualities([
     {

@@ -54,6 +54,10 @@ const SIDE_EXTENSIONS = new Set([
   "json",
   "txt",
   "description",
+  // Bilibili's danmaku track is an XML file yt-dlp writes beside the media.
+  // It is excluded from the subtitle request, but a directory left by an
+  // earlier failed run can still contain one.
+  "xml",
 ]);
 
 /** MIME type of every container the video merge step can produce. */

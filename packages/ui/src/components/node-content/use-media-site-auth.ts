@@ -82,9 +82,17 @@ function setSnapshot(
   entry.listeners.forEach((listener) => listener());
 }
 
-/** Reads the current snapshot; stable while nothing changes. */
+/**
+ * Reads the current snapshot for a kind; the same object until something
+ * changes.
+ *
+ * The identity has to be stable: `useSyncExternalStore` calls this getter
+ * repeatedly and compares the results, so a freshly built object would read as
+ * a change on every call and loop forever. Creating the entry on first read is
+ * what makes the empty snapshot the one canonical object for that kind.
+ */
 export function getMediaSiteAuth(kind: MediaKind): MediaSiteAuthSnapshot {
-  return entries.get(kind)?.snapshot ?? { ...EMPTY, kind };
+  return entryFor(kind).snapshot;
 }
 
 /** Subscribes to one kind's site list; returns the unsubscribe function. */

@@ -13,6 +13,49 @@ import type {
   IslandPanel,
 } from "@workspace/interfaces";
 
+/**
+ * 最近打开的节点序列只保存在浏览器里，不在服务端。
+ *
+ * 它不是节点数据：节点属于工作空间，打开顺序只是一台浏览器上的使用痕迹。
+ * 因此写在这里、读在 store 初始化时，下一次打开应用侧栏的「最近打开」仍然
+ * 保留上一次会话的条目；渲染时再按当前工作空间的节点表过滤，旧工作空间的 ID
+ * 或已删除的 ID 不会显示。存储始终是可选的：隐私模式、配额或损坏的值都当作
+ * 「没有记录」，不会影响节点本身的打开。
+ *
+ * 这一项用手写读写而不是 persist 中间件：这个 store 在每次选择、每次菜单开关
+ * 时都会 set，中间件会在每次 set 后写一次 localStorage；而这里只有推入队列
+ * 这一个动作需要落盘。
+ */
+const RECENT_NODES_STORAGE_KEY = "dbrain:recent-nodes:v1";
+
+/** 队列长度上限；超出后淘汰队尾。 */
+const RECENT_NODES_LIMIT = 10;
+
+/** 读回队列；任何不可信的条目都丢弃，而不是让 store 带着坏值启动。 */
+function readRecentlyOpenedNodeIds(): NodeId[] {
+  try {
+    const raw = localStorage.getItem(RECENT_NODES_STORAGE_KEY);
+    if (raw === null) return [];
+    const value: unknown = JSON.parse(raw);
+    if (!Array.isArray(value)) return [];
+    const ids = value.filter(
+      (id): id is NodeId => typeof id === "string" && id.length > 0,
+    );
+    return Array.from(new Set(ids)).slice(0, RECENT_NODES_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+/** 写入队列；没有存储权限时静默跳过。 */
+function writeRecentlyOpenedNodeIds(ids: readonly NodeId[]): void {
+  try {
+    localStorage.setItem(RECENT_NODES_STORAGE_KEY, JSON.stringify(ids));
+  } catch {
+    // 最近打开列表是可选便利，不影响节点打开。
+  }
+}
+
 // ==================== Shared Types ====================
 
 export type ContextMenuType = "node" | "edge" | "canvas" | "groupSelect" | "add-edge";
@@ -192,7 +235,10 @@ export interface UIStore {
   nodeContentReset: Record<string, number>;
   /** 标记某个节点的内容已被外部整体替换，让其非受控编辑器重挂载。 */
   resetNodeContent: (nodeId: NodeId) => void;
-  /** 最近打开的节点ID队列（长度上限 10，队首为最新） */
+  /**
+   * 最近打开的节点ID队列（长度上限 10，队首为最新）。随浏览器持久化，
+   * 见文件头 `RECENT_NODES_STORAGE_KEY`。
+   */
   recentlyOpenedNodeIds: NodeId[];
   /** 将节点ID推入最近打开队列（去重置顶，超出 10 淘汰队尾） */
   pushRecentlyOpenedNode: (nodeId: NodeId) => void;
@@ -469,14 +515,16 @@ export const useUIStore = create<UIStore>()(
             [nodeId]: (state.nodeContentReset[nodeId] ?? 0) + 1,
           },
         })),
-      recentlyOpenedNodeIds: [],
+      recentlyOpenedNodeIds: readRecentlyOpenedNodeIds(),
       pushRecentlyOpenedNode: (nodeId) =>
-        set((state) => ({
-          recentlyOpenedNodeIds: [
+        set((state) => {
+          const recentlyOpenedNodeIds = [
             nodeId,
             ...state.recentlyOpenedNodeIds.filter((id) => id !== nodeId),
-          ].slice(0, 10),
-        })),
+          ].slice(0, RECENT_NODES_LIMIT);
+          writeRecentlyOpenedNodeIds(recentlyOpenedNodeIds);
+          return { recentlyOpenedNodeIds };
+        }),
 
       // ==================== Attributes Sidebar ====================
       attributesSidebarOpen: false,

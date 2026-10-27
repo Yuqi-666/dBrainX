@@ -4,7 +4,12 @@
 import { useI18n } from "@workspace/ui/lib/i18n";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDownIcon, KeyRoundIcon, UploadIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ExternalLinkIcon,
+  KeyRoundIcon,
+  UploadIcon,
+} from "lucide-react";
 import {
   connectMediaSiteWithBrowser,
   importMediaCookies,
@@ -19,6 +24,15 @@ import { mediaImportFailure } from "./use-media-url-import";
  * here avoids reading a huge file into the renderer just to be refused.
  */
 const COOKIE_FILE_MAX_BYTES = 1024 * 1024;
+
+/**
+ * The extension the cookie-file instructions point at: a Chrome Web Store
+ * listing that writes a Netscape `cookies.txt` locally. It is a plain link, not
+ * a dependency — the user installs it in their own browser, and nothing in the
+ * app talks to it.
+ */
+const COOKIE_EXPORT_EXTENSION_URL =
+  "https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc";
 
 /** What a cookie import connected / failed to connect, as the panel shows it. */
 interface CookieImportOutcome {
@@ -67,7 +81,9 @@ interface MediaSiteLoginPanelProps {
  * - **B. An exported `cookies.txt`** — the user logs in with a normal browser,
  *   exports a Netscape cookie file with an extension, and drops it here. The
  *   server keeps only the supported sites' cookies (the response lists what it
- *   ignored), so one file can light up several capsules at once.
+ *   ignored), so one file can light up several capsules at once. The
+ *   instructions link to one such extension in the Chrome Web Store, so the user
+ *   does not have to guess which one writes the format the server accepts.
  *
  * The panel never stores a cookie itself and never shows one back: connected
  * sites are reported by name, failures by the server's sanitized message.
@@ -254,6 +270,15 @@ export function MediaSiteLoginPanel({
                 "在浏览器登录站点后，用扩展导出 Netscape 格式的 cookies.txt，再拖到这里。只保留支持站点的 Cookie。",
               )}
             </p>
+            <a
+              href={COOKIE_EXPORT_EXTENSION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring/40"
+            >
+              <ExternalLinkIcon className="size-3 shrink-0" aria-hidden="true" />
+              {t("安装导出 cookies.txt 的 Chrome 扩展")}
+            </a>
             <div
               onDragEnter={(event) => {
                 event.preventDefault();

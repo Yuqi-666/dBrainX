@@ -57,7 +57,7 @@ const FAKE_PROBE_VIDEO = `#!/bin/sh
 set -eu
 ${OUTPUT_LOOKUP}
 printf 'fake-jpeg' > "$directory/source.jpg"
-printf '%s' '{"title":"A Test Clip","duration":93.5,"webpage_url":"https://video.example/watch?v=abc","extractor_key":"TestExtractor","artist":"An Artist","album":"An Album","language":"zh-Hans","subtitles":{"zh-Hans":[{"name":"中文"}],"en":[{"name":"English"}]},"automatic_captions":{"ja":[{"name":"日本語"}]},"formats":[{"format_id":"137","ext":"mp4","vcodec":"avc1","acodec":"none","height":1080,"width":1920,"fps":30,"tbr":4000,"filesize":50000000},{"format_id":"136","ext":"mp4","vcodec":"avc1","acodec":"none","height":720,"width":1280,"fps":30,"tbr":2000,"filesize":20000000},{"format_id":"140","ext":"m4a","vcodec":"none","acodec":"mp4a.40.2","abr":128}]}'
+printf '%s' '{"title":"A Test Clip","duration":93.5,"webpage_url":"https://video.example/watch?v=abc","extractor_key":"TestExtractor","artist":"An Artist","album":"An Album","language":"zh-Hans","subtitles":{"zh-Hans":[{"name":"中文"}],"danmaku":[{"name":"弹幕","ext":"xml"}],"en":[{"name":"English"}]},"automatic_captions":{"ja":[{"name":"日本語"}]},"formats":[{"format_id":"137","ext":"mp4","vcodec":"avc1","acodec":"none","height":1080,"width":1920,"fps":30,"tbr":4000,"filesize":50000000},{"format_id":"136","ext":"mp4","vcodec":"avc1","acodec":"none","height":720,"width":1280,"fps":30,"tbr":2000,"filesize":20000000},{"format_id":"140","ext":"m4a","vcodec":"none","acodec":"mp4a.40.2","abr":128}]}'
 `;
 
 /** A stand-in audio probe: one cover file and a metadata document. */
@@ -164,6 +164,8 @@ test("probes a video and maps metadata, cover, languages, and qualities", async 
       `data:image/jpeg;base64,${Buffer.from("fake-jpeg").toString("base64")}`,
     );
 
+    // Bilibili's danmaku track is in the metadata but is not a caption: the
+    // download excludes it, so the probe does not advertise it either.
     assert.deepEqual(
       result.subtitleLanguages.map((track) => track.language),
       ["zh-Hans", "en", "ja"],

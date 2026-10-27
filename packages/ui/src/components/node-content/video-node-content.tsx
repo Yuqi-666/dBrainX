@@ -134,6 +134,7 @@ export function VideoNodeContent({ node, className }: VideoNodeContentProps) {
           onError={() => setFailed(true)}
           onMediaController={timestamps.onMediaController}
           notes={timestamps.notes}
+          subtitles={timestamps.subtitles}
           onAddNoteRequest={timestamps.onAddNoteRequest}
           onActivateNote={timestamps.onActivateNote}
         />

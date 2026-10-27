@@ -36,7 +36,10 @@ import {
 } from "@videojs/react/video";
 import { HlsJsVideo } from "@videojs/react/media/hlsjs-video";
 import { resolveFileUrl } from "@workspace/api-client";
-import type { TimestampNoteData } from "@workspace/interfaces";
+import type {
+  TimestampNoteData,
+  TimestampSubtitleData,
+} from "@workspace/interfaces";
 
 import { MediaSkin } from "../media-skin";
 import { createVideoJsMediaController } from "../media-controller";
@@ -77,6 +80,11 @@ interface VideoPlayerProps {
   onMediaController?: MediaControllerCallback;
   /** The node's persisted notes, drawn as ticks on the seek bar. */
   notes?: readonly TimestampNoteData[];
+  /**
+   * The node's subtitle cues, ascending by start time — drawn over the picture
+   * and toggled by the control bar's subtitle button.
+   */
+  subtitles?: readonly TimestampSubtitleData[];
   /** The 「加笔记」 button's gesture, with the playhead in milliseconds. */
   onAddNoteRequest?: (timeMs: number) => void;
   /** A note tick was clicked: the host focuses that position's cards. */
@@ -111,6 +119,7 @@ function VideoSurface({
   onError,
   onMediaController,
   notes,
+  subtitles,
   onAddNoteRequest,
   onActivateNote,
 }: VideoPlayerProps) {
@@ -178,6 +187,7 @@ function VideoSurface({
       className={className}
       controls={controls}
       notes={notes}
+      subtitles={subtitles}
       onAddNote={onAddNoteRequest}
       onActivateNote={onActivateNote}
     />
