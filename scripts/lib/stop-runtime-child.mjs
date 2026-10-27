@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { once } from "node:events";
 
 /** Stop this exact process, and retire its deadline before a restart. */

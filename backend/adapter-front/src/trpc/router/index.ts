@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { router } from "../server";
 import { nodeSemanticRouter } from "./node-semantic";
 import { edgeSemanticRouter } from "./edge-semantic";

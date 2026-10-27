@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import PocketBase, { BaseAuthStore } from "pocketbase";
 import { readAuthSessionToken } from "./auth/session";
 
@@ -15,7 +17,7 @@ export const createPocketbaseClient = (config: PocketbaseClientConfig): PocketBa
     // Credentials belong to this backend/session, never SDK localStorage left
     // by another login or another desktop runtime.
     instance = new PocketBase(url, new SessionAuthStore());
-    if (process.env.NEXT_PUBLIC_DBRAIN_PLATFORM !== "desktop") {
+    if (process.env.NEXT_PUBLIC_DBRAINX_PLATFORM !== "desktop") {
       instance.beforeSend = (url, options) => {
         const headers = new Headers(options.headers);
         headers.set("Authorization", readAuthSessionToken() ?? "");

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { View, Workspace } from "@workspace/interfaces";
 import {
   DEFAULT_VIEW_NAME,

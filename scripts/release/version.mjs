@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,8 +41,8 @@ for (const file of ["docker-compose.yml", "deploy/.env.example"]) {
   await writeFile(
     path,
     value
-      .replace(/DBRAIN_VERSION:-[^}]+/g, `DBRAIN_VERSION:-${version}`)
-      .replace(/^DBRAIN_VERSION=.+$/m, `DBRAIN_VERSION=${version}`),
+      .replace(/DBRAINX_VERSION:-[^}]+/g, `DBRAINX_VERSION:-${version}`)
+      .replace(/^DBRAINX_VERSION=.+$/m, `DBRAINX_VERSION=${version}`),
   );
 }
 console.log(`Product version synchronized: ${version}`);

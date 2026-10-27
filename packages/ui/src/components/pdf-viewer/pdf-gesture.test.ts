@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Pins the pdf's viewport-gesture arithmetic — see `pdf-gesture.ts` for why it is
  * a separate module and `pdf-zoom.test.ts` for the zoom-deferral policy next to

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Renderer-facing contract shared by every data view implementation.
  *

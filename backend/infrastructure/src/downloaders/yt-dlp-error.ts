@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Stable failure codes for a yt-dlp run.
  *

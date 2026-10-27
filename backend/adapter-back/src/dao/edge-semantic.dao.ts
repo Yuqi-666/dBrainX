@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { IEdgeSemanticRepository, EdgeSemanticQuery } from "@workspace/domain/repositories";
 import type { EdgeSemantic, SemanticId } from "@workspace/domain/models";
 import type { EdgeType } from "@workspace/domain/models/edge/value-objects";

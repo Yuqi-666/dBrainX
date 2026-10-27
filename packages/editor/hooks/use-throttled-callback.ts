@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import throttle from "lodash.throttle";
 
 import { useUnmount } from "@workspace/editor/hooks/use-unmount";

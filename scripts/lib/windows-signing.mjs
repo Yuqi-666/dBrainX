@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { readdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 export async function signWindowsRuntime(directory) {
-  if (process.platform !== "win32" || !process.env.DBRAIN_WINDOWS_THUMBPRINT)
+  if (process.platform !== "win32" || !process.env.DBRAINX_WINDOWS_THUMBPRINT)
     return;
   const sdk = join(
     process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)",
@@ -26,7 +28,7 @@ export async function signWindowsRuntime(directory) {
           [
             "sign",
             "/sha1",
-            process.env.DBRAIN_WINDOWS_THUMBPRINT,
+            process.env.DBRAINX_WINDOWS_THUMBPRINT,
             "/fd",
             "SHA256",
             "/tr",

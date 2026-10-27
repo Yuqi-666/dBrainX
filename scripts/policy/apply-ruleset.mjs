@@ -1,5 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Applies the owner-maintained branch and release policy.
-// The owner pushes to develop directly or merges an internal feature branch.
+// The owner pushes to develop directly. Every other writer needs a pull request.
 // Promotion to main uses an internal PR with CI.
 //
 // The default is a dry run. Pass --apply to change the repository.
@@ -7,15 +9,19 @@
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-export const rulesetName = 'dBrain open source main';
-export const tagRulesetName = 'dBrain version tags';
-export const developRulesetName = 'dBrain develop';
-export const legacyRulesetName = 'dBrain protected branches gate';
-export const olderRulesetName = 'dBrain main gate';
+export const rulesetName = 'dBrainX open source main';
+export const tagRulesetName = 'dBrainX version tags';
+export const developRulesetName = 'dBrainX develop';
+export const legacyRulesetName = 'dBrainX protected branches gate';
+export const olderRulesetName = 'dBrainX main gate';
 export const requiredCheck = 'checks';
 // The GitHub Actions application. A required check from another application
 // cannot satisfy the rule.
 export const actionsAppId = 15368;
+// Repository role IDs are fixed by GitHub: 1 read, 2 write, 4 maintain, 5 admin.
+// The develop ruleset lets the administrator push directly. Only a collaborator
+// with write access can push to any branch, so the rule states the model.
+export const adminRoleId = 5;
 
 export const usage = `Usage: node scripts/policy/apply-ruleset.mjs [options]
 
@@ -120,7 +126,24 @@ export function developRulesetPayload() {
     target: 'branch',
     enforcement: 'active',
     conditions: { ref_name: { include: ['refs/heads/develop'], exclude: [] } },
-    rules: [{ type: 'non_fast_forward' }, { type: 'deletion' }],
+    rules: [
+      // A writer who is not the owner opens a pull request. The owner bypasses
+      // the rule, so the direct commit to develop stays available.
+      {
+        type: 'pull_request',
+        parameters: {
+          allowed_merge_methods: ['merge'],
+          required_approving_review_count: 0,
+          dismiss_stale_reviews_on_push: false,
+          require_code_owner_review: false,
+          require_last_push_approval: false,
+          required_review_thread_resolution: false,
+        },
+      },
+      { type: 'non_fast_forward' },
+      { type: 'deletion' },
+    ],
+    bypass_actors: [{ actor_id: adminRoleId, actor_type: 'RepositoryRole', bypass_mode: 'always' }],
   };
 }
 
@@ -226,7 +249,7 @@ export async function main(argv, deps = {}) {
   const developPlan = planRuleset(existing, developPayload);
   const tagPlan = planRuleset(existing, tagPayload);
   io.log(describe(payload, settings, plan));
-  io.log(`Develop ruleset: ${developPayload.name} (${developPlan.action}) allows direct pushes but blocks force pushes and deletion.`);
+  io.log(`Develop ruleset: ${developPayload.name} (${developPlan.action}) allows a direct owner push, requires a pull request from another writer, and blocks force pushes and deletion.`);
   io.log(`Tag ruleset: ${tagPayload.name} (${tagPlan.action}) protects ${tagPayload.conditions.ref_name.include.join(', ')} from updates and deletion.`);
   io.log(`Release environment: requires review by ${options.reviewer ?? 'the personal repository owner'}.`);
   io.log('Private vulnerability reporting: enabled.');

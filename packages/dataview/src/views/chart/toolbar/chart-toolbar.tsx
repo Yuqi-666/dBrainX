@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { ColorPicker } from "@workspace/ui/components/selector/color-picker";
 import { translate } from "@workspace/ui/lib/i18n/runtime";

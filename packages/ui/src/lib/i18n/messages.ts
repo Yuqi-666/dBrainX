@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { resourceLibraryMessages } from "./messages-resources.ts";
 import { resourceSelectorMessages } from "./messages-resource-selector.ts";
 import { nodeDispositionMessages } from "./messages-node-disposition.ts";
@@ -43,9 +45,9 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
     "zh-CN": "创建账号",
     en: "Create Account",
   },
-  "Join dBrain to build your knowledge graph": {
-    "zh-CN": "加入 dBrain，构建你的知识图谱",
-    en: "Join dBrain to build your knowledge graph",
+  "Join dBrainX to build your knowledge graph": {
+    "zh-CN": "加入 dBrainX，构建你的知识图谱",
+    en: "Join dBrainX to build your knowledge graph",
   },
   Nickname: {
     "zh-CN": "昵称",

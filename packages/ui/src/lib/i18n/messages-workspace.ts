@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Interface copy of the workspace edit and delete dialogs plus the workspace
  * actions menu.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The workspace's theme tokens mapped onto FullCalendar's CSS custom properties.
  *

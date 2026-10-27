@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { IEdgeRepository } from "@workspace/domain";
 import type { IEventBus } from "@workspace/domain";
 import type { EdgeCreated, EdgeDeleted, EdgeUpdated } from "@workspace/domain";

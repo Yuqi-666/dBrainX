@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { useState } from "react";
 import { usePopoverLayer } from "@workspace/ui/hooks/use-popover-layer";

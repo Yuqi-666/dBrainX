@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { useI18n } from "@workspace/ui/lib/i18n";
 
@@ -57,7 +59,7 @@ export default function RegisterPage() {
       <CardHeader>
         <CardTitle>{t("Create Account")}</CardTitle>
         <CardDescription>
-          {t("Join dBrain to build your knowledge graph")}{" "}
+          {t("Join dBrainX to build your knowledge graph")}{" "}
         </CardDescription>
       </CardHeader>
       <CardContent>

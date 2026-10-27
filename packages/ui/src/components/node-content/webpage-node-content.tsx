@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { useI18n } from "@workspace/ui/lib/i18n";
 
@@ -53,7 +55,7 @@ const EMPTY_SOURCE: StoredSource = { text: null, error: null, loading: false };
  */
 function readFileToken(): string {
   const token =
-    process.env.NEXT_PUBLIC_DBRAIN_PLATFORM === "desktop"
+    process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop"
       ? getPocketbaseClient().authStore?.token
       : readAuthSessionToken();
   return token ?? "";

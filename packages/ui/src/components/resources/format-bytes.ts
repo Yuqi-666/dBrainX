@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Byte formatting for the resource library. */
 import type { Locale } from "@workspace/ui/lib/i18n";
 

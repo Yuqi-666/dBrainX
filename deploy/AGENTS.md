@@ -42,8 +42,8 @@ The server owns file authorization, so attachments do not bypass the business ru
 1. Keep the PocketBase version and checksums equal in `pocketbase/Dockerfile`, `scripts/release/pocketbase-lock.json`, and the documentation.
 2. Do not publish a service port that the gateway already serves. Add a route to `nginx.conf` instead.
 3. Use the root `.env.example` for development and `deploy/.env.example` for deployment. Keep the shared keys equal.
-4. Pass the operator password through `DBRAIN_ADMIN_PASSWORD_FILE` in production. A plain variable stays visible in the process list.
-5. Set `DBRAIN_PB_DATA_DIR` to the same path as the `--dir` argument of the container command.
+4. Pass the operator password through `DBRAINX_ADMIN_PASSWORD_FILE` in production. A plain variable stays visible in the process list.
+5. Set `DBRAINX_PB_DATA_DIR` to the same path as the `--dir` argument of the container command.
 6. Treat `compose.test.yml` as a CI artifact. Do not use it on a host.
 7. Run Compose with the host path of the deployment directory as the project directory. The updater calls `update.sh` inside a container, and a container path there becomes a bind mount source on the host. `update.sh` resolves that path and refuses a Compose file that would resolve a bind mount into the container.
 8. Rebuild the updater image after a change to `updater/watch.sh`: `docker compose -f compose.updater.yml up -d --build`. The Dockerfile copies that script into the image, so the deployment directory is not the source of the running updater.

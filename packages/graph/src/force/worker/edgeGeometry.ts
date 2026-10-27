@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Shared edge-geometry math — a port of the @antv/g6 v1 edge curve
  * computation into force-mode's Pixi renderer + hit-tester.

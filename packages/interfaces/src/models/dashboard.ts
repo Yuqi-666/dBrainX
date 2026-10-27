@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { NodeId } from "./node";
 
 /** Layout coordinates use the dashboard's canonical twelve-column grid. */

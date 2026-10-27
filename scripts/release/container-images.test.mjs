@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -20,17 +22,17 @@ const version = JSON.parse(
   await readFile(join(here, "release.json"), "utf8"),
 ).version;
 const commit = "a".repeat(40);
-const prefix = "ghcr.io/yuqi-666/dbrain";
+const prefix = "ghcr.io/yuqi-666/dbrainx";
 const digest = (letter) => `sha256:${letter.repeat(64)}`;
 
 /** A stand-in for Docker. It records every call and answers the two inspects. */
 const dockerStub = `#!/usr/bin/env bash
 set -euo pipefail
-printf '%s\\n' "$*" >> "$DBRAIN_TEST_LOG"
+printf '%s\\n' "$*" >> "$DBRAINX_TEST_LOG"
 case "$3" in
   create) exit 0 ;;
   inspect)
-    if [[ "$*" == *"--raw"* ]]; then cat "$DBRAIN_TEST_RAW"; else printf 'sha256:%s\\n' "$(printf 'a%.0s' {1..64})"; fi
+    if [[ "$*" == *"--raw"* ]]; then cat "$DBRAINX_TEST_RAW"; else printf 'sha256:%s\\n' "$(printf 'a%.0s' {1..64})"; fi
     ;;
 esac
 `;
@@ -53,7 +55,7 @@ function report(platform, letter) {
 
 /** Builds a temporary root with one report per architecture. */
 async function fixture(platforms, arches) {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-merge-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-merge-"));
   await mkdir(join(dir, "bin"), { recursive: true });
   await mkdir(join(dir, "incoming"), { recursive: true });
   await mkdir(join(dir, "scripts", "release"), { recursive: true });
@@ -87,10 +89,10 @@ async function fixture(platforms, arches) {
         env: {
           ...process.env,
           PATH: `${join(dir, "bin")}:${process.env.PATH}`,
-          DBRAIN_TEST_LOG: log,
-          DBRAIN_TEST_RAW: join(dir, "raw.json"),
-          DBRAIN_IMAGE_PREFIX: prefix,
-          DBRAIN_CONTAINER_PLATFORMS: list,
+          DBRAINX_TEST_LOG: log,
+          DBRAINX_TEST_RAW: join(dir, "raw.json"),
+          DBRAINX_IMAGE_PREFIX: prefix,
+          DBRAINX_CONTAINER_PLATFORMS: list,
           GITHUB_SHA: commit,
           GITHUB_RUN_ID: "7",
           GITHUB_RUN_ATTEMPT: "1",
@@ -147,6 +149,6 @@ test("a merge without a platform list is refused", async () => {
   const run = await fixture(["linux/arm64"], ["arm64"]);
   assert.throws(
     () => run.merge(""),
-    (error) => String(error.stderr).includes("DBRAIN_CONTAINER_PLATFORMS is empty"),
+    (error) => String(error.stderr).includes("DBRAINX_CONTAINER_PLATFORMS is empty"),
   );
 });

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The yt-dlp media downloader contract.
  *
@@ -54,7 +56,7 @@ done
 const FAKE_VIDEO = `#!/bin/sh
 set -eu
 ${OUTPUT_LOOKUP}
-printf 'dbrain fake video' > "$directory/source.mp4"
+printf 'dbrainx fake video' > "$directory/source.mp4"
 printf 'fake-jpeg' > "$directory/source.jpg"
 cat > "$directory/source.en.vtt" <<VTT
 WEBVTT
@@ -77,7 +79,7 @@ printf '%s' '{"title":"A Test Clip","duration":93.5,"webpage_url":"https://video
 const FAKE_AUDIO = `#!/bin/sh
 set -eu
 ${OUTPUT_LOOKUP}
-printf 'dbrain fake audio' > "$directory/source.mp3"
+printf 'dbrainx fake audio' > "$directory/source.mp3"
 printf 'fake-jpeg' > "$directory/source.jpg"
 cat > "$directory/source.lyrics.vtt" <<VTT
 WEBVTT
@@ -128,7 +130,7 @@ exit 1
 
 /** One fake executable in its own directory. */
 async function fakeYtDlp(script: string) {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-media-downloader-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-media-downloader-test-"));
   const command = join(dir, "fake-yt-dlp");
   await writeFile(command, script, "utf8");
   await chmod(command, 0o755);
@@ -143,7 +145,7 @@ async function workDirectory(): Promise<{
   path: string;
   cleanup: () => Promise<void>;
 }> {
-  const path = await mkdtemp(join(tmpdir(), "dbrain-media-download-test-"));
+  const path = await mkdtemp(join(tmpdir(), "dbrainx-media-download-test-"));
   return {
     path,
     cleanup: () => rm(path, { recursive: true, force: true }),
@@ -198,7 +200,7 @@ test("downloads a video and maps yt-dlp's files and metadata", async () => {
     assert.equal(media.album, "An Album");
     assert.equal(media.duration, 93.5);
     assert.equal(media.sourceUrl, "https://video.example/watch?v=abc");
-    assert.equal(media.fileSize, "dbrain fake video".length);
+    assert.equal(media.fileSize, "dbrainx fake video".length);
     assert.equal(media.path, join(work.path, "source.mp4"));
 
     assert.equal(media.thumbnail?.path, join(work.path, "source.jpg"));
@@ -579,7 +581,7 @@ test("reuses the caller's existing work directory for a resume", async () => {
 
     // The adapter did not replace the directory the caller owns.
     await access(marker);
-    assert.equal(media.fileSize, "dbrain fake video".length);
+    assert.equal(media.fileSize, "dbrainx fake video".length);
     await media.cleanup();
   } finally {
     await work.cleanup();

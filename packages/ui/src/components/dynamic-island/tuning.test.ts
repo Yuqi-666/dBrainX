@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The feel, pinned: the damping ratios that decide whether the island rings, the
  * speed lens that must move the clock without touching the shape, and the fact

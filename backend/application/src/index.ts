@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export * from "./dto";
 export * from "./commands/node/command";
 export * from "./commands/node/node-command.service";

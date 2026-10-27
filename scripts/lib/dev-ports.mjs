@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Port resolution for the development stack.
  *
@@ -50,7 +52,7 @@ function readPbListen(value) {
   const match = /^(?<host>[^:\s]+):(?<port>\d{1,5})$/.exec(raw);
   const port = match ? Number(match.groups.port) : NaN;
   if (!match || port < 1 || port > 65535)
-    throw new Error(`Invalid DBRAIN_PB_HTTP (expected host:port): ${raw}`);
+    throw new Error(`Invalid DBRAINX_PB_HTTP (expected host:port): ${raw}`);
   return { pbHttp: `${match.groups.host}:${port}`, pbPort: port };
 }
 
@@ -61,25 +63,25 @@ function readPbListen(value) {
  */
 export function readDevStack(env = {}, options = {}) {
   const remote = options.remote === true;
-  const webPort = readPort(env.DBRAIN_WEB_PORT, 3000, "DBRAIN_WEB_PORT");
+  const webPort = readPort(env.DBRAINX_WEB_PORT, 3000, "DBRAINX_WEB_PORT");
   const serverPort = readPort(
-    text(env.DBRAIN_SERVER_PORT) ?? env.PORT,
+    text(env.DBRAINX_SERVER_PORT) ?? env.PORT,
     3001,
-    "DBRAIN_SERVER_PORT",
+    "DBRAINX_SERVER_PORT",
   );
   const gatewayPort = readPort(
-    env.DBRAIN_GATEWAY_PORT,
+    env.DBRAINX_GATEWAY_PORT,
     8080,
-    "DBRAIN_GATEWAY_PORT",
+    "DBRAINX_GATEWAY_PORT",
   );
-  const { pbHttp, pbPort } = readPbListen(env.DBRAIN_PB_HTTP);
-  const pbUrl = text(env.DBRAIN_PB_URL) ?? `http://${pbHttp}`;
+  const { pbHttp, pbPort } = readPbListen(env.DBRAINX_PB_HTTP);
+  const pbUrl = text(env.DBRAINX_PB_URL) ?? `http://${pbHttp}`;
 
   const owners = [
-    ["DBRAIN_WEB_PORT", webPort],
-    ["DBRAIN_SERVER_PORT", serverPort],
-    ["DBRAIN_PB_HTTP", pbPort],
-    ...(remote ? [["DBRAIN_GATEWAY_PORT", gatewayPort]] : []),
+    ["DBRAINX_WEB_PORT", webPort],
+    ["DBRAINX_SERVER_PORT", serverPort],
+    ["DBRAINX_PB_HTTP", pbPort],
+    ...(remote ? [["DBRAINX_GATEWAY_PORT", gatewayPort]] : []),
   ];
   for (const [name, port] of owners) {
     const clash = owners.find(
@@ -99,7 +101,7 @@ export function readDevStack(env = {}, options = {}) {
     pbHttp,
     pbPort,
     pbUrl,
-    domain: text(env.DBRAIN_DEV_DOMAIN) ?? "",
+    domain: text(env.DBRAINX_DEV_DOMAIN) ?? "",
   };
 }
 
@@ -114,14 +116,14 @@ export function readDevStack(env = {}, options = {}) {
 export function stackEnv(stack, env = {}) {
   return {
     ...env,
-    DBRAIN_WEB_PORT: String(stack.webPort),
-    DBRAIN_SERVER_PORT: String(stack.serverPort),
-    DBRAIN_GATEWAY_PORT: String(stack.gatewayPort),
-    DBRAIN_PB_HTTP: stack.pbHttp,
+    DBRAINX_WEB_PORT: String(stack.webPort),
+    DBRAINX_SERVER_PORT: String(stack.serverPort),
+    DBRAINX_GATEWAY_PORT: String(stack.gatewayPort),
+    DBRAINX_PB_HTTP: stack.pbHttp,
     PB_URL: stack.pbUrl,
-    DBRAIN_PB_URL: stack.pbUrl,
-    DBRAIN_WEB_URL: `http://127.0.0.1:${stack.webPort}`,
-    DBRAIN_SERVER_URL: `http://127.0.0.1:${stack.serverPort}`,
+    DBRAINX_PB_URL: stack.pbUrl,
+    DBRAINX_WEB_URL: `http://127.0.0.1:${stack.webPort}`,
+    DBRAINX_SERVER_URL: `http://127.0.0.1:${stack.serverPort}`,
     PORT: String(stack.serverPort),
   };
 }
@@ -145,17 +147,17 @@ function probeHost(host) {
  */
 export function stackPorts(stack) {
   const entries = [
-    { name: "DBRAIN_WEB_PORT", host: "127.0.0.1", port: stack.webPort },
-    { name: "DBRAIN_SERVER_PORT", host: "127.0.0.1", port: stack.serverPort },
+    { name: "DBRAINX_WEB_PORT", host: "127.0.0.1", port: stack.webPort },
+    { name: "DBRAINX_SERVER_PORT", host: "127.0.0.1", port: stack.serverPort },
     {
-      name: "DBRAIN_PB_HTTP",
+      name: "DBRAINX_PB_HTTP",
       host: probeHost(stack.pbHttp.slice(0, stack.pbHttp.lastIndexOf(":"))),
       port: stack.pbPort,
     },
   ];
   if (stack.remote)
     entries.push({
-      name: "DBRAIN_GATEWAY_PORT",
+      name: "DBRAINX_GATEWAY_PORT",
       host: "127.0.0.1",
       port: stack.gatewayPort,
     });

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import {
   mkdir,
@@ -36,7 +38,7 @@ class Clock {
 }
 
 async function tempRoot(): Promise<string> {
-  return mkdtemp(join(tmpdir(), "dbrain-media-import-test-"));
+  return mkdtemp(join(tmpdir(), "dbrainx-media-import-test-"));
 }
 
 function input(
@@ -56,33 +58,33 @@ function input(
 
 const HOUR = 60 * 60 * 1000;
 
-test("defaultMediaImportDir follows DBRAIN_MEDIA_IMPORT_DIR and falls back to the temp directory", () => {
-  const previous = process.env.DBRAIN_MEDIA_IMPORT_DIR;
+test("defaultMediaImportDir follows DBRAINX_MEDIA_IMPORT_DIR and falls back to the temp directory", () => {
+  const previous = process.env.DBRAINX_MEDIA_IMPORT_DIR;
   try {
-    delete process.env.DBRAIN_MEDIA_IMPORT_DIR;
+    delete process.env.DBRAINX_MEDIA_IMPORT_DIR;
     assert.equal(
       defaultMediaImportDir(),
-      join(tmpdir(), "dbrain-media-imports"),
+      join(tmpdir(), "dbrainx-media-imports"),
     );
 
-    process.env.DBRAIN_MEDIA_IMPORT_DIR = "/mnt/dbrain/media-imports";
-    assert.equal(defaultMediaImportDir(), "/mnt/dbrain/media-imports");
+    process.env.DBRAINX_MEDIA_IMPORT_DIR = "/mnt/dbrainx/media-imports";
+    assert.equal(defaultMediaImportDir(), "/mnt/dbrainx/media-imports");
 
     // A compose file passes an unset variable through as an empty string; that
     // must fall back rather than become a relative root.
-    process.env.DBRAIN_MEDIA_IMPORT_DIR = "";
+    process.env.DBRAINX_MEDIA_IMPORT_DIR = "";
     assert.equal(
       defaultMediaImportDir(),
-      join(tmpdir(), "dbrain-media-imports"),
+      join(tmpdir(), "dbrainx-media-imports"),
     );
-    process.env.DBRAIN_MEDIA_IMPORT_DIR = "   ";
+    process.env.DBRAINX_MEDIA_IMPORT_DIR = "   ";
     assert.equal(
       defaultMediaImportDir(),
-      join(tmpdir(), "dbrain-media-imports"),
+      join(tmpdir(), "dbrainx-media-imports"),
     );
   } finally {
-    if (previous === undefined) delete process.env.DBRAIN_MEDIA_IMPORT_DIR;
-    else process.env.DBRAIN_MEDIA_IMPORT_DIR = previous;
+    if (previous === undefined) delete process.env.DBRAINX_MEDIA_IMPORT_DIR;
+    else process.env.DBRAINX_MEDIA_IMPORT_DIR = previous;
   }
 });
 

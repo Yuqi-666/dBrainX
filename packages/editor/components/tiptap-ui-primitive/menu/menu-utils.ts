@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 
 import type { Action } from "@workspace/editor/components/tiptap-ui-primitive/menu/menu-types";

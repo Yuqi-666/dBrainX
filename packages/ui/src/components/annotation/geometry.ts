@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The annotation layer's geometry — pure, DOM-free, and pinned by
  * `geometry.test.ts` (`pnpm --filter=@workspace/ui test`).

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Edge, EdgeQuery, IEdgeRepository, NodeQuery } from "@workspace/domain";
 import type {
   GetEdgeByIdQuery,

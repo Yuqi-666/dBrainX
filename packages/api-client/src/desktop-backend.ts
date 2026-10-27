@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { createPocketbaseClient, resetPocketbaseClient } from "./pocketbase-client";
 
 export interface DesktopBackend {

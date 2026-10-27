@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 
@@ -236,10 +238,26 @@ export const ForceGraph = forwardRef<ForceGraphHandle, ForceGraphProps>(
       api: WorkerInbound;
       worker: Worker;
     }> => {
-      const canvas = canvasRef.current;
-      if (!canvas) throw new Error("canvas ref is null");
       const container = containerRef.current;
       if (!container) throw new Error("container ref is null");
+
+      // Once a canvas has handed its bitmap to the worker it can never be
+      // resized again, and React may replay this effect on the same host DOM
+      // (Strict Mode, route activity, Fast Refresh). Every setup therefore
+      // owns a fresh element, and the host DOM keeps no transferred bitmap.
+      for (const stale of container.querySelectorAll(
+        "canvas[data-force-canvas]",
+      )) {
+        stale.remove();
+      }
+      const canvas = document.createElement("canvas");
+      canvas.dataset.forceCanvas = "";
+      canvas.dataset.islandDeferDismiss = "";
+      canvas.style.display = "block";
+      canvas.style.cursor = "grab";
+      canvas.style.touchAction = "none";
+      container.appendChild(canvas);
+      canvasRef.current = canvas;
 
       const rect = container.getBoundingClientRect();
       canvasRectRef.current = rect;
@@ -309,9 +327,10 @@ export const ForceGraph = forwardRef<ForceGraphHandle, ForceGraphProps>(
       };
       worker.addEventListener("message", onWorkerMessage);
 
-      workerRef.current = worker;
-      apiRef.current = api;
-
+      // The mount effect publishes the worker only after it has survived the
+      // cancellation check: an effect replay (route activity, Fast Refresh)
+      // can start a second setup before this one settles, and the superseded
+      // one must never overwrite the live refs.
       return { api, worker };
     }, []);
 
@@ -675,6 +694,8 @@ export const ForceGraph = forwardRef<ForceGraphHandle, ForceGraphProps>(
             worker.terminate();
             return;
           }
+          workerRef.current = worker;
+          apiRef.current = api;
 
           await api.setEventHandler(Comlink.proxy(onWorkerEvent));
           await performFullSync();
@@ -725,6 +746,10 @@ export const ForceGraph = forwardRef<ForceGraphHandle, ForceGraphProps>(
           // Worker may already be dead.
         }
         worker?.terminate();
+        workerRef.current = null;
+        apiRef.current = null;
+        canvasRef.current?.remove();
+        canvasRef.current = null;
         setIsReady(false);
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -881,15 +906,8 @@ export const ForceGraph = forwardRef<ForceGraphHandle, ForceGraphProps>(
           ...style,
         }}
       >
-        <canvas
-          data-island-defer-dismiss
-          ref={canvasRef}
-          style={{
-            display: "block",
-            cursor: "grab",
-            touchAction: "none",
-          }}
-        />
+        {/* The canvas is created per worker setup: once its bitmap belongs
+            to the worker it can never be resized or reused. */}
         {error ? (
           <div
             style={{

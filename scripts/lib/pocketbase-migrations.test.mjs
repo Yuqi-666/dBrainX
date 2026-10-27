@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -9,7 +11,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
 test("new databases run the genesis base and later changes; older databases are rejected", async () => {
-  const root = await mkdtemp(join(tmpdir(), "dbrain-migrations-"));
+  const root = await mkdtemp(join(tmpdir(), "dbrainx-migrations-"));
   const baseDir = join(root, "base"), changesDir = join(root, "changes");
   await mkdir(baseDir); await mkdir(changesDir);
   await writeFile(join(baseDir, "0000000001_base.js"), "base v1");
@@ -34,7 +36,7 @@ test("new databases run the genesis base and later changes; older databases are 
 
 test("PocketBase creates the current schema from the genesis base", async () => {
   const repo = fileURLToPath(new URL("../../", import.meta.url));
-  const root = await mkdtemp(join(tmpdir(), "dbrain-pb-upgrade-"));
+  const root = await mkdtemp(join(tmpdir(), "dbrainx-pb-upgrade-"));
   const binary = join(repo, "pb", process.platform === "win32" ? "pocketbase.exe" : "pocketbase");
   const baseDir = join(repo, "pb/pb_migrations_base"), changesDir = join(repo, "pb/pb_migrations_changes");
   const migrate = (dataDir, runDir) => {
@@ -56,7 +58,7 @@ test("PocketBase creates the current schema from the genesis base", async () => 
 });
 
 test("later releases continue an existing database", async () => {
-  const root = await mkdtemp(join(tmpdir(), "dbrain-migrations-next-"));
+  const root = await mkdtemp(join(tmpdir(), "dbrainx-migrations-next-"));
   const baseDir = join(root, "base"), changesDir = join(root, "changes");
   await mkdir(baseDir); await mkdir(changesDir);
   await writeFile(join(baseDir, "0000000001_base.js"), "base v1");
@@ -81,7 +83,7 @@ test("later releases continue an existing database", async () => {
       "0000000004_later.js",
     ]);
     assert.equal(await readFile(join(database.runDir, "0000000001_base.js"), "utf8"), "base v1");
-    const state = await readFile(join(database.runDir, ".dbrain-migration-origin"), "utf8");
+    const state = await readFile(join(database.runDir, ".dbrainx-migration-origin"), "utf8");
     assert.equal(state.trim().split(" ")[0], "base");
   } finally { await rm(root, { recursive: true, force: true }); }
 });

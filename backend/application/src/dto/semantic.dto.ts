@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { EdgeType } from "@workspace/interfaces/models/edge/types";
 
 export interface NodeSemanticDTO {

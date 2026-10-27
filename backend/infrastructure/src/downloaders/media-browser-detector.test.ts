@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Browser detection for the desktop "use my browser login" method. */
 import assert from "node:assert/strict";
 import { test } from "node:test";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { DragHandleProps } from "@tiptap/extension-drag-handle-react";
 import type { Node } from "@tiptap/pm/model";
 import type { Editor } from "@tiptap/react";

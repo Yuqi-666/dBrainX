@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The pdf.js worker patch that makes a flat page tree cheap to address.
  *

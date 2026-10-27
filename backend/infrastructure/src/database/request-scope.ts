@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { AsyncLocalStorage } from "node:async_hooks";
 const tokens = new AsyncLocalStorage<string>();
 export function runWithToken<T>(token: string | undefined, work: () => T): T {

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Dependency Injection Factory for Adapter-Back
  * Provides singleton instances of repositories and factory functions for DAOs.
@@ -311,7 +313,7 @@ let mediaImportJobStore: IMediaImportJobStore | null = null;
 
 /**
  * Resumable import jobs. The store owns a directory tree (not a table) because a
- * job is partly downloaded bytes: the root comes from `DBRAIN_MEDIA_IMPORT_DIR`,
+ * job is partly downloaded bytes: the root comes from `DBRAINX_MEDIA_IMPORT_DIR`,
  * so a deployment can put it on a volume with room for one download in flight.
  */
 export const createMediaImportJobStore = (): IMediaImportJobStore => {

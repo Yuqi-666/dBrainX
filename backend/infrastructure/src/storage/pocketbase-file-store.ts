@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { randomBytes } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdtemp, rm, stat } from "node:fs/promises";
@@ -142,7 +144,7 @@ export function multipartEnvelope(
  * answers 403. Read on every call rather than at module load: the value only
  * exists once the desktop runtime has started the backend.
  */
-const INTERNAL_SECRET_ENV = "DBRAIN_PB_INTERNAL_SECRET";
+const INTERNAL_SECRET_ENV = "DBRAINX_PB_INTERNAL_SECRET";
 
 /** Headers shared by the hand-built record-write request. */
 function uploadHeaders(
@@ -156,7 +158,7 @@ function uploadHeaders(
   };
 
   const internalSecret = process.env[INTERNAL_SECRET_ENV];
-  if (internalSecret) headers["X-DBrain-Internal"] = internalSecret;
+  if (internalSecret) headers["X-DBrainX-Internal"] = internalSecret;
 
   return headers;
 }
@@ -240,7 +242,7 @@ export class PocketBaseFileStore implements IFileStore {
     fileUrl: string,
     suffix: string,
   ): Promise<DownloadedFile> {
-    const dir = await mkdtemp(join(tmpdir(), "dbrain-download-"));
+    const dir = await mkdtemp(join(tmpdir(), "dbrainx-download-"));
     const destPath = join(dir, `source${safeSuffix(suffix)}`);
 
     let bytes: number;
@@ -358,7 +360,7 @@ export class PocketBaseFileStore implements IFileStore {
     workspaceId: string,
   ): Promise<StoredFileRef> {
     const fileBytes = (await stat(filePath)).size;
-    const boundary = `----dbrain${randomBytes(8).toString("hex")}`;
+    const boundary = `----dbrainx${randomBytes(8).toString("hex")}`;
 
     // The workspace part precedes the file part, so the head is not constant:
     // build it here and let `multipartEnvelope` keep the size arithmetic.

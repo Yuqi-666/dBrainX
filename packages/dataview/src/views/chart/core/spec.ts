@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Chart spec building — a resolved config plus built data to a VChart spec.
  *

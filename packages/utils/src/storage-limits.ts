@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Storage accounting contract shared by the browser, the API and PocketBase.
  *
@@ -75,16 +77,16 @@ export const DEFAULT_STORAGE_LIMITS: StorageLimits = {
 };
 
 /** Environment variable holding the per-user total quota. */
-export const STORAGE_QUOTA_ENV = "DBRAIN_STORAGE_USER_QUOTA_BYTES";
+export const STORAGE_QUOTA_ENV = "DBRAINX_STORAGE_USER_QUOTA_BYTES";
 
 /** Environment variable holding the single-file ceiling of each category. */
 export const STORAGE_CATEGORY_ENV: Record<StorageCategory, string> = {
-  image: "DBRAIN_STORAGE_MAX_IMAGE_BYTES",
-  video: "DBRAIN_STORAGE_MAX_VIDEO_BYTES",
-  audio: "DBRAIN_STORAGE_MAX_AUDIO_BYTES",
-  pdf: "DBRAIN_STORAGE_MAX_PDF_BYTES",
-  webpage: "DBRAIN_STORAGE_MAX_WEBPAGE_BYTES",
-  other: "DBRAIN_STORAGE_MAX_OTHER_BYTES",
+  image: "DBRAINX_STORAGE_MAX_IMAGE_BYTES",
+  video: "DBRAINX_STORAGE_MAX_VIDEO_BYTES",
+  audio: "DBRAINX_STORAGE_MAX_AUDIO_BYTES",
+  pdf: "DBRAINX_STORAGE_MAX_PDF_BYTES",
+  webpage: "DBRAINX_STORAGE_MAX_WEBPAGE_BYTES",
+  other: "DBRAINX_STORAGE_MAX_OTHER_BYTES",
 };
 
 /** File extensions per category. Lower case, no leading dot. */

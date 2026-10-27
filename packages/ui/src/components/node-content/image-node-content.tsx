@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 
 /** Image-node persistence; ImageViewer owns navigation and the shared ink surface. */

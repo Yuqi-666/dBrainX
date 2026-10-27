@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const stateName = ".dbrain-migration-origin";
+const stateName = ".dbrainx-migration-origin";
 const migrationName = /^([0-9]+)_[a-z0-9_]+\.js$/;
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 

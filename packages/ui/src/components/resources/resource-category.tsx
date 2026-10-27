@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** The label and icon the library uses for one storage category. */
 import type { LucideIcon } from "lucide-react";
 import {

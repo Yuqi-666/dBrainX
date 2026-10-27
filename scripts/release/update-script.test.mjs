@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
@@ -14,8 +16,8 @@ const script = fileURLToPath(
 const mountLine = (root, mountPoint) =>
   `42 1 0:52 ${root} ${mountPoint} rw,relatime - ext4 /dev/sda1 rw\n`;
 
-async function deployment(env = "DBRAIN_AUTO_UPDATE=true\n") {
-  const directory = await realpath(await mkdtemp(join(tmpdir(), "dbrain-")));
+async function deployment(env = "DBRAINX_AUTO_UPDATE=true\n") {
+  const directory = await realpath(await mkdtemp(join(tmpdir(), "dbrainx-")));
   await writeFile(join(directory, "docker-compose.yml"), "services: {}\n");
   await writeFile(join(directory, ".env"), env);
   return directory;
@@ -31,7 +33,7 @@ function projectDirectory(directory, mountinfo) {
   return execFileAsync(
     "sh",
     [script, "--print-project-directory"],
-    { cwd: directory, env: { ...process.env, DBRAIN_MOUNTINFO: mountinfo } },
+    { cwd: directory, env: { ...process.env, DBRAINX_MOUNTINFO: mountinfo } },
   ).then(({ stdout }) => stdout.trim());
 }
 
@@ -48,9 +50,9 @@ test("the updater container resolves the host path of its mount", async (t) => {
   // The updater mounts the deployment directory at another path in the
   // container. The project directory must be the host path of that mount.
   const mountinfo = await mounts(directory, [
-    mountLine("/opt/dbrain", directory),
+    mountLine("/opt/dbrainx", directory),
   ]);
-  assert.equal(await projectDirectory(directory, mountinfo), "/opt/dbrain");
+  assert.equal(await projectDirectory(directory, mountinfo), "/opt/dbrainx");
 });
 
 test("a filesystem mounted at the deployment directory keeps it", async (t) => {
@@ -64,27 +66,27 @@ test("the mount table decodes an escaped space in a host path", async (t) => {
   const directory = await deployment();
   t.after(() => rm(directory, { recursive: true, force: true }));
   const mountinfo = await mounts(directory, [
-    mountLine("/srv/my\\040dbrain", directory),
+    mountLine("/srv/my\\040dbrainx", directory),
   ]);
-  assert.equal(await projectDirectory(directory, mountinfo), "/srv/my dbrain");
+  assert.equal(await projectDirectory(directory, mountinfo), "/srv/my dbrainx");
 });
 
-test("DBRAIN_DEPLOYMENT_DIR overrides the mount table", async (t) => {
+test("DBRAINX_DEPLOYMENT_DIR overrides the mount table", async (t) => {
   const directory = await deployment(
-    "DBRAIN_AUTO_UPDATE=true\nDBRAIN_DEPLOYMENT_DIR=/srv/dbrain\n",
+    "DBRAINX_AUTO_UPDATE=true\nDBRAINX_DEPLOYMENT_DIR=/srv/dbrainx\n",
   );
   t.after(() => rm(directory, { recursive: true, force: true }));
   const mountinfo = await mounts(directory, [
-    mountLine("/opt/dbrain", directory),
+    mountLine("/opt/dbrainx", directory),
   ]);
-  assert.equal(await projectDirectory(directory, mountinfo), "/srv/dbrain");
+  assert.equal(await projectDirectory(directory, mountinfo), "/srv/dbrainx");
 });
 
-test("a relative DBRAIN_DEPLOYMENT_DIR is refused", async (t) => {
-  const directory = await deployment("DBRAIN_DEPLOYMENT_DIR=deployment\n");
+test("a relative DBRAINX_DEPLOYMENT_DIR is refused", async (t) => {
+  const directory = await deployment("DBRAINX_DEPLOYMENT_DIR=deployment\n");
   t.after(() => rm(directory, { recursive: true, force: true }));
   const mountinfo = await mounts(directory, [
-    mountLine("/opt/dbrain", directory),
+    mountLine("/opt/dbrainx", directory),
   ]);
   await assert.rejects(
     projectDirectory(directory, mountinfo),

@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { messages } from "./messages.ts";
 
 export type Locale = "zh-CN" | "en";
 export const DEFAULT_LOCALE: Locale = "zh-CN";
-export const LOCALE_STORAGE_KEY = "dbrain.locale";
+export const LOCALE_STORAGE_KEY = "dbrainx.locale";
 let locale: Locale = DEFAULT_LOCALE;
 const listeners = new Set<() => void>();
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // NodeSemantic queries
 export interface GetNodeSemanticByIdQuery { id: string; }
 export interface ListNodeSemanticsQuery { workspaceId?: string; }

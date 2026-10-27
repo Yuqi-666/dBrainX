@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { randomBytes } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
@@ -61,12 +63,12 @@ import type {
  * Root of the chunk spool.
  *
  * A blank value counts as unset, exactly like the other environment variables in
- * this repository: a compose file that passes `DBRAIN_UPLOAD_DIR=` through
+ * this repository: a compose file that passes `DBRAINX_UPLOAD_DIR=` through
  * verbatim must not turn the spool root into an empty (relative) path.
  */
 export function defaultUploadDir(): string {
-  const configured = process.env.DBRAIN_UPLOAD_DIR?.trim();
-  return configured ? configured : join(tmpdir(), "dbrain-uploads");
+  const configured = process.env.DBRAINX_UPLOAD_DIR?.trim();
+  return configured ? configured : join(tmpdir(), "dbrainx-uploads");
 }
 
 /** Directory name under the root; the caller never sees this value. */

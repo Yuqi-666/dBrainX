@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { RecordModel } from "pocketbase";
 import type { EdgeStateData } from "@workspace/interfaces/models/edge/types";
 import { Edge } from "@workspace/domain/models/edge/entities";

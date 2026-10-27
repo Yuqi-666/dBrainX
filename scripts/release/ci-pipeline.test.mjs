@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // The `checks` job is the only check pipeline of the repository. This test
 // keeps its three places in step: the workflow steps, the root scripts, and
 // the two manuals. A duplicate list drifted from CI once and blocked a

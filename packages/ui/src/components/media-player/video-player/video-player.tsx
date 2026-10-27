@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 
 /**
- * The video node's player: **video.js v10** (`@videojs/react`) with the dBrain
+ * The video node's player: **video.js v10** (`@videojs/react`) with the dBrainX
  * skin and the timestamp extensions.
  *
  * It replaces the bare `<video>` + hls.js element M6 shipped. What the element

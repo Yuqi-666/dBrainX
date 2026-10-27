@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Finds the browsers installed on the machine the backend runs on.
  *

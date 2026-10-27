@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The video.js v10 side of the {@link MediaController} contract
  * (`media-player/types.ts`).

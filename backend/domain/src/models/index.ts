@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export * from "./node";
 export * from "./edge";
 export * from "./view";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Fail on any new diagnostic; keep existing debt explicit instead of hiding errors. */
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";

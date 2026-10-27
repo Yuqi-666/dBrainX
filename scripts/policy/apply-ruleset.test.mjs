@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   actionsAppId,
+  adminRoleId,
   describe,
   developRulesetPayload,
   legacyRulesetName,
@@ -101,8 +104,16 @@ test('the description names every rule and the check context', () => {
   assert.ok(text.includes('creates it'));
 });
 
-test('develop allows direct pushes and blocks rewriting history', () => {
-  assert.deepEqual(developRulesetPayload().rules.map(rule => rule.type), ['non_fast_forward', 'deletion']);
+test('develop requires a pull request from a writer who is not the owner', () => {
+  const payload = developRulesetPayload();
+  assert.deepEqual(payload.rules.map(rule => rule.type), ['pull_request', 'non_fast_forward', 'deletion']);
+  const pullRequest = payload.rules[0].parameters;
+  assert.deepEqual(pullRequest.allowed_merge_methods, ['merge']);
+  assert.equal(pullRequest.required_approving_review_count, 0);
+  assert.deepEqual(payload.bypass_actors, [
+    { actor_id: adminRoleId, actor_type: 'RepositoryRole', bypass_mode: 'always' },
+  ]);
+  assert.equal(adminRoleId, 5);
 });
 
 test('the argument parser follows the usage text', () => {

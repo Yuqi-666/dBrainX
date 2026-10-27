@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The island's **feel**, as numbers: the three springs it runs, the rate they run
  * at, and the thresholds its content changes hands at.

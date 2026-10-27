@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 
 import "@workspace/editor/components/tiptap-ui-primitive/separator/separator.scss";

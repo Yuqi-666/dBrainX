@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Row plumbing shared by every view that can mint or empty a row.
  *

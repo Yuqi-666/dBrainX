@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Development gateway: one port in, three upstreams out.
  *
@@ -8,10 +10,10 @@
  * the project keeps the shared reverse proxy free of project-specific rules:
  * the proxy only forwards the domain to this gateway's port.
  *
- *   /trpc        -> DBRAIN_SERVER_URL   (WebSocket upgrade included)
- *   /pb/api/*    -> DBRAIN_PB_URL       (development PocketBase REST/files)
+ *   /trpc        -> DBRAINX_SERVER_URL   (WebSocket upgrade included)
+ *   /pb/api/*    -> DBRAINX_PB_URL       (development PocketBase REST/files)
  *   /pb/*        -> 404                 (production file gateway is not used)
- *   everything   -> DBRAIN_WEB_URL      (Next, including /_next/webpack-hmr)
+ *   everything   -> DBRAINX_WEB_URL      (Next, including /_next/webpack-hmr)
  *
  * The browser's Host header is forwarded unchanged. `apps/server/src/origin.ts`
  * compares it with the browser Origin, so rewriting it to the upstream address
@@ -101,7 +103,7 @@ function writeResponseHead(statusLine, headers, keepUpgrade = false) {
  * @returns {import("node:http").Server}
  */
 export function createGatewayServer(config) {
-  const logAll = process.env.DBRAIN_GATEWAY_LOG === "1";
+  const logAll = process.env.DBRAINX_GATEWAY_LOG === "1";
 
   const server = createServer((req, res) => {
     const route = resolveRoute(req.url);
@@ -221,7 +223,7 @@ function start(config) {
   server.on("error", (error) => {
     if (error.code === "EADDRINUSE")
       console.error(
-        `[gateway] port ${config.port} is already in use; stop the other process or change DBRAIN_GATEWAY_PORT in .env`,
+        `[gateway] port ${config.port} is already in use; stop the other process or change DBRAINX_GATEWAY_PORT in .env`,
       );
     else console.error(`[gateway] ${error.message}`);
     process.exit(1);

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Annotation primitives — the persisted shape of a node's pen/highlight layer.
  *

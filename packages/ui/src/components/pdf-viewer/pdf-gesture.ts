@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The pdf's own viewport gestures, as **pure decisions** — the counterpart of
  * `pan-zoom/recognizer.ts` for a host whose fit is not a CSS transform.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Node references to a stored blob, and their cleanup.
 //
 // Deleting a `files` row deletes the bytes, so every node that points at those

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Node rendering: pooled Sprites sharing one white circle texture, tinted
  * per node (`tint = fillColor`). Render rules never change fill (see

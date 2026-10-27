@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The shared video/audio import service.
  *
@@ -688,7 +690,7 @@ test("packages the downloaded file instead of fetching it back from the store", 
 });
 
 test("a site thumbnail is preferred over the FFmpeg poster frame", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-media-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-media-test-"));
   const thumbnailPath = join(dir, "thumb.jpg");
   await writeFile(thumbnailPath, new Uint8Array([1, 2, 3, 4]));
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import {
@@ -270,14 +272,14 @@ export async function prepareReleaseAssets(root, out, expected) {
       await cp(join(root, "deployment/deploy"), join(staging, "deploy"), { recursive: true });
       await cp(join(root, "containers/container-report.json"), join(staging, "container-report.json"));
       await writeFile(join(staging, "compose.release.yml"), "services:\n" + services.map((service) => `  ${service}:\n    image: ${containers.images[service].reference}\n`).join(""));
-      await execFileAsync("tar", ["-czf", join(out, `dbrain-deploy-v${index.version}.tar.gz`), "-C", staging, "."]);
+      await execFileAsync("tar", ["-czf", join(out, `dbrainx-deploy-v${index.version}.tar.gz`), "-C", staging, "."]);
     } finally {
       await rm(staging, { recursive: true, force: true });
     }
   }
   await writeFile(
     join(out, "RELEASE-NOTES.md"),
-    `dBrain ${index.version}\n\nSource: ${index.commit}\nCandidate: ${index.runId}, attempt ${index.runAttempt}\n\nInstall and upgrade instructions: docs/usage.md at source commit.\n`,
+    `dBrainX ${index.version}\n\nSource: ${index.commit}\nCandidate: ${index.runId}, attempt ${index.runAttempt}\n\nInstall and upgrade instructions: docs/usage.md at source commit.\n`,
   );
   const files = Object.fromEntries(
     await Promise.all(
@@ -316,10 +318,10 @@ if (
   const expected = {
     ...release,
     repository: process.env.GITHUB_REPOSITORY,
-    commit: process.env.DBRAIN_CANDIDATE_SHA ?? process.env.GITHUB_SHA,
-    runId: process.env.DBRAIN_CANDIDATE_RUN_ID ?? process.env.GITHUB_RUN_ID,
+    commit: process.env.DBRAINX_CANDIDATE_SHA ?? process.env.GITHUB_SHA,
+    runId: process.env.DBRAINX_CANDIDATE_RUN_ID ?? process.env.GITHUB_RUN_ID,
     runAttempt:
-      process.env.DBRAIN_CANDIDATE_RUN_ATTEMPT ??
+      process.env.DBRAINX_CANDIDATE_RUN_ATTEMPT ??
       process.env.GITHUB_RUN_ATTEMPT,
     imagePrefix: `ghcr.io/${process.env.GITHUB_REPOSITORY.toLowerCase()}`,
   };

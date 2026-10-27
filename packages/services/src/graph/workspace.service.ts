@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Workspace, WorkspaceId } from "@workspace/interfaces";
 import { trpcClient } from "@workspace/api-client";
 import { useWorkspaceStore, useDataStore, useUIStore } from "@workspace/store";

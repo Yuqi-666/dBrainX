@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The yt-dlp argument list, built here so it can be read and tested alone.
  *

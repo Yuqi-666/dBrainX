@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { RecordModel } from "pocketbase";
 import { DashboardConflictError } from "@workspace/domain";
 import type { IDashboardRepository, Dashboard } from "@workspace/domain";

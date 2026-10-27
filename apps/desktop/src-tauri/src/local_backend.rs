@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use serde_json::Value;
 use std::{fs::{self, OpenOptions}, io::Write, path::PathBuf, process::{Child, Command, Stdio}, sync::Mutex, time::{Duration, Instant}};
 use tauri::{AppHandle, Manager, State};
@@ -19,7 +21,7 @@ impl LocalBackend {
         if !runtime_dir.is_dir() && !cfg!(debug_assertions) {
             let executable = std::env::current_exe()?;
             if let Some(parent) = executable.parent() {
-                let product = app.config().product_name.as_deref().unwrap_or("dBrain");
+                let product = app.config().product_name.as_deref().unwrap_or("dBrainX");
                 let candidate = parent.join("../lib").join(product).join("runtime");
                 if candidate.is_dir() { runtime_dir = candidate.canonicalize()?; }
             }
@@ -43,7 +45,7 @@ impl LocalBackend {
         let exe = |name: &str| self.runtime_dir.join(if cfg!(windows) { format!("{name}.exe") } else { name.into() });
         let mut command = Command::new(exe("node"));
         command.arg(self.runtime_dir.join("backend.mjs")).arg(&self.data_dir).arg(&ready)
-            .env("DBRAIN_DESKTOP", "1")
+            .env("DBRAINX_DESKTOP", "1")
             .env("FFMPEG_PATH", exe("ffmpeg")).env("FFPROBE_PATH", exe("ffprobe"))
             .stdin(Stdio::piped()).stdout(Stdio::from(log.try_clone().map_err(|e| e.to_string())?)).stderr(Stdio::from(log));
         #[cfg(target_os = "linux")]
@@ -98,7 +100,7 @@ mod tests {
 
     #[test]
     fn supervisor_starts_reuses_stops_and_restarts_packaged_backend() {
-        let data_dir = std::env::temp_dir().join(format!("dbrain-native-supervisor-test-{}", std::process::id()));
+        let data_dir = std::env::temp_dir().join(format!("dbrainx-native-supervisor-test-{}", std::process::id()));
         assert!(!data_dir.exists(), "Test directory must be fresh");
         let mut backend = LocalBackend {
             runtime_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("runtime"),

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { execFile, type ChildProcess } from "node:child_process";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -235,7 +237,7 @@ export class FfmpegVideoTranscoder implements IVideoTranscoder {
     source: HlsTranscodeSource,
     onProgress?: VideoTranscodeProgressListener,
   ): Promise<HlsTranscodeResult> {
-    const workDir = await mkdtemp(join(tmpdir(), "dbrain-hls-"));
+    const workDir = await mkdtemp(join(tmpdir(), "dbrainx-hls-"));
     const baseName = artifactBaseName(source.fileName);
 
     try {

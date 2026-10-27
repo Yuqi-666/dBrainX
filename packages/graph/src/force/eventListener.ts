@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Main-thread DOM event capture → `ProxiedDomEvent` → Comlink RPC.
  *

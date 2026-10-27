@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Small field-selection helpers shared by default-config builders and (later)
  * the per-view config editors, so "the primary column", "the first date field"

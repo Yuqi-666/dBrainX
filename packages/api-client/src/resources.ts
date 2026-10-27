@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The media resource library, as the client sees it.
  *
@@ -153,7 +155,7 @@ export function currentResourceOwnerId(): string {
 /** The id of the PocketBase user that owns files written by this browser. */
 function currentOwnerId(): string {
   const token =
-    process.env.NEXT_PUBLIC_DBRAIN_PLATFORM === "desktop"
+    process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop"
       ? getPocketbaseClient().authStore?.token
       : readAuthSessionToken();
   if (token) {

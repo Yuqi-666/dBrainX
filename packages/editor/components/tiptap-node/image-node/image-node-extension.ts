@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { resolveFileUrl } from "@workspace/api-client";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import type { ImageOptions } from "@tiptap/extension-image";

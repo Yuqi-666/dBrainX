@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { NodeData } from "@workspace/interfaces";
 
 /** Include queued content patches when preparing the next edit in a gesture. */

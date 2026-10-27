@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { open, readFile, readdir, writeFile } from "node:fs/promises";
@@ -113,7 +115,7 @@ export async function writeRuntimeManifest(
         versions,
         modules,
         hashes,
-        commit: process.env.DBRAIN_GIT_SHA ?? "local",
+        commit: process.env.DBRAINX_GIT_SHA ?? "local",
       },
       null,
       2,

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import type { Workspace, WorkspaceId } from "@workspace/interfaces";

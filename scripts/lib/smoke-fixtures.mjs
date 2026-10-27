@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export function pdfFixture() {
   const stream = "BT /F1 18 Tf 20 80 Td (Offline desktop PDF) Tj ET";
   const objects = [

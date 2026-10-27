@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { NodeIcon } from "@workspace/interfaces";
 import { WORKSPACE_NAME_MAX_LENGTH } from "@workspace/utils/workspace";
 import { WorkspaceId, WorkspaceMemberId } from "./value-objects";

@@ -11,7 +11,7 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
-# Password file referenced by DBRAIN_ADMIN_PASSWORD_FILE (see .env.example)
+# Password file referenced by DBRAINX_ADMIN_PASSWORD_FILE (see .env.example)
 .pb-admin-password
 
 # Testing
@@ -55,7 +55,6 @@ pb/pb_data/
 pb/pb_migrations/
 pb/pocketbase
 pb/pocketbase.exe
-.agents/
 .omo/
 .codegraph/
 .sisyphus/

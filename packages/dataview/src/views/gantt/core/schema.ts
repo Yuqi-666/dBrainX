@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The gantt's data-transformation layer: `rows` + a field mapping → the flat
  * record list VTable-Gantt draws, and a drag → the date/progress cells it writes

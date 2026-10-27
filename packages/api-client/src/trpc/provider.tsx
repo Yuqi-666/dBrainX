@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCReact } from "@trpc/react-query";
 import type { AppRouter } from "@workspace/adapter-front";

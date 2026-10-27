@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { mergeAttributes, Node } from "@tiptap/react";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { ImageUploadNode as ImageUploadNodeComponent } from "@workspace/editor/components/tiptap-node/image-upload-node/image-upload-node";

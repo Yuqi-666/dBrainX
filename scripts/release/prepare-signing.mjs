@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** CI-only setup. Secrets are read from the environment, never from CLI arguments. */
 import { randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -26,8 +28,8 @@ async function environment(name, value) {
     throw new Error("Signing setup is only supported inside CI");
   await appendFile(process.env.GITHUB_ENV, `${name}=${value}\n`);
 }
-const temp = await mkdtemp(join(tmpdir(), "dbrain-signing-"));
-await environment("DBRAIN_SIGNING_TEMP", temp);
+const temp = await mkdtemp(join(tmpdir(), "dbrainx-signing-"));
+await environment("DBRAINX_SIGNING_TEMP", temp);
 if (process.platform === "darwin") {
   const identity = required("APPLE_SIGNING_IDENTITY");
   const pfx = join(temp, "certificate.p12");
@@ -40,7 +42,7 @@ if (process.platform === "darwin") {
   const existing = [...original.matchAll(/"([^"]+)"/g)].map(
     (match) => match[1],
   );
-  await environment("DBRAIN_SIGNING_KEYCHAIN", keychain);
+  await environment("DBRAINX_SIGNING_KEYCHAIN", keychain);
   run("security", ["create-keychain", "-p", password, keychain]);
   run("security", ["set-keychain-settings", "-lut", "21600", keychain]);
   run("security", ["unlock-keychain", "-p", password, keychain]);
@@ -87,8 +89,8 @@ if (process.platform === "darwin") {
   required("APPLE_API_KEY");
   required("APPLE_API_ISSUER");
   await environment("APPLE_API_KEY_PATH", apiKey);
-  await environment("DBRAIN_SIGNING_TEMP", temp);
-  await environment("DBRAIN_SIGNING_KEYCHAIN", keychain);
+  await environment("DBRAINX_SIGNING_TEMP", temp);
+  await environment("DBRAINX_SIGNING_KEYCHAIN", keychain);
 } else if (process.platform === "win32") {
   const certificate = join(temp, "certificate.pfx");
   await writeFile(
@@ -102,13 +104,13 @@ if (process.platform === "darwin") {
       "-NoProfile",
       "-NonInteractive",
       "-Command",
-      "$cert = Import-PfxCertificate -FilePath $env:DBRAIN_CERT_PATH -CertStoreLocation Cert:\\CurrentUser\\My -Password (ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force); $cert.Thumbprint",
+      "$cert = Import-PfxCertificate -FilePath $env:DBRAINX_CERT_PATH -CertStoreLocation Cert:\\CurrentUser\\My -Password (ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force); $cert.Thumbprint",
     ],
-    { ...process.env, DBRAIN_CERT_PATH: certificate },
+    { ...process.env, DBRAINX_CERT_PATH: certificate },
   );
   if (!/^[a-f0-9]{40}$/i.test(thumbprint))
     throw new Error("Invalid imported certificate thumbprint");
-  await environment("DBRAIN_WINDOWS_THUMBPRINT", thumbprint);
+  await environment("DBRAINX_WINDOWS_THUMBPRINT", thumbprint);
   const config = join(temp, "tauri-signing.json");
   await writeFile(
     config,
@@ -123,8 +125,8 @@ if (process.platform === "darwin") {
       },
     }),
   );
-  await environment("DBRAIN_TAURI_SIGNING_CONFIG", config);
-  await environment("DBRAIN_SIGNING_TEMP", temp);
+  await environment("DBRAINX_TAURI_SIGNING_CONFIG", config);
+  await environment("DBRAINX_SIGNING_TEMP", temp);
 }
 console.log(
   "Signing credentials prepared without exporting private material to artifacts",

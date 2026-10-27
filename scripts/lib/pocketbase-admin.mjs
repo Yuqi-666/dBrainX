@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The PocketBase operator account: configuration loading and provisioning.
  *
@@ -30,7 +32,7 @@ export function pocketbaseBinary() {
 }
 
 export function pocketbaseDataDir() {
-  return resolve(process.env.DBRAIN_PB_DATA_DIR ?? join(root, "pb/pb_data"));
+  return resolve(process.env.DBRAINX_PB_DATA_DIR ?? join(root, "pb/pb_data"));
 }
 
 /**
@@ -47,14 +49,14 @@ export function requireAdminConfig() {
   } catch {
     console.error(
       `[pocketbase] ${envPath} is missing. The operator account is required configuration:\n` +
-        `  cp .env.example .env    # then set DBRAIN_ADMIN_EMAIL and DBRAIN_ADMIN_PASSWORD`,
+        `  cp .env.example .env    # then set DBRAINX_ADMIN_EMAIL and DBRAINX_ADMIN_PASSWORD`,
     );
     process.exit(1);
   }
 
-  const email = process.env.DBRAIN_ADMIN_EMAIL?.trim();
-  let password = process.env.DBRAIN_ADMIN_PASSWORD ?? "";
-  const passwordFile = process.env.DBRAIN_ADMIN_PASSWORD_FILE;
+  const email = process.env.DBRAINX_ADMIN_EMAIL?.trim();
+  let password = process.env.DBRAINX_ADMIN_PASSWORD ?? "";
+  const passwordFile = process.env.DBRAINX_ADMIN_PASSWORD_FILE;
   if (passwordFile) {
     // Relative to the repository root, not to the caller's working directory:
     // `pnpm dev` runs this from `apps/server` while `pb:admin` runs it from the
@@ -65,7 +67,7 @@ export function requireAdminConfig() {
       password = readFileSync(path, "utf8").replace(/[\r\n]/g, "");
     } catch (error) {
       console.error(
-        `[pocketbase] DBRAIN_ADMIN_PASSWORD_FILE is not a readable file: ${path} (${error.message})`,
+        `[pocketbase] DBRAINX_ADMIN_PASSWORD_FILE is not a readable file: ${path} (${error.message})`,
       );
       process.exit(1);
     }
@@ -73,8 +75,8 @@ export function requireAdminConfig() {
 
   if (!email || !password) {
     console.error(
-      `[pocketbase] ${envPath} must set both DBRAIN_ADMIN_EMAIL and a password ` +
-        `(DBRAIN_ADMIN_PASSWORD, or DBRAIN_ADMIN_PASSWORD_FILE pointing at the file).`,
+      `[pocketbase] ${envPath} must set both DBRAINX_ADMIN_EMAIL and a password ` +
+        `(DBRAINX_ADMIN_PASSWORD, or DBRAINX_ADMIN_PASSWORD_FILE pointing at the file).`,
     );
     process.exit(1);
   }

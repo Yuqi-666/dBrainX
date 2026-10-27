@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Resumable-upload contract shared by the browser clients and the server.
  *

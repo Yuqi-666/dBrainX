@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Tests for the development gateway: routing decisions and the live proxy path.
  *
@@ -104,11 +106,11 @@ test("reads gateway configuration from the environment", () => {
     pocketbase: "http://127.0.0.1:8090",
   });
   const custom = readGatewayConfig({
-    DBRAIN_GATEWAY_HOST: "127.0.0.1",
-    DBRAIN_GATEWAY_PORT: "8080",
-    DBRAIN_WEB_URL: "http://127.0.0.1:4100/",
-    DBRAIN_SERVER_URL: "http://127.0.0.1:4101",
-    DBRAIN_PB_URL: "http://127.0.0.1:8091",
+    DBRAINX_GATEWAY_HOST: "127.0.0.1",
+    DBRAINX_GATEWAY_PORT: "8080",
+    DBRAINX_WEB_URL: "http://127.0.0.1:4100/",
+    DBRAINX_SERVER_URL: "http://127.0.0.1:4101",
+    DBRAINX_PB_URL: "http://127.0.0.1:8091",
   });
   assert.equal(custom.host, "127.0.0.1");
   assert.equal(custom.port, 8080);
@@ -117,20 +119,20 @@ test("reads gateway configuration from the environment", () => {
   assert.equal(custom.pocketbase, "http://127.0.0.1:8091");
   // A blank value counts as unset, so an empty line in .env cannot stop startup.
   assert.equal(
-    readGatewayConfig({ DBRAIN_PB_URL: "   " }).pocketbase,
+    readGatewayConfig({ DBRAINX_PB_URL: "   " }).pocketbase,
     "http://127.0.0.1:8090",
   );
   assert.throws(
-    () => readGatewayConfig({ DBRAIN_GATEWAY_PORT: "0" }),
-    /DBRAIN_GATEWAY_PORT/,
+    () => readGatewayConfig({ DBRAINX_GATEWAY_PORT: "0" }),
+    /DBRAINX_GATEWAY_PORT/,
   );
   assert.throws(
-    () => readGatewayConfig({ DBRAIN_WEB_URL: "ftp://example.test" }),
-    /DBRAIN_WEB_URL/,
+    () => readGatewayConfig({ DBRAINX_WEB_URL: "ftp://example.test" }),
+    /DBRAINX_WEB_URL/,
   );
   assert.throws(
-    () => readGatewayConfig({ DBRAIN_SERVER_URL: "not a url" }),
-    /DBRAIN_SERVER_URL/,
+    () => readGatewayConfig({ DBRAINX_SERVER_URL: "not a url" }),
+    /DBRAINX_SERVER_URL/,
   );
 });
 

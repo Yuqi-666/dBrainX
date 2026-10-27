@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Chart theme — the app's canvas tokens to the partial theme VChart merges over
  * its own.

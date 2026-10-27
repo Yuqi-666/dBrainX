@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import {
   readFile,
   mkdir,
@@ -27,7 +29,7 @@ if (!response.ok)
 const bytes = Buffer.from(await response.arrayBuffer());
 if (createHash("sha256").update(bytes).digest("hex") !== lock.sha256[name])
   throw new Error("PocketBase SHA256 mismatch");
-const temp = await mkdtemp(join(tmpdir(), "dbrain-pb-"));
+const temp = await mkdtemp(join(tmpdir(), "dbrainx-pb-"));
 try {
   const archive = join(temp, "pb.zip");
   await writeFile(archive, bytes);

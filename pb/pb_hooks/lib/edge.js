@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Text foreign keys must never connect nodes from different workspaces.
 function validateEdge(e) {
   const workspace = e.record.getString("workspaceId");

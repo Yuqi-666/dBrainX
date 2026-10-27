@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -366,7 +368,7 @@ function loadClient({
         localStorage: storage,
       },
       process: {
-        env: platform ? { NEXT_PUBLIC_DBRAIN_PLATFORM: platform } : {},
+        env: platform ? { NEXT_PUBLIC_DBRAINX_PLATFORM: platform } : {},
       },
     });
     cache.set(file, module.exports);
@@ -436,7 +438,7 @@ function loadBackendUrls({ window: windowValue, env = {}, platform, desktopBacke
     process: {
       env: {
         ...env,
-        ...(platform ? { NEXT_PUBLIC_DBRAIN_PLATFORM: platform } : {}),
+        ...(platform ? { NEXT_PUBLIC_DBRAINX_PLATFORM: platform } : {}),
       },
     },
     // `window: null` means "server side": no window at all, so the resolver
@@ -563,10 +565,10 @@ test("a reload resumes from the persisted fingerprint", async () => {
   const hints = storage.snapshot();
   const keys = Object.keys(hints);
   assert.equal(keys.length, 1);
-  assert.match(keys[0], /^dbrain\.upload\.session:[0-9a-f]{64}$/);
+  assert.match(keys[0], /^dbrainx\.upload\.session:[0-9a-f]{64}$/);
   assert.deepEqual(JSON.parse(hints[keys[0]]), {
     uploadId: "upload-1",
-    fingerprint: keys[0].slice("dbrain.upload.session:".length),
+    fingerprint: keys[0].slice("dbrainx.upload.session:".length),
     fileName: "reload.bin",
     fileSize: CHUNKED_FILE_SIZE,
   });
@@ -817,19 +819,19 @@ test("resolveBackendUrls resolves the upload base per deployment shape", () => {
   );
 
   // A proxied deployment reuses the existing `/pb` rule, so no proxy change.
-  const proxied = loadBackendUrls({ window: browserWindow("https://dbrain.example") });
+  const proxied = loadBackendUrls({ window: browserWindow("https://dbrainx.example") });
   assert.deepEqual(
     { ...proxied.resolveBackendUrls() },
     {
-      trpc: "wss://dbrain.example/trpc",
-      pocketbase: "https://dbrain.example/pb",
-      upload: "https://dbrain.example/pb",
+      trpc: "wss://dbrainx.example/trpc",
+      pocketbase: "https://dbrainx.example/pb",
+      upload: "https://dbrainx.example/pb",
     },
   );
 
   const forced = loadBackendUrls({
     window: browserWindow("http://localhost:3000"),
-    env: { NEXT_PUBLIC_DBRAIN_BACKEND_MODE: "same-origin" },
+    env: { NEXT_PUBLIC_DBRAINX_BACKEND_MODE: "same-origin" },
   });
   assert.equal(forced.resolveBackendUrls().upload, "http://localhost:3000/pb");
 

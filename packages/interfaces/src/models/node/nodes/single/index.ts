@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export type { TextNodeData } from "./text";
 export type { ImageNodeData, ImageContent } from "./image";
 export type { PdfNodeData, PdfContent } from "./pdf";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * PixiJS WebGL renderer facade (runs inside the WebWorker, migration complete).
  *

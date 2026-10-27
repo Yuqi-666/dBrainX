@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Turns a WebVTT subtitle track into plain timed cues.
  *

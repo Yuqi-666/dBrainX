@@ -64,9 +64,9 @@ jobs:
           [ "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$source_sha" ] || { echo "Tag does not match the candidate"; exit 1; }
           git merge-base --is-ancestor "$source_sha" refs/remotes/origin/develop
           echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
-          echo "DBRAIN_CANDIDATE_SHA=$source_sha" >> "$GITHUB_ENV"
-          echo "DBRAIN_CANDIDATE_RUN_ID=$CANDIDATE_RUN_ID" >> "$GITHUB_ENV"
-          echo "DBRAIN_CANDIDATE_RUN_ATTEMPT=$attempt" >> "$GITHUB_ENV"
+          echo "DBRAINX_CANDIDATE_SHA=$source_sha" >> "$GITHUB_ENV"
+          echo "DBRAINX_CANDIDATE_RUN_ID=$CANDIDATE_RUN_ID" >> "$GITHUB_ENV"
+          echo "DBRAINX_CANDIDATE_RUN_ATTEMPT=$attempt" >> "$GITHUB_ENV"
           gh run download "$CANDIDATE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "candidate-$CANDIDATE_RUN_ID-$attempt" --dir candidate
       - name: Verify candidate and prepare release assets
         shell: bash
@@ -90,7 +90,7 @@ jobs:
           [[ "$RELEASE_TAG" = *-* ]] && flags+=(--prerelease)
           # Ship .env.example as well as the visible, checksummed assets.
           shopt -s dotglob
-          gh release create "$RELEASE_TAG" assets/* --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "dBrain $RELEASE_TAG" --notes-file assets/RELEASE-NOTES.md "${flags[@]}"
+          gh release create "$RELEASE_TAG" assets/* --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "dBrainX $RELEASE_TAG" --notes-file assets/RELEASE-NOTES.md "${flags[@]}"
       - if: always()
         run: docker logout ghcr.io
 
@@ -125,9 +125,9 @@ jobs:
           attempt=$(node -p "require('./candidate-run.json').run_attempt")
           # The candidate is the tagged commit, not this run. Name the
           # candidate identity, or a merge-commit promotion fails validation.
-          export DBRAIN_CANDIDATE_SHA="$source_sha"
-          export DBRAIN_CANDIDATE_RUN_ID="$CANDIDATE_RUN_ID"
-          export DBRAIN_CANDIDATE_RUN_ATTEMPT="$attempt"
+          export DBRAINX_CANDIDATE_SHA="$source_sha"
+          export DBRAINX_CANDIDATE_RUN_ID="$CANDIDATE_RUN_ID"
+          export DBRAINX_CANDIDATE_RUN_ATTEMPT="$attempt"
           [ "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$source_sha" ]
           git merge-base --is-ancestor "$source_sha" HEAD
           git show "$source_sha:scripts/release/release.json" > tag-release.json

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// <reference path="../pb_data/types.d.ts" />
 
 // A web page node used to keep its whole document in the `nodes.content` JSON

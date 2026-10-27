@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export * from "./pagination.dto";
 export * from "./node.dto";
 export * from "./node-dto.mapper";

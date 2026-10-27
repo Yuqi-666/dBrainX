@@ -1,7 +1,7 @@
-name: dbrain
+name: dbrainx
 services:
   pocketbase:
-    image: ${DBRAIN_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrain}-pocketbase:${DBRAIN_VERSION:-0.2.1}
+    image: ${DBRAINX_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrainx}-pocketbase:${DBRAINX_VERSION:-0.2.1}
     build:
       context: .
       dockerfile: deploy/pocketbase/Dockerfile
@@ -12,25 +12,25 @@ services:
       # matches this value. Compose itself refuses to render without the email,
       # and the entrypoint refuses to serve without a password — a deployment must
       # never quietly end up on PocketBase's unusable placeholder account.
-      DBRAIN_ADMIN_EMAIL: ${DBRAIN_ADMIN_EMAIL:?Set DBRAIN_ADMIN_EMAIL in .env (copy .env.example)}
-      DBRAIN_ADMIN_PASSWORD: ${DBRAIN_ADMIN_PASSWORD:-}
-      DBRAIN_ADMIN_PASSWORD_FILE: ${DBRAIN_ADMIN_PASSWORD_FILE:-}
+      DBRAINX_ADMIN_EMAIL: ${DBRAINX_ADMIN_EMAIL:?Set DBRAINX_ADMIN_EMAIL in .env (copy .env.example)}
+      DBRAINX_ADMIN_PASSWORD: ${DBRAINX_ADMIN_PASSWORD:-}
+      DBRAINX_ADMIN_PASSWORD_FILE: ${DBRAINX_ADMIN_PASSWORD_FILE:-}
       # Storage policy. PocketBase's upload hook enforces these values, so the
       # store itself needs them as well as the API. Empty means "use the built-in
       # default"; see `.env.example` for the units and the defaults.
-      DBRAIN_STORAGE_USER_QUOTA_BYTES: ${DBRAIN_STORAGE_USER_QUOTA_BYTES:-}
-      DBRAIN_STORAGE_MAX_IMAGE_BYTES: ${DBRAIN_STORAGE_MAX_IMAGE_BYTES:-}
-      DBRAIN_STORAGE_MAX_VIDEO_BYTES: ${DBRAIN_STORAGE_MAX_VIDEO_BYTES:-}
-      DBRAIN_STORAGE_MAX_AUDIO_BYTES: ${DBRAIN_STORAGE_MAX_AUDIO_BYTES:-}
-      DBRAIN_STORAGE_MAX_PDF_BYTES: ${DBRAIN_STORAGE_MAX_PDF_BYTES:-}
-      DBRAIN_STORAGE_MAX_WEBPAGE_BYTES: ${DBRAIN_STORAGE_MAX_WEBPAGE_BYTES:-}
-      DBRAIN_STORAGE_MAX_OTHER_BYTES: ${DBRAIN_STORAGE_MAX_OTHER_BYTES:-}
+      DBRAINX_STORAGE_USER_QUOTA_BYTES: ${DBRAINX_STORAGE_USER_QUOTA_BYTES:-}
+      DBRAINX_STORAGE_MAX_IMAGE_BYTES: ${DBRAINX_STORAGE_MAX_IMAGE_BYTES:-}
+      DBRAINX_STORAGE_MAX_VIDEO_BYTES: ${DBRAINX_STORAGE_MAX_VIDEO_BYTES:-}
+      DBRAINX_STORAGE_MAX_AUDIO_BYTES: ${DBRAINX_STORAGE_MAX_AUDIO_BYTES:-}
+      DBRAINX_STORAGE_MAX_PDF_BYTES: ${DBRAINX_STORAGE_MAX_PDF_BYTES:-}
+      DBRAINX_STORAGE_MAX_WEBPAGE_BYTES: ${DBRAINX_STORAGE_MAX_WEBPAGE_BYTES:-}
+      DBRAINX_STORAGE_MAX_OTHER_BYTES: ${DBRAINX_STORAGE_MAX_OTHER_BYTES:-}
     volumes:
       - pb_data:/pb_data
     networks: [backend]
     security_opt: [no-new-privileges:true]
   server:
-    image: ${DBRAIN_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrain}-server:${DBRAIN_VERSION:-0.2.1}
+    image: ${DBRAINX_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrainx}-server:${DBRAINX_VERSION:-0.2.1}
     build:
       context: .
       dockerfile: apps/server/Dockerfile
@@ -38,11 +38,11 @@ services:
     environment:
       PB_URL: http://pocketbase:8090
       PORT: "3001"
-      DBRAIN_PUBLIC_ORIGIN: ${DBRAIN_PUBLIC_ORIGIN:-}
+      DBRAINX_PUBLIC_ORIGIN: ${DBRAINX_PUBLIC_ORIGIN:-}
       # Chunk spool for a resumable upload. Empty means the container's temp
       # directory; point it at a mounted volume when /tmp is too small for one
       # upload in flight (up to 2 GiB).
-      DBRAIN_UPLOAD_DIR: ${DBRAIN_UPLOAD_DIR:-}
+      DBRAINX_UPLOAD_DIR: ${DBRAINX_UPLOAD_DIR:-}
       # Override for the yt-dlp binary the media import spawns. The image
       # installs one on PATH, so this is only for pointing the server at a
       # different install; empty means "yt-dlp" from PATH.
@@ -50,30 +50,30 @@ services:
       # Root of the import-job directories. It is on the media_imports volume, so
       # a partial download survives a container restart and can continue for 24
       # hours. Keep the value equal to the volume mount path.
-      DBRAIN_MEDIA_IMPORT_DIR: ${DBRAIN_MEDIA_IMPORT_DIR:-/var/lib/dbrain/media-imports}
+      DBRAINX_MEDIA_IMPORT_DIR: ${DBRAINX_MEDIA_IMPORT_DIR:-/var/lib/dbrainx/media-imports}
       # Encrypts the saved media-site logins. A deployment sets a stable value in
       # .env. With an empty value the server generates a per-container secret, so
       # a restart invalidates the saved logins; it does not refuse to start.
-      DBRAIN_MEDIA_COOKIE_SECRET: ${DBRAIN_MEDIA_COOKIE_SECRET:-}
+      DBRAINX_MEDIA_COOKIE_SECRET: ${DBRAINX_MEDIA_COOKIE_SECRET:-}
       # Storage policy. The API rejects an upload before it spools any chunk and
       # reports the same limits to the resource library. Keep these values equal
       # to the PocketBase service above.
-      DBRAIN_STORAGE_USER_QUOTA_BYTES: ${DBRAIN_STORAGE_USER_QUOTA_BYTES:-}
-      DBRAIN_STORAGE_MAX_IMAGE_BYTES: ${DBRAIN_STORAGE_MAX_IMAGE_BYTES:-}
-      DBRAIN_STORAGE_MAX_VIDEO_BYTES: ${DBRAIN_STORAGE_MAX_VIDEO_BYTES:-}
-      DBRAIN_STORAGE_MAX_AUDIO_BYTES: ${DBRAIN_STORAGE_MAX_AUDIO_BYTES:-}
-      DBRAIN_STORAGE_MAX_PDF_BYTES: ${DBRAIN_STORAGE_MAX_PDF_BYTES:-}
-      DBRAIN_STORAGE_MAX_WEBPAGE_BYTES: ${DBRAIN_STORAGE_MAX_WEBPAGE_BYTES:-}
-      DBRAIN_STORAGE_MAX_OTHER_BYTES: ${DBRAIN_STORAGE_MAX_OTHER_BYTES:-}
+      DBRAINX_STORAGE_USER_QUOTA_BYTES: ${DBRAINX_STORAGE_USER_QUOTA_BYTES:-}
+      DBRAINX_STORAGE_MAX_IMAGE_BYTES: ${DBRAINX_STORAGE_MAX_IMAGE_BYTES:-}
+      DBRAINX_STORAGE_MAX_VIDEO_BYTES: ${DBRAINX_STORAGE_MAX_VIDEO_BYTES:-}
+      DBRAINX_STORAGE_MAX_AUDIO_BYTES: ${DBRAINX_STORAGE_MAX_AUDIO_BYTES:-}
+      DBRAINX_STORAGE_MAX_PDF_BYTES: ${DBRAINX_STORAGE_MAX_PDF_BYTES:-}
+      DBRAINX_STORAGE_MAX_WEBPAGE_BYTES: ${DBRAINX_STORAGE_MAX_WEBPAGE_BYTES:-}
+      DBRAINX_STORAGE_MAX_OTHER_BYTES: ${DBRAINX_STORAGE_MAX_OTHER_BYTES:-}
     volumes:
-      - media_imports:/var/lib/dbrain/media-imports
+      - media_imports:/var/lib/dbrainx/media-imports
     depends_on:
       pocketbase:
         condition: service_healthy
     networks: [backend, frontend]
     security_opt: [no-new-privileges:true]
   web:
-    image: ${DBRAIN_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrain}-web:${DBRAIN_VERSION:-0.2.1}
+    image: ${DBRAINX_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrainx}-web:${DBRAINX_VERSION:-0.2.1}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -87,7 +87,7 @@ services:
     image: nginx:1.28.0-alpine
     restart: unless-stopped
     ports:
-      - "${DBRAIN_BIND_HOST:-127.0.0.1}:${DBRAIN_PORT:-3000}:8080"
+      - "${DBRAINX_BIND_HOST:-127.0.0.1}:${DBRAINX_PORT:-3000}:8080"
     volumes:
       - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:

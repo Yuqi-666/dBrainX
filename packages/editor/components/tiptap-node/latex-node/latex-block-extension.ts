@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { InputRule, Node } from "@tiptap/core";
 import type { NodeViewProps } from "@tiptap/react";
 import { ReactNodeViewRenderer } from "@tiptap/react";

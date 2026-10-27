@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { RecordModel } from "pocketbase";
 import type { IUserRepository } from "@workspace/domain/repositories";
 import { User, Email } from "@workspace/domain/models/user";

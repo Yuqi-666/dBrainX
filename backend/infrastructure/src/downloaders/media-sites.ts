@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The fixed catalog of media sites the import dialogs show.
  *

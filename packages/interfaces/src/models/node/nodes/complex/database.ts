@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { DataView } from "../../../data-view";
 import type { NodeBase, NodeId } from "../../base";
 import type { NodeType } from "../../types";

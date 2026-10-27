@@ -35,10 +35,10 @@ At start the server waits up to 30 seconds for `PB_URL/api/health`.
 Then it calls `AppContainer.initialize(PB_URL)` and starts the upload sweeper.
 It shuts down on `SIGINT` or `SIGTERM`.
 
-Environment variables: `PORT` defaults to 3001. `PB_URL` defaults to `127.0.0.1:8090`. Set `DBRAIN_PUBLIC_ORIGIN` only when a proxy rewrites the Host header. `DBRAIN_UPLOAD_DIR` moves the chunk spool (default `<system temp>/dbrain-uploads`).
+Environment variables: `PORT` defaults to 3001. `PB_URL` defaults to `127.0.0.1:8090`. Set `DBRAINX_PUBLIC_ORIGIN` only when a proxy rewrites the Host header. `DBRAINX_UPLOAD_DIR` moves the chunk spool (default `<system temp>/dbrainx-uploads`).
 
 The same source produces the desktop backend bundle through `src/desktop/runtime.ts`.
-The desktop listener mounts the same upload handler under `/session/<secret>/upload/*`; there the session secret replaces the token check, and `DBRAIN_PB_INTERNAL_SECRET` in the runtime environment is what lets the file store reach the local PocketBase over raw `node:http`.
+The desktop listener mounts the same upload handler under `/session/<secret>/upload/*`; there the session secret replaces the token check, and `DBRAINX_PB_INTERNAL_SECRET` in the runtime environment is what lets the file store reach the local PocketBase over raw `node:http`.
 
 ## Commands
 

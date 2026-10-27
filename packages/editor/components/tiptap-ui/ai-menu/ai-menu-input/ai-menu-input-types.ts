@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export interface BaseAiMenuInputProps {
   onInputSubmit: (value: string) => void;
   onToneChange?: (tone: string) => void;

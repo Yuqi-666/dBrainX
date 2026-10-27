@@ -1,15 +1,17 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+
 set -eu
 
 # The compose file sets this working directory. A test overrides it.
-cd "${DBRAIN_DEPLOYMENT_PATH:-/deployment}"
+cd "${DBRAINX_DEPLOYMENT_PATH:-/deployment}"
 interval=15
-state_dir="${TMPDIR:-/tmp}/dbrain-watch"
+state_dir="${TMPDIR:-/tmp}/dbrainx-watch"
 etag_file="$state_dir/etag"
 body_file="$state_dir/runs.json"
 header_file="$state_dir/headers"
 auth_file="$state_dir/auth.conf"
-api='https://api.github.com/repos/Yuqi-666/dBrain/actions/workflows/release-candidate.yml/runs?event=push&status=success&per_page=1'
+api='https://api.github.com/repos/Yuqi-666/dBrainX/actions/workflows/release-candidate.yml/runs?event=push&status=success&per_page=1'
 
 env_value() {
   [ -f .env ] || return 0
@@ -17,10 +19,10 @@ env_value() {
 }
 
 enabled() {
-  case "$(env_value DBRAIN_AUTO_UPDATE)" in
+  case "$(env_value DBRAINX_AUTO_UPDATE)" in
     true) return 0 ;;
     false|'') return 1 ;;
-    *) echo '[updater] DBRAIN_AUTO_UPDATE must be true or false' >&2; return 1 ;;
+    *) echo '[updater] DBRAINX_AUTO_UPDATE must be true or false' >&2; return 1 ;;
   esac
 }
 
@@ -119,7 +121,7 @@ EOF
 mkdir -p "$state_dir"
 touch "$etag_file"
 : > "$auth_file"
-github_token="$(env_value DBRAIN_GITHUB_TOKEN)"
+github_token="$(env_value DBRAINX_GITHUB_TOKEN)"
 [ -z "$github_token" ] || printf 'header = "Authorization: Bearer %s"\n' "$github_token" > "$auth_file"
 
 [ -f .env ] && [ -f update.sh ] || { echo '[updater] deployment files missing' >&2; exit 1; }
@@ -128,7 +130,7 @@ if [ "${1:-}" = '--once' ]; then
   exit 0
 fi
 if [ -z "$github_token" ]; then
-  echo '[updater] no DBRAIN_GITHUB_TOKEN; the GitHub API allows 60 requests per hour' >&2
+  echo '[updater] no DBRAINX_GITHUB_TOKEN; the GitHub API allows 60 requests per hour' >&2
 fi
 echo "[updater] watching successful tag candidates every ${interval}s"
 last_state=''
