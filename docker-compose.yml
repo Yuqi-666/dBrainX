@@ -1,7 +1,7 @@
 name: dbrainx
 services:
   pocketbase:
-    image: ${DBRAINX_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrainx}-pocketbase:${DBRAINX_VERSION:-0.2.1}
+    image: ${DBRAINX_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrainx}-pocketbase:${DBRAINX_VERSION:-0.3.0}
     build:
       context: .
       dockerfile: deploy/pocketbase/Dockerfile
@@ -30,7 +30,7 @@ services:
     networks: [backend]
     security_opt: [no-new-privileges:true]
   server:
-    image: ${DBRAINX_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrainx}-server:${DBRAINX_VERSION:-0.2.1}
+    image: ${DBRAINX_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrainx}-server:${DBRAINX_VERSION:-0.3.0}
     build:
       context: .
       dockerfile: apps/server/Dockerfile
@@ -73,7 +73,7 @@ services:
     networks: [backend, frontend]
     security_opt: [no-new-privileges:true]
   web:
-    image: ${DBRAINX_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrainx}-web:${DBRAINX_VERSION:-0.2.1}
+    image: ${DBRAINX_IMAGE_PREFIX:-ghcr.io/yuqi-666/dbrainx}-web:${DBRAINX_VERSION:-0.3.0}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
