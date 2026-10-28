@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 import type { NodeDataType } from "@workspace/interfaces";
 import { NODE_DATA_TYPES } from "@workspace/interfaces";

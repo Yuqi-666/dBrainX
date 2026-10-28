@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Interface copy of the node disposition dialog (delete or clear a node, and
  * decide what happens to the uploaded files it references).

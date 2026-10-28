@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The playlist rewrite decides how every stored recording is addressed, so the
  * cases below pin the shape a browser has to resolve: a path relative to the

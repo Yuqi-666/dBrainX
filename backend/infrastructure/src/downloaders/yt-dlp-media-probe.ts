@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Reads what a site offers for one address, without storing anything.
  *
@@ -80,7 +82,7 @@ export class YtDlpMediaProbe implements IMediaProbe {
     // Validation runs before the temporary directory exists: a refused
     // address must not leave anything behind.
     const url = await assertDownloadableUrl(request.url);
-    const workDir = await mkdtemp(join(tmpdir(), "dbrain-yt-dlp-probe-"));
+    const workDir = await mkdtemp(join(tmpdir(), "dbrainx-yt-dlp-probe-"));
 
     const useBrowser = Boolean(request.cookiesFromBrowser?.trim());
     const cookieText = request.cookies?.trim();
@@ -95,6 +97,7 @@ export class YtDlpMediaProbe implements IMediaProbe {
         command: this.command,
         args: buildProbeArgs({
           url: url.href,
+          kind: request.kind,
           workDir,
           cookieFile,
           cookiesFromBrowser: request.cookiesFromBrowser,

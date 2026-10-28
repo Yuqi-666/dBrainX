@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "dBrain",
-  "version": "0.2.1",
-  "identifier": "cn.dbrain.desktop",
+  "productName": "dBrainX",
+  "version": "0.3.0",
+  "identifier": "cn.dbrainx.desktop",
   "build": {
     "beforeDevCommand": "pnpm runtime:prepare && pnpm dev",
     "beforeBuildCommand": "pnpm runtime:prepare && pnpm build",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "dBrain",
+        "title": "dBrainX",
         "width": 1280,
         "height": 800,
         "resizable": true,
@@ -50,14 +50,14 @@
         "bundleMediaFramework": true
       }
     },
-    "shortDescription": "dBrain local knowledge workspace",
-    "copyright": "Copyright (c) 2026 dBrain contributors"
+    "shortDescription": "dBrainX local knowledge workspace",
+    "copyright": "Copyright (c) 2026 dBrainX contributors"
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI0RkY3OEI0OEVGNjQxRjIKUldUeVFmYU90SGovdEdQUkdCNXNPemZSM0Y5aWF4ZmZmTmFONjQzeW9EUHBucFVCUytEZ0QrN2EK",
       "endpoints": [
-        "https://github.com/Yuqi-666/dBrain/releases/latest/download/latest.json"
+        "https://github.com/Yuqi-666/dBrainX/releases/latest/download/latest.json"
       ]
     }
   }

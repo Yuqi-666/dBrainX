@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { createRequire } from "node:module";
 import { join } from "node:path";
 const require = createRequire(
@@ -15,7 +17,7 @@ export async function bundleBackend(root, entry, output) {
     tsconfig: join(root, "apps/server/tsconfig.json"),
     external: ["@napi-rs/canvas", "pdfjs-dist", "bufferutil", "utf-8-validate"],
     banner: {
-      js: 'import { createRequire as __dbrainCreateRequire } from "node:module"; const require = __dbrainCreateRequire(import.meta.url);',
+      js: 'import { createRequire as __dbrainxCreateRequire } from "node:module"; const require = __dbrainxCreateRequire(import.meta.url);',
     },
   });
 }

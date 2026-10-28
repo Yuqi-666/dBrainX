@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Turns the format list a site reports into the quality picker's options.
  *
@@ -7,7 +9,8 @@
  *
  * - A site may report the same quality several times (different codecs,
  *   different containers). One picker entry per quality is enough, so the
- *   entries are deduplicated and the preferred codec wins.
+ *   entries are deduplicated and a codec the HLS packager can copy wins over
+ *   one it would have to re-encode; see {@link isCopyableVideoCodec}.
  * - The entry id is stable (`1080p`, `lossless`) while the `formatId` is
  *   site-specific. A cached probe result is therefore still meaningful, and
  *   the UI never has to understand a container or a codec.
@@ -187,11 +190,37 @@ function isNone(codec: string): boolean {
   return codec === "" || codec.toLowerCase() === "none";
 }
 
-/** Higher picture first, then smoother motion, then more bits. */
+/**
+ * Whether the HLS packager can copy this video stream instead of re-encoding it.
+ *
+ * The packager writes MPEG-TS segments, whose one universally decodable video
+ * codec is H.264 (see `COPYABLE_VIDEO_CODECS` in
+ * `ffmpeg-video-transcoder.ts`). When a site offers the same picture in several
+ * codecs, the import should therefore be given the H.264 stream: copying it
+ * costs seconds, while re-encoding an AV1 or HEVC stream costs minutes for a
+ * full-length video and loses a generation of quality. yt-dlp reports H.264 as
+ * `avc1.<profile>` in its format table (and `h264` in the merged file), so the
+ * prefix is what is matched.
+ */
+function isCopyableVideoCodec(codec: string): boolean {
+  const name = codec.toLowerCase();
+  return name.startsWith("avc1") || name.startsWith("h264");
+}
+
+/**
+ * Higher picture first, then smoother motion, then a copyable codec, then more
+ * bits.
+ *
+ * The frame rate comes before the codec on purpose: a 60 fps HEVC stream is
+ * still the better version of that quality, and just because the packager would
+ * have to re-encode it is no reason to hand the user a 30 fps file instead.
+ */
 function compareVideoFormats(a: FormatFacts, b: FormatFacts): number {
   return (
     b.height - a.height ||
     b.fps - a.fps ||
+    Number(isCopyableVideoCodec(b.vcodec)) -
+      Number(isCopyableVideoCodec(a.vcodec)) ||
     b.tbr - a.tbr ||
     estimateBytes(b) - estimateBytes(a)
   );

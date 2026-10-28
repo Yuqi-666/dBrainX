@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 /**
  * Chart data building — rows to the shapes a VChart spec consumes.

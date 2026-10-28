@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The yt-dlp media probe contract.
  *
@@ -36,7 +38,7 @@ const { MediaImportFailure } = await import("@workspace/utils/media-import");
 const PUBLIC_IP_URL = "http://192.0.2.1/watch?v=abc";
 
 /** Environment variable the fake scripts use to report their work directory. */
-const PROBE_DIR_VARIABLE = "DBRAIN_TEST_PROBE_DIR";
+const PROBE_DIR_VARIABLE = "DBRAINX_TEST_PROBE_DIR";
 
 /** Reads the `-o` argument and reports the probe directory. */
 const OUTPUT_LOOKUP = `
@@ -55,7 +57,7 @@ const FAKE_PROBE_VIDEO = `#!/bin/sh
 set -eu
 ${OUTPUT_LOOKUP}
 printf 'fake-jpeg' > "$directory/source.jpg"
-printf '%s' '{"title":"A Test Clip","duration":93.5,"webpage_url":"https://video.example/watch?v=abc","extractor_key":"TestExtractor","artist":"An Artist","album":"An Album","language":"zh-Hans","subtitles":{"zh-Hans":[{"name":"中文"}],"en":[{"name":"English"}]},"automatic_captions":{"ja":[{"name":"日本語"}]},"formats":[{"format_id":"137","ext":"mp4","vcodec":"avc1","acodec":"none","height":1080,"width":1920,"fps":30,"tbr":4000,"filesize":50000000},{"format_id":"136","ext":"mp4","vcodec":"avc1","acodec":"none","height":720,"width":1280,"fps":30,"tbr":2000,"filesize":20000000},{"format_id":"140","ext":"m4a","vcodec":"none","acodec":"mp4a.40.2","abr":128}]}'
+printf '%s' '{"title":"A Test Clip","duration":93.5,"webpage_url":"https://video.example/watch?v=abc","extractor_key":"TestExtractor","artist":"An Artist","album":"An Album","language":"zh-Hans","subtitles":{"zh-Hans":[{"name":"中文"}],"danmaku":[{"name":"弹幕","ext":"xml"}],"en":[{"name":"English"}]},"automatic_captions":{"ja":[{"name":"日本語"}]},"formats":[{"format_id":"137","ext":"mp4","vcodec":"avc1","acodec":"none","height":1080,"width":1920,"fps":30,"tbr":4000,"filesize":50000000},{"format_id":"136","ext":"mp4","vcodec":"avc1","acodec":"none","height":720,"width":1280,"fps":30,"tbr":2000,"filesize":20000000},{"format_id":"140","ext":"m4a","vcodec":"none","acodec":"mp4a.40.2","abr":128}]}'
 `;
 
 /** A stand-in audio probe: one cover file and a metadata document. */
@@ -84,7 +86,7 @@ exit 1
 
 /** One fake executable in its own directory. */
 async function fakeYtDlp(script: string) {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-media-probe-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-media-probe-test-"));
   const command = join(dir, "fake-yt-dlp");
   await writeFile(command, script, "utf8");
   await chmod(command, 0o755);
@@ -101,7 +103,7 @@ async function fakeYtDlp(script: string) {
  * does it in the test, so the test never needs a real encoder.
  */
 async function fakeFfmpeg() {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-probe-ffmpeg-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-probe-ffmpeg-test-"));
   const command = join(dir, "fake-ffmpeg");
   await writeFile(
     command,
@@ -119,7 +121,7 @@ async function fakeFfmpeg() {
 async function withProbeDirectory<T>(
   action: () => Promise<T>,
 ): Promise<{ result: T; directory: string | undefined }> {
-  const recordDir = await mkdtemp(join(tmpdir(), "dbrain-probe-record-"));
+  const recordDir = await mkdtemp(join(tmpdir(), "dbrainx-probe-record-"));
   const recordPath = join(recordDir, "directory.txt");
   const previous = process.env[PROBE_DIR_VARIABLE];
   process.env[PROBE_DIR_VARIABLE] = recordPath;
@@ -162,6 +164,8 @@ test("probes a video and maps metadata, cover, languages, and qualities", async 
       `data:image/jpeg;base64,${Buffer.from("fake-jpeg").toString("base64")}`,
     );
 
+    // Bilibili's danmaku track is in the metadata but is not a caption: the
+    // download excludes it, so the probe does not advertise it either.
     assert.deepEqual(
       result.subtitleLanguages.map((track) => track.language),
       ["zh-Hans", "en", "ja"],
@@ -228,7 +232,7 @@ test("shrinks an oversized cover through FFmpeg", async () => {
 test("returns no cover when an oversized cover cannot be shrunk", async () => {
   const fake = await fakeYtDlp(FAKE_PROBE_BIG_THUMB);
   const previousFfmpeg = process.env.FFMPEG_PATH;
-  process.env.FFMPEG_PATH = "/nonexistent/dbrain-test-ffmpeg";
+  process.env.FFMPEG_PATH = "/nonexistent/dbrainx-test-ffmpeg";
   try {
     const probe = new YtDlpMediaProbe(fake.command);
     const { result } = await withProbeDirectory(() =>

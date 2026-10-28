@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { trpc } from "../provider";
 
 export const useAddNode = () => trpc.node.add.useMutation();

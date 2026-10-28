@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export * from "./ai-unavailable-notice";
 export * from "./ai-menu-hooks";
 export * from "./ai-menu-types";

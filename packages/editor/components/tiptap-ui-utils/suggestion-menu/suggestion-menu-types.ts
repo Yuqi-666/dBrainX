@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { UseFloatingOptions } from "@floating-ui/react";
 import type { PluginKey } from "@tiptap/pm/state";
 import type { SuggestionOptions } from "@tiptap/suggestion";

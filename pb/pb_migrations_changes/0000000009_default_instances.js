@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Every user gets one workspace and every workspace one global view, created by
 // the server itself. Those two instances must stay: deleting the default
 // workspace would delete everything the user sees on first login, and deleting

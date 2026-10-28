@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { DataView } from "@workspace/interfaces/models/data-view";
 import type { FilterConfig } from "@workspace/interfaces/models/filter";
 import type {

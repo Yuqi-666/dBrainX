@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { execFileSync } from "node:child_process";
 import { chmod, copyFile, mkdir, realpath } from "node:fs/promises";
 import { fileURLToPath } from "node:url";

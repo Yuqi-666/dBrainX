@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { TRPCError } from "@trpc/server";
 import type { DashboardWorkspace } from "@workspace/interfaces";
 import { observable } from "@trpc/server/observable";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { NodeId as NodeIdType } from "@workspace/interfaces/models/node/base";
 import type { NodeDataType } from "@workspace/interfaces/models/node/types";
 import type { WebpageContent as WebpageContentData } from "@workspace/interfaces/models/node/nodes/single/webpage";

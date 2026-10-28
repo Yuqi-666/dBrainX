@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Run through dbus-run-session + xvfb-run on a Linux build machine.
 set -euo pipefail
 package_path=$1
 result_dir=$2
 mkdir -p "$result_dir"
-smoke_root=$(mktemp -d /tmp/dbrain-native-window-XXXXXX)
+smoke_root=$(mktemp -d /tmp/dbrainx-native-window-XXXXXX)
 cleanup() {
   if [[ -n "${app_pid:-}" ]]; then kill -TERM "$app_pid" 2>/dev/null || true; wait "$app_pid" 2>/dev/null || true; fi
   rm -rf "$smoke_root"
@@ -43,28 +45,28 @@ if [[ "$package_path" == *.AppImage ]]; then app_executable="$smoke_root/package
 app_pid=$!
 for attempt in $(seq 1 40); do
   kill -0 "$app_pid"
-  if [[ -f "$XDG_DATA_HOME/cn.dbrain.desktop/runtime.lock" ]] && compgen -G "$XDG_DATA_HOME/cn.dbrain.desktop/backend-ready-*.json" > /dev/null; then
+  if [[ -f "$XDG_DATA_HOME/cn.dbrainx.desktop/runtime.lock" ]] && compgen -G "$XDG_DATA_HOME/cn.dbrainx.desktop/backend-ready-*.json" > /dev/null; then
     break
   fi
   sleep 1
 done
-compgen -G "$XDG_DATA_HOME/cn.dbrain.desktop/backend-ready-*.json" > /dev/null
+compgen -G "$XDG_DATA_HOME/cn.dbrainx.desktop/backend-ready-*.json" > /dev/null
 # Give the authenticated workspace shell time to render from the actual backend.
 sleep 8
-ready_descriptor=$(find "$XDG_DATA_HOME/cn.dbrain.desktop" -maxdepth 1 -name 'backend-ready-*.json' -print -quit)
+ready_descriptor=$(find "$XDG_DATA_HOME/cn.dbrainx.desktop" -maxdepth 1 -name 'backend-ready-*.json' -print -quit)
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 runtime_node=$(find "$smoke_root/package/usr/lib" -path '*/runtime/node' -type f -print -quit)
 LD_LIBRARY_PATH="$(dirname "$runtime_node")/lib" "$runtime_node" "$script_dir/seed-native-smoke.mjs" "$ready_descriptor"
 sleep 4
 import -window root "$result_dir/native-window.png"
-cp "$XDG_DATA_HOME/cn.dbrain.desktop/backend.log" "$result_dir/native-backend.log"
+cp "$XDG_DATA_HOME/cn.dbrainx.desktop/backend.log" "$result_dir/native-backend.log"
 # Closing the parent must close the Node control pipe and reap PocketBase.
 kill -TERM "$app_pid"
 wait "$app_pid" || true
 unset app_pid
 for attempt in $(seq 1 50); do
-  [[ ! -f "$XDG_DATA_HOME/cn.dbrain.desktop/runtime.lock" ]] && break
+  [[ ! -f "$XDG_DATA_HOME/cn.dbrainx.desktop/runtime.lock" ]] && break
   sleep 0.1
 done
-[[ ! -f "$XDG_DATA_HOME/cn.dbrain.desktop/runtime.lock" ]]
+[[ ! -f "$XDG_DATA_HOME/cn.dbrainx.desktop/runtime.lock" ]]
 printf 'PASS packaged native window, frontend/native bridge, live backend events and parent-exit cleanup\n'

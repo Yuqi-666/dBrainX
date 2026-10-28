@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Prepare on the target platform: native libraries and executables cannot be cross-copied. */
 import { signWindowsRuntime } from "../../../scripts/lib/windows-signing.mjs";
 import {
@@ -41,7 +43,7 @@ function binary(name, override) {
 const binaries = {
   node: process.execPath,
   pocketbase:
-    process.env.DBRAIN_POCKETBASE_PATH || join(root, "pb", exe("pocketbase")),
+    process.env.DBRAINX_POCKETBASE_PATH || join(root, "pb", exe("pocketbase")),
   ffmpeg: binary("ffmpeg", process.env.FFMPEG_PATH),
   ffprobe: binary("ffprobe", process.env.FFPROBE_PATH),
 };
@@ -127,7 +129,7 @@ try {
   // still scans the old optional bindings on a subsequent build.
   for (const cache of [
     "runtime",
-    "bundle/appimage/dBrain.AppDir",
+    "bundle/appimage/dBrainX.AppDir",
     "bundle/appimage_deb",
   ]) {
     await rm(join(root, "apps/desktop/src-tauri/target/release", cache), {

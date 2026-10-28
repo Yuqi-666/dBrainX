@@ -1,4 +1,4 @@
-# dBrain Desktop
+# dBrainX Desktop
 
 Tauri 2 + Next.js 静态导出。界面复用 Web，Desktop 在设备上运行现有完整 backend：应用服务、领域模型、tRPC 路由和实时事件均与 Web 共用。
 
@@ -11,7 +11,7 @@ PDF → pdfjs-dist + 原生 canvas
 视频 → FFmpeg / FFprobe
 ```
 
-首次启动自动创建本地身份，无需云端账号或网络。数据库、文件、本地身份凭据和后端日志存放在 Tauri `app_local_data_dir()` 返回的应用目录，实际路径由 Tauri 平台接口决定。Linux 通常为 `$XDG_DATA_HOME/cn.dbrain.desktop`（未配置时 `~/.local/share/cn.dbrain.desktop`），Windows/macOS 使用对应的系统应用数据目录。程序升级不替换该目录。
+首次启动自动创建本地身份，无需云端账号或网络。数据库、文件、本地身份凭据和后端日志存放在 Tauri `app_local_data_dir()` 返回的应用目录，实际路径由 Tauri 平台接口决定。Linux 通常为 `$XDG_DATA_HOME/cn.dbrainx.desktop`（未配置时 `~/.local/share/cn.dbrainx.desktop`），Windows/macOS 使用对应的系统应用数据目录。程序升级不替换该目录。
 
 Tauri 启动打包的 Node 运行时，等待 PocketBase 完成数据库迁移和身份初始化，再开放界面。退出时关闭 Node/PocketBase；异常退出导致 stdin 关闭时也清理 PocketBase。会话每 30 分钟刷新；后端连接断开时显示错误与重试入口。一个数据目录只允许一个运行实例。
 
@@ -32,7 +32,7 @@ Tauri 启动打包的 Node 运行时，等待 PocketBase 完成数据库迁移�
 ```sh
 pnpm install --frozen-lockfile
 # 可执行文件必须与构建机的平台/架构一致
-export DBRAIN_POCKETBASE_PATH=/path/to/pocketbase
+export DBRAINX_POCKETBASE_PATH=/path/to/pocketbase
 export FFMPEG_PATH=/path/to/ffmpeg
 export FFPROBE_PATH=/path/to/ffprobe
 pnpm dev:desktop
@@ -63,7 +63,7 @@ pnpm build:desktop
 
 集成验证将已打包后端复制到仓库外，使用临时数据库，覆盖本地身份、会话/Origin 拒绝、工作空间、视图、语义、标签、全部十种节点、关系、实时事件、Dashboard 冲突、磁盘附件、PDF 封面、FFmpeg 重编码、HLS、退出清理和重启持久化。测试数据在验证结束后删除。
 
-当前设备不执行编译；在 `ssh yuqi` 的 `~/workspace/projects/dBrain/.scratch/desktop-backend-build-20261010` 验证。Next.js 使用 Webpack、4 GB 堆上限和两个预渲染 worker；Rust 编译使用 `CARGO_BUILD_JOBS=2`。
+当前设备不执行编译；在 `ssh yuqi` 的 `~/workspace/projects/dBrainX/.scratch/desktop-backend-build-20261010` 验证。Next.js 使用 Webpack、4 GB 堆上限和两个预渲染 worker；Rust 编译使用 `CARGO_BUILD_JOBS=2`。
 
 ## 全平台前提
 

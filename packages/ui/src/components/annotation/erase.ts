@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Annotation, AnnotationPoint } from "@workspace/interfaces";
 import { hitTestItem, withBBox } from "./geometry.ts";
 

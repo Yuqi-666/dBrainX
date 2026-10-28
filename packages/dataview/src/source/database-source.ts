@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * `database` host adapter: a database node already is a normalized table, so
  * this is close to the identity function. It exists anyway so hosts never

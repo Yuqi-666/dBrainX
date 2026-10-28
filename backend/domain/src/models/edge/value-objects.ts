@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Value object representing a unique Edge identifier.
  * Wraps a string with UUID format validation.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -23,7 +25,7 @@ function load(path, scope = {}, dependencies = {}) {
 }
 function browser(platform) {
   const document = { cookie: "pb_token=alice" };
-  const scope = { document, process: { env: { NEXT_PUBLIC_DBRAIN_PLATFORM: platform } } };
+  const scope = { document, process: { env: { NEXT_PUBLIC_DBRAINX_PLATFORM: platform } } };
   const session = load("packages/api-client/src/auth/session.ts", scope);
   const client = load("packages/api-client/src/pocketbase-client.ts", scope, {
     pocketbase: { default: PocketBase, BaseAuthStore: sdk.BaseAuthStore },
@@ -66,7 +68,7 @@ test("loopback APIs preserve the cookie hostname; remote and container APIs use 
     assert.equal(config.resolveBackendUrls().pocketbase, `http://${hostname}:8090`);
     assert.equal(config.resolveBackendUrls().trpc, `ws://${hostname}:3001/trpc`);
   }
-  for (const [hostname, env] of [["dbrain.example", {}], ["localhost", { NEXT_PUBLIC_DBRAIN_BACKEND_MODE: "same-origin" }]]) {
+  for (const [hostname, env] of [["dbrainx.example", {}], ["localhost", { NEXT_PUBLIC_DBRAINX_BACKEND_MODE: "same-origin" }]]) {
     const window = { location: { hostname, host: hostname, origin: `https://${hostname}`, protocol: "https:" } };
     const config = load("packages/api-client/src/backend-urls.ts", { window, process: { env } }, { "./desktop-backend": {} });
     assert.equal(config.resolveBackendUrls().pocketbase, `https://${hostname}/pb`);

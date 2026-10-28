@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { UploadSession } from "@workspace/domain";
 import type { UploadSessionDTO } from "@workspace/interfaces";
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Whether `element` is currently shielded from pointer input by a modal layer
  * stacked above it — a dropdown, a popover, a select, or the host's own modal.

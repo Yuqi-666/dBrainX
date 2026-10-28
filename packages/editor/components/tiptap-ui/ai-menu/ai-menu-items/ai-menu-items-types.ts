@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Action } from "@workspace/editor/components/tiptap-ui-primitive/menu";
 import { type TextOptions } from "@workspace/editor/lib/ai";
 import type { Editor } from "@tiptap/react";

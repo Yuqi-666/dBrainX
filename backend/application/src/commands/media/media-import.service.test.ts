@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The shared video/audio import service.
  *
@@ -252,6 +254,8 @@ function downloaderFake(
     duration?: number;
     subtitle?: DownloadedRemoteMedia["subtitle"];
     thumbnail?: DownloadedRemoteMedia["thumbnail"];
+    /** Absolute path of the file the fake downloaded, when it really exists. */
+    path?: string;
     manual?: boolean;
     failWith?: Error;
   } = {},
@@ -279,7 +283,7 @@ function downloaderFake(
 
       const fileName = options.fileName ?? "clip.mp4";
       return {
-        path: `/tmp/media-download/${fileName}`,
+        path: options.path ?? `/tmp/media-download/${fileName}`,
         fileName,
         contentType:
           options.contentType ??
@@ -315,6 +319,7 @@ function fileStoreFake(statBytes = 1000) {
     workspaceId: string;
   }[] = [];
   const derived: { sourceUrl: string; fileName: string }[] = [];
+  const tempDownloads: string[] = [];
   let packagingCleanups = 0;
 
   const store: IFileStore = {
@@ -324,7 +329,8 @@ function fileStoreFake(statBytes = 1000) {
     async stat() {
       return statBytes;
     },
-    async downloadToTempFile() {
+    async downloadToTempFile(fileUrl) {
+      tempDownloads.push(fileUrl);
       return {
         path: "/tmp/packaging/source.mp4",
         bytes: 1000,
@@ -350,12 +356,14 @@ function fileStoreFake(statBytes = 1000) {
     store,
     uploads,
     derived,
+    tempDownloads,
     packagingCleanups: () => packagingCleanups,
   };
 }
 
 function videoTranscoderFake() {
   const calls: string[] = [];
+  const sources: { fileName: string; path?: string }[] = [];
   const result: HlsTranscodeResult = {
     playlist: {
       fileName: "clip.m3u8",
@@ -384,6 +392,7 @@ function videoTranscoderFake() {
   const port: IVideoTranscoder = {
     async transcodeToHls(source, onProgress) {
       calls.push(source.fileName);
+      sources.push({ fileName: source.fileName, path: source.path });
       if (onProgress) {
         onProgress({ percent: 50 });
         onProgress({ percent: 100 });
@@ -391,7 +400,7 @@ function videoTranscoderFake() {
       return result;
     },
   };
-  return { port, calls };
+  return { port, calls, sources };
 }
 
 function audioTranscoderFake() {
@@ -658,8 +667,30 @@ test("a video is downloaded, stored, packaged and recorded as a job", async () =
   assert.ok(updates.at(-1)!.percent < 100);
 });
 
+test("packages the downloaded file instead of fetching it back from the store", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "dbrain-media-source-"));
+  const sourcePath = join(dir, "source.mp4");
+  await writeFile(sourcePath, new Uint8Array([1, 2, 3]));
+
+  try {
+    const { commands, files, video } = service({
+      downloader: { path: sourcePath },
+    });
+
+    await commands.import(VIDEO_COMMAND);
+
+    // The download already wrote the bytes to disk; reading them back from the
+    // file store would stream the whole video a second time.
+    assert.deepEqual(files.tempDownloads, []);
+    assert.equal(files.packagingCleanups(), 0, "no second copy to remove");
+    assert.deepEqual(video.sources, [{ fileName: "source", path: sourcePath }]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("a site thumbnail is preferred over the FFmpeg poster frame", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-media-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-media-test-"));
   const thumbnailPath = join(dir, "thumb.jpg");
   await writeFile(thumbnailPath, new Uint8Array([1, 2, 3, 4]));
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { translate } from "./i18n/runtime";
 
 export const NODE_TYPE_LABELS: Record<string, string> = {

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+
 .dashboard-grid .react-grid-placeholder {
   background: var(--primary);
   opacity: 0.12;

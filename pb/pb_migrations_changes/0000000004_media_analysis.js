@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // A PDF parse and a video HLS package are expensive and they produce extra
 // stored blobs (a cover, a playlist, its segments). Until now the result lived
 // only on the node that uploaded the file: a second node referencing the same

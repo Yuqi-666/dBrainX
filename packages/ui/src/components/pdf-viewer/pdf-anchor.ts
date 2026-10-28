@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** A page-local anchor survives fixed gutters, auto margins and mixed page sizes. */
 export interface PdfZoomAnchor {
   page: number;

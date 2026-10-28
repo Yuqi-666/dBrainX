@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { EventMetadata } from "./types";
 
 export interface IDomainEvent<T = unknown> {

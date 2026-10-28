@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { User } from "../models/user";
 import { Email } from "../models/user/value-objects";
 

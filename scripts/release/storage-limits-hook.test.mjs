@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The upload hook and the TypeScript storage contract must agree.
  *
@@ -110,17 +112,17 @@ test("the hook resolves the same limits from the same environment", () => {
   const environments = [
     {},
     {
-      DBRAIN_STORAGE_USER_QUOTA_BYTES: "0",
-      DBRAIN_STORAGE_MAX_IMAGE_BYTES: "1024",
-      DBRAIN_STORAGE_MAX_VIDEO_BYTES: "2048",
-      DBRAIN_STORAGE_MAX_WEBPAGE_BYTES: "123456",
+      DBRAINX_STORAGE_USER_QUOTA_BYTES: "0",
+      DBRAINX_STORAGE_MAX_IMAGE_BYTES: "1024",
+      DBRAINX_STORAGE_MAX_VIDEO_BYTES: "2048",
+      DBRAINX_STORAGE_MAX_WEBPAGE_BYTES: "123456",
     },
     {
-      DBRAIN_STORAGE_USER_QUOTA_BYTES: "not-a-number",
-      DBRAIN_STORAGE_MAX_IMAGE_BYTES: "-1",
-      DBRAIN_STORAGE_MAX_VIDEO_BYTES: "1.5",
-      DBRAIN_STORAGE_MAX_AUDIO_BYTES: "",
-      DBRAIN_STORAGE_MAX_PDF_BYTES: "99999999999999999999",
+      DBRAINX_STORAGE_USER_QUOTA_BYTES: "not-a-number",
+      DBRAINX_STORAGE_MAX_IMAGE_BYTES: "-1",
+      DBRAINX_STORAGE_MAX_VIDEO_BYTES: "1.5",
+      DBRAINX_STORAGE_MAX_AUDIO_BYTES: "",
+      DBRAINX_STORAGE_MAX_PDF_BYTES: "99999999999999999999",
     },
   ];
 
@@ -175,7 +177,7 @@ test("an unauthenticated create is rejected", () => {
 });
 
 test("the category ceiling is enforced", () => {
-  const hook = loadHook({ DBRAIN_STORAGE_MAX_IMAGE_BYTES: "50" });
+  const hook = loadHook({ DBRAINX_STORAGE_MAX_IMAGE_BYTES: "50" });
   const event = createEvent({
     files: [{ originalName: "photo.png", name: "photo.png", size: 51 }],
   });
@@ -183,7 +185,7 @@ test("the category ceiling is enforced", () => {
 });
 
 test("the per-user quota counts what is already stored", () => {
-  const hook = loadHook({ DBRAIN_STORAGE_USER_QUOTA_BYTES: "1000" });
+  const hook = loadHook({ DBRAINX_STORAGE_USER_QUOTA_BYTES: "1000" });
 
   // 900 stored + 100 incoming fits exactly.
   const fits = createEvent({
@@ -200,7 +202,7 @@ test("the per-user quota counts what is already stored", () => {
 });
 
 test("a zero quota disables only the total check", () => {
-  const hook = loadHook({ DBRAIN_STORAGE_USER_QUOTA_BYTES: "0" });
+  const hook = loadHook({ DBRAINX_STORAGE_USER_QUOTA_BYTES: "0" });
   const event = createEvent({
     files: [{ originalName: "photo.png", name: "photo.png", size: 100 }],
     existingSizes: [10 * 1024 ** 3],
@@ -304,7 +306,7 @@ test("an unauthenticated update is rejected", () => {
 });
 
 test("the category ceiling applies to the replacement", () => {
-  const hook = loadHook({ DBRAIN_STORAGE_MAX_IMAGE_BYTES: "50" });
+  const hook = loadHook({ DBRAINX_STORAGE_MAX_IMAGE_BYTES: "50" });
   const event = updateEvent({
     files: [{ originalName: "drawing.png", name: "drawing.png", size: 51 }],
   });
@@ -312,7 +314,7 @@ test("the category ceiling applies to the replacement", () => {
 });
 
 test("the quota charges only the difference the replacement adds", () => {
-  const hook = loadHook({ DBRAIN_STORAGE_USER_QUOTA_BYTES: "1000" });
+  const hook = loadHook({ DBRAINX_STORAGE_USER_QUOTA_BYTES: "1000" });
 
   // The record itself holds 600 of the 1000 stored bytes; the owner's other
   // records hold 400. Replacing 600 with 600 therefore fits exactly.
@@ -341,7 +343,7 @@ test("the quota charges only the difference the replacement adds", () => {
 });
 
 test("a zero quota disables only the total check on update", () => {
-  const hook = loadHook({ DBRAIN_STORAGE_USER_QUOTA_BYTES: "0" });
+  const hook = loadHook({ DBRAINX_STORAGE_USER_QUOTA_BYTES: "0" });
   const event = updateEvent({
     files: [{ originalName: "drawing.png", name: "drawing.png", size: 100 }],
     previous: { size: 10 * 1024 ** 3, ownerId: "owner", displayName: "" },

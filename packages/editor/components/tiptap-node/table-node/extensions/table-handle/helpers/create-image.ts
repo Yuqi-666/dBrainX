@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Editor } from "@tiptap/core";
 
 const STYLE_PROPS: (keyof CSSStyleDeclaration | string)[] = [

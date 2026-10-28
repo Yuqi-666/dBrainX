@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The **decisions** inside the pointer state machine, pulled out of React so they
  * can be asserted (`recognizer.test.ts`) and reused by a future host.

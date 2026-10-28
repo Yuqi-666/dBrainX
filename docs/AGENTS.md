@@ -13,9 +13,9 @@ The two trees address three reader groups: the user, the developer, and the oper
 | Path | Content |
 | --- | --- |
 | `README.md` | The index of the English tree. |
-| `development.md` | Environment, project layout, web and desktop development, quality gates, and maintenance. |
-| `operations.md` | Source and image deployment, access configuration, backup and restore, and troubleshooting. |
-| `usage.md` | Install, accounts, workspaces, graph, dashboard, and upgrade steps. |
+| `development.md` | Environment, development commands, desktop build, checks, and release. |
+| `operations.md` | Source and image deployment, update, access configuration, and backup. |
+| `usage.md` | Install, update, and uninstall steps. |
 | `ci-cd.md` | Pull request checks, versioning, candidate builds, publication, and repository policy. |
 | `contributing.md` | The English contribution guide. |
 | `zh/README.md` | The index of the Chinese tree. |
@@ -31,6 +31,9 @@ Write new prose in English in this tree and in Chinese in `zh/`. Match the tone 
 Keep the two trees in step. Change a manual and its translation in the same pull request.
 Keep the code blocks, the numbers, and the links equal in a manual and its translation.
 The short sentences and the lists are deliberate. They follow ASD-STE100. Keep them.
+Keep `usage.md` to the installation, the update, and the removal of the app.
+Keep the development and operations manuals to the commands and the steps that a reader runs.
+Do not copy software internals into a manual.
 Run every command from the repository root, unless a section states another directory.
 Treat `RUN_ID`, `ATTEMPT`, `SOURCE_COMMIT`, and `VERSION` as placeholders that the reader replaces.
 Read the real variable list from the root `.env.example`, `deploy/.env.example`, and the named script.

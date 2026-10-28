@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Every create request on `files` goes through one enforcement point: it sets
 // the owner from the verified token, applies the per-category file ceiling and
 // the per-user storage quota, and stamps the size / MIME type / default display

@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Run in the directory containing docker-compose.yml and .env.
 set -eu
 umask 077
@@ -17,19 +19,19 @@ here="$(pwd -P)"
 # script in a container that mounts this directory at /deployment, where a
 # project directory of /deployment would make the daemon create that path on
 # the host. The bind mount of nginx.conf would then fail. The project directory
-# must be the path of this directory on the host. DBRAIN_DEPLOYMENT_DIR in .env
+# must be the path of this directory on the host. DBRAINX_DEPLOYMENT_DIR in .env
 # wins; otherwise the mount table of the running container answers.
 project_directory() {
-  configured="$(sed -n 's/^DBRAIN_DEPLOYMENT_DIR=//p' .env | tail -n 1 | tr -d '\r')"
+  configured="$(sed -n 's/^DBRAINX_DEPLOYMENT_DIR=//p' .env | tail -n 1 | tr -d '\r')"
   if [ -n "$configured" ]; then
     case "$configured" in
       /*) printf '%s\n' "$configured" ;;
-      *) echo '[update] DBRAIN_DEPLOYMENT_DIR must be an absolute path' >&2; return 2 ;;
+      *) echo '[update] DBRAINX_DEPLOYMENT_DIR must be an absolute path' >&2; return 2 ;;
     esac
     return 0
   fi
   source_path=''
-  mountinfo="${DBRAIN_MOUNTINFO:-/proc/self/mountinfo}"
+  mountinfo="${DBRAINX_MOUNTINFO:-/proc/self/mountinfo}"
   if [ -r "$mountinfo" ]; then
     source_path="$(awk -v here="$here" '$5 == here { print $4; exit }' "$mountinfo" 2>/dev/null)" || source_path=''
   fi
@@ -51,14 +53,14 @@ project="$(project_directory)"
 mkdir -p backups
 exec 9> .update.lock
 flock -n 9 || { echo 'Another update is running' >&2; exit 1; }
-prefix="$(sed -n 's/^DBRAIN_IMAGE_PREFIX=//p' .env | tail -n 1)"
-prefix="${prefix:-ghcr.io/yuqi-666/dbrain}"
-echo "$prefix" | grep -Eq '^ghcr\.io/[a-z0-9_.-]+/[a-z0-9_.-]+$' || { echo 'Invalid DBRAIN_IMAGE_PREFIX' >&2; exit 2; }
+prefix="$(sed -n 's/^DBRAINX_IMAGE_PREFIX=//p' .env | tail -n 1)"
+prefix="${prefix:-ghcr.io/yuqi-666/dbrainx}"
+echo "$prefix" | grep -Eq '^ghcr\.io/[a-z0-9_.-]+/[a-z0-9_.-]+$' || { echo 'Invalid DBRAINX_IMAGE_PREFIX' >&2; exit 2; }
 
 # One place passes the project directory, so no call resolves a relative path of
 # the Compose files against the container path by accident.
 compose() {
-  docker compose -p dbrain --project-directory "$project" --env-file "$here/.env" -f "$here/docker-compose.yml" "$@"
+  docker compose -p dbrainx --project-directory "$project" --env-file "$here/.env" -f "$here/docker-compose.yml" "$@"
 }
 
 echo "[update] selecting $target"
@@ -79,7 +81,7 @@ if [ "$project" != "$here" ]; then
   case "$rendered" in
     *"source: $here/"*)
       echo "[update] Compose resolves a bind mount below $here; the daemon would create that path on the host" >&2
-      echo '[update] set DBRAIN_DEPLOYMENT_DIR in .env to the absolute path of this directory on the host' >&2
+      echo '[update] set DBRAINX_DEPLOYMENT_DIR in .env to the absolute path of this directory on the host' >&2
       exit 2
       ;;
   esac
@@ -87,7 +89,7 @@ fi
 echo '[update] stopping writes'
 compose stop
 pb_container="$(compose ps -aq pocketbase)"
-if docker volume inspect dbrain_pb_data >/dev/null 2>&1; then
+if docker volume inspect dbrainx_pb_data >/dev/null 2>&1; then
   if [ -z "$pb_container" ]; then
     compose -f "$tmp" create --no-recreate pocketbase
     pb_container="$(compose ps -aq pocketbase)"

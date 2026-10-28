@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { NodeService } from "./node.service";
 export { EdgeService } from "./edge.service";
 export { ViewService } from "./view.service";

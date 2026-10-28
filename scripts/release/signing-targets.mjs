@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Select signed desktop targets without logging or exporting secret values.
 import { appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Saved logins of the media import (video and audio), one record per owner and
 // site. The cookie is a credential and never reaches the database in plaintext:
 // `cookieCiphertext`, `nonce` and `tag` hold its AES-256-GCM encryption, written

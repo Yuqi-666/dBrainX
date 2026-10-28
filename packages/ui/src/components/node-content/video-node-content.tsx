@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { useI18n } from "@workspace/ui/lib/i18n";
 
@@ -132,6 +134,7 @@ export function VideoNodeContent({ node, className }: VideoNodeContentProps) {
           onError={() => setFailed(true)}
           onMediaController={timestamps.onMediaController}
           notes={timestamps.notes}
+          subtitles={timestamps.subtitles}
           onAddNoteRequest={timestamps.onAddNoteRequest}
           onActivateNote={timestamps.onActivateNote}
         />

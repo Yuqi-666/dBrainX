@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The Dynamic Island's form set — the single declaration of its literal union.
  *

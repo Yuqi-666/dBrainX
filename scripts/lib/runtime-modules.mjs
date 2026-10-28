@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { createRequire } from "node:module";
 import { cp, mkdir, readFile, realpath } from "node:fs/promises";
 import { dirname, join } from "node:path";

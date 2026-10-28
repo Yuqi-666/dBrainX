@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Interface copy of the media resource library (the `/resources` surface).
  *

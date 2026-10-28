@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { useI18n } from "@workspace/ui/lib/i18n";
 
@@ -49,7 +51,7 @@ export function UserMenu() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuLabel>{user.nickname}</DropdownMenuLabel>
-          {process.env.NEXT_PUBLIC_DBRAIN_PLATFORM !== "desktop" && (
+          {process.env.NEXT_PUBLIC_DBRAINX_PLATFORM !== "desktop" && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleLogout}>

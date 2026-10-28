@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
@@ -6,9 +8,9 @@ const [reportPath, tag] = process.argv.slice(2);
 assert.match(tag ?? "", /^v[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?$/);
 const report = JSON.parse(await readFile(reportPath, "utf8"));
 assert.equal(tag, `v${report.version}`);
-assert.equal(report.commit, process.env.DBRAIN_CANDIDATE_SHA);
-assert.equal(report.runId, process.env.DBRAIN_CANDIDATE_RUN_ID);
-assert.equal(report.runAttempt, process.env.DBRAIN_CANDIDATE_RUN_ATTEMPT);
+assert.equal(report.commit, process.env.DBRAINX_CANDIDATE_SHA);
+assert.equal(report.runId, process.env.DBRAINX_CANDIDATE_RUN_ID);
+assert.equal(report.runAttempt, process.env.DBRAINX_CANDIDATE_RUN_ATTEMPT);
 for (const service of ["pocketbase", "server", "web"]) {
   const source = report.images[service]?.reference;
   assert.match(source ?? "", /^ghcr\.io\/[a-z0-9_.-]+\/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$/);

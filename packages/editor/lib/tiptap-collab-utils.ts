@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { NodeSelection, type Selection } from "@tiptap/pm/state";
 import { CellSelection } from "@tiptap/pm/tables";
 import type { JSONContent, Editor } from "@tiptap/react";

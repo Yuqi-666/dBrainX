@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { useI18n } from "@workspace/ui/lib/i18n";
 import { LanguageSwitcher } from "./language-switcher";
@@ -268,7 +270,7 @@ function SidebarHeader({ onToggle }: { onToggle: () => void }) {
           <LogoIcon className="size-10" aria-hidden />
         </div>
         <span className="text-[18px] font-heading tracking-tight text-sidebar-foreground">
-          dBrain
+          dBrainX
         </span>
       </div>
 
@@ -954,7 +956,7 @@ function SidebarUserMenu() {
           <DropdownMenuLabel className="rounded-lg px-2.5 py-2 text-[13px] text-sidebar-foreground">
             {user.nickname}
           </DropdownMenuLabel>
-          {process.env.NEXT_PUBLIC_DBRAIN_PLATFORM !== "desktop" && (
+          {process.env.NEXT_PUBLIC_DBRAINX_PLATFORM !== "desktop" && (
             <>
               <DropdownMenuSeparator className="my-1.5 bg-sidebar-border" />
               <DropdownMenuItem

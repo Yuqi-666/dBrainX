@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Editor } from "@tiptap/core";
 import { Extension } from "@tiptap/core";
 import { canJoin } from "@tiptap/pm/transform";

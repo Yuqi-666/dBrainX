@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Storage policy for uploads into the `files` collection.
 //
 // This module is the server-side enforcement of the contract in
@@ -36,14 +38,14 @@ var DEFAULT_LIMITS = {
   },
 };
 
-var QUOTA_ENV = "DBRAIN_STORAGE_USER_QUOTA_BYTES";
+var QUOTA_ENV = "DBRAINX_STORAGE_USER_QUOTA_BYTES";
 var CATEGORY_ENV = {
-  image: "DBRAIN_STORAGE_MAX_IMAGE_BYTES",
-  video: "DBRAIN_STORAGE_MAX_VIDEO_BYTES",
-  audio: "DBRAIN_STORAGE_MAX_AUDIO_BYTES",
-  pdf: "DBRAIN_STORAGE_MAX_PDF_BYTES",
-  webpage: "DBRAIN_STORAGE_MAX_WEBPAGE_BYTES",
-  other: "DBRAIN_STORAGE_MAX_OTHER_BYTES",
+  image: "DBRAINX_STORAGE_MAX_IMAGE_BYTES",
+  video: "DBRAINX_STORAGE_MAX_VIDEO_BYTES",
+  audio: "DBRAINX_STORAGE_MAX_AUDIO_BYTES",
+  pdf: "DBRAINX_STORAGE_MAX_PDF_BYTES",
+  webpage: "DBRAINX_STORAGE_MAX_WEBPAGE_BYTES",
+  other: "DBRAINX_STORAGE_MAX_OTHER_BYTES",
 };
 
 // Extension → category. Keep equal to CATEGORY_EXTENSIONS in the TypeScript

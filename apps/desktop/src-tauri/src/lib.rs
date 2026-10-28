@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 mod local_backend;
 use local_backend::{LocalBackend, start_local_backend};
 use std::sync::Mutex;
@@ -6,7 +8,7 @@ use tauri_plugin_updater::UpdaterExt;
 
 async fn update_on_start(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
   if let Some(update) = app.updater()?.check().await? {
-    log::info!("New dBrain release available: {}", update.version);
+    log::info!("New dBrainX release available: {}", update.version);
     update.download_and_install(|_, _| {}, || {}).await?;
     app.restart();
   }

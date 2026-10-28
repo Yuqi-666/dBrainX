@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 import type { Annotation, AnnotationPoint } from "@workspace/interfaces";
 import type { AnnotationTool } from "./types";

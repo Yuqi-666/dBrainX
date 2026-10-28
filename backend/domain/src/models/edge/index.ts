@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { EdgeId, EdgeDirection, EdgeType } from "./value-objects";
 export type { EdgeSemanticId } from "./value-objects";
 

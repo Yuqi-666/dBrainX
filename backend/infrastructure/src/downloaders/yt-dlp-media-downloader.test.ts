@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The yt-dlp media downloader contract.
  *
@@ -54,7 +56,7 @@ done
 const FAKE_VIDEO = `#!/bin/sh
 set -eu
 ${OUTPUT_LOOKUP}
-printf 'dbrain fake video' > "$directory/source.mp4"
+printf 'dbrainx fake video' > "$directory/source.mp4"
 printf 'fake-jpeg' > "$directory/source.jpg"
 cat > "$directory/source.en.vtt" <<VTT
 WEBVTT
@@ -77,7 +79,7 @@ printf '%s' '{"title":"A Test Clip","duration":93.5,"webpage_url":"https://video
 const FAKE_AUDIO = `#!/bin/sh
 set -eu
 ${OUTPUT_LOOKUP}
-printf 'dbrain fake audio' > "$directory/source.mp3"
+printf 'dbrainx fake audio' > "$directory/source.mp3"
 printf 'fake-jpeg' > "$directory/source.jpg"
 cat > "$directory/source.lyrics.vtt" <<VTT
 WEBVTT
@@ -95,6 +97,17 @@ set -eu
 ${OUTPUT_LOOKUP}
 : > "$directory/source.mp4"
 printf '%s' '{"title":"empty","duration":1,"formats":[]}'
+`;
+
+/**
+ * A stand-in that writes only a subtitle side file, as a download whose subtitles
+ * were the only thing yt-dlp saved would.
+ */
+const FAKE_SIDE_FILE_ONLY = `#!/bin/sh
+set -eu
+${OUTPUT_LOOKUP}
+printf '<i>danmaku</i>' > "$directory/source.danmaku.xml"
+printf '%s' '{"title":"side files only","duration":1,"formats":[]}'
 `;
 
 /** A stand-in that starts, marks the directory, and then waits. */
@@ -117,7 +130,7 @@ exit 1
 
 /** One fake executable in its own directory. */
 async function fakeYtDlp(script: string) {
-  const dir = await mkdtemp(join(tmpdir(), "dbrain-media-downloader-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "dbrainx-media-downloader-test-"));
   const command = join(dir, "fake-yt-dlp");
   await writeFile(command, script, "utf8");
   await chmod(command, 0o755);
@@ -132,7 +145,7 @@ async function workDirectory(): Promise<{
   path: string;
   cleanup: () => Promise<void>;
 }> {
-  const path = await mkdtemp(join(tmpdir(), "dbrain-media-download-test-"));
+  const path = await mkdtemp(join(tmpdir(), "dbrainx-media-download-test-"));
   return {
     path,
     cleanup: () => rm(path, { recursive: true, force: true }),
@@ -187,7 +200,7 @@ test("downloads a video and maps yt-dlp's files and metadata", async () => {
     assert.equal(media.album, "An Album");
     assert.equal(media.duration, 93.5);
     assert.equal(media.sourceUrl, "https://video.example/watch?v=abc");
-    assert.equal(media.fileSize, "dbrain fake video".length);
+    assert.equal(media.fileSize, "dbrainx fake video".length);
     assert.equal(media.path, join(work.path, "source.mp4"));
 
     assert.equal(media.thumbnail?.path, join(work.path, "source.jpg"));
@@ -211,7 +224,7 @@ test("downloads a video and maps yt-dlp's files and metadata", async () => {
     assert.ok(hasPair(args, "-f", "137+ba/b"));
     assert.ok(hasPair(args, "--concurrent-fragments", "4"));
     assert.ok(hasPair(args, "--merge-output-format", "mp4/mkv"));
-    assert.ok(hasPair(args, "--sub-langs", "all,-live_chat"));
+    assert.ok(hasPair(args, "--sub-langs", "all,-live_chat,-danmaku"));
     assert.ok(hasPair(args, "--convert-subs", "vtt"));
     assert.ok(!args.includes("--cookies"));
     assert.equal(args.at(-1), PUBLIC_IP_URL);
@@ -283,7 +296,7 @@ test("downloads audio with a Unicode name and its lyric track", async () => {
     assert.ok(!args.includes("--merge-output-format"));
     assert.ok(!args.includes("--write-auto-subs"));
     assert.ok(hasPair(args, "-f", "bestaudio/best"));
-    assert.ok(hasPair(args, "--sub-langs", "lyrics,all"));
+    assert.ok(hasPair(args, "--sub-langs", "lyrics,all,-live_chat,-danmaku"));
     await media.cleanup();
   } finally {
     await work.cleanup();
@@ -531,6 +544,26 @@ test("rejects an empty file yt-dlp reported as success", async () => {
   }
 });
 
+test("never treats a subtitle side file as the media", async () => {
+  const fake = await fakeYtDlp(FAKE_SIDE_FILE_ONLY);
+  const work = await workDirectory();
+  try {
+    const downloader = new YtDlpMediaDownloader(fake.command);
+    await assert.rejects(
+      downloader.download({
+        url: PUBLIC_IP_URL,
+        kind: "video",
+        maxBytes: 1024,
+        workDir: work.path,
+      }),
+      /produced no media file/,
+    );
+  } finally {
+    await work.cleanup();
+    await fake.cleanup();
+  }
+});
+
 test("reuses the caller's existing work directory for a resume", async () => {
   const fake = await fakeYtDlp(FAKE_VIDEO);
   const work = await workDirectory();
@@ -548,7 +581,7 @@ test("reuses the caller's existing work directory for a resume", async () => {
 
     // The adapter did not replace the directory the caller owns.
     await access(marker);
-    assert.equal(media.fileSize, "dbrain fake video".length);
+    assert.equal(media.fileSize, "dbrainx fake video".length);
     await media.cleanup();
   } finally {
     await work.cleanup();

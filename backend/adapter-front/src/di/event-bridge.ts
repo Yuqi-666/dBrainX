@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { IDomainEvent } from "@workspace/domain/event-bus";
 import { container } from "./container";
 import { eventEmitter } from "../trpc/server";

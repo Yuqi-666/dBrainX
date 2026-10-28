@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Scope: the whole dBrain repository.
+Scope: the whole dBrainX repository.
 Read this file first.
 Then read the `AGENTS.md` file in the directory that you will change.
 
@@ -9,9 +9,9 @@ It is not a manual.
 Keep this file shallow.
 Put new detail in the nearest child file.
 
-## What dBrain is
+## What dBrainX is
 
-dBrain is a knowledge workspace.
+dBrainX is a knowledge workspace.
 A user records content in nodes and connects nodes with edges.
 The user reads and edits the result as a graph, a data view, or a dashboard.
 The web app talks to a self-hosted server.
@@ -22,7 +22,7 @@ The product is in early public development. The source version is in `scripts/re
 
 | Directory | Content | Read next |
 | --- | --- | --- |
-| `apps/` | The web, desktop, and server programs | [apps/AGENTS.md](apps/AGENTS.md) |
+| `apps/` | The web, desktop, and server programs, plus the marketing submodule | [apps/AGENTS.md](apps/AGENTS.md) |
 | `packages/` | Shared UI, editor, graph, data view, state, client | [packages/AGENTS.md](packages/AGENTS.md) |
 | `backend/` | Domain model, use cases, storage, adapters | [backend/AGENTS.md](backend/AGENTS.md) |
 | `scripts/` | Development and release automation | [scripts/AGENTS.md](scripts/AGENTS.md) |
@@ -57,7 +57,7 @@ pnpm dev:remote               # the same, behind the development gateway
 node scripts/release/download-pocketbase.mjs  # explicit PocketBase refresh
 ```
 
-Development addresses: web `http://localhost:3000`, server `http://localhost:3001`, PocketBase `http://127.0.0.1:8090`. The ports come from `.env` (`DBRAIN_WEB_PORT`, `DBRAIN_SERVER_PORT`, `DBRAIN_PB_HTTP`).
+Development addresses: web `http://localhost:3000`, server `http://localhost:3001`, PocketBase `http://127.0.0.1:8090`. The ports come from `.env` (`DBRAINX_WEB_PORT`, `DBRAINX_SERVER_PORT`, `DBRAINX_PB_HTTP`).
 
 ```bash
 pnpm check-types

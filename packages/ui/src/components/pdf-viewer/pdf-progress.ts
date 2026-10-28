@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The reading position of one PDF node, remembered across mounts.
  *
@@ -15,7 +17,7 @@
  */
 
 /** Namespace and version of the per-user, per-node reading position. */
-const STORAGE_PREFIX = "dbrain:pdf:progress:v1:";
+const STORAGE_PREFIX = "dbrainx:pdf:progress:v1:";
 
 /**
  * The stored 1-based page for `key`, or `null` when there is none that can be

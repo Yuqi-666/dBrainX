@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The storage contract decides which blob belongs in which quota bucket, so the
  * categories, the parsing and the fallbacks are pinned here. The PocketBase hook

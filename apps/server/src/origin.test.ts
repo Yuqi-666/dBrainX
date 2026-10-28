@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { TRPC_PATH, isLoopbackHostname, sameOrigin } from "./origin.ts";
@@ -17,7 +19,7 @@ test("split development reaches the API from the web dev server's origin", () =>
   // Any dev port, so `next dev -p <other>` keeps working.
   assert.equal(sameOrigin("http://localhost:4321", "localhost:3001"), true);
   // The proxied shape: nginx forwards `$http_host`, so origin and host agree.
-  assert.equal(sameOrigin("https://dbrain.example", "dbrain.example"), true);
+  assert.equal(sameOrigin("https://dbrainx.example", "dbrainx.example"), true);
   // Header-less clients (the release smoke script, curl) stay admitted; their
   // identity is still the verified connection token.
   assert.equal(sameOrigin(undefined, "localhost:3001"), true);
@@ -34,8 +36,8 @@ test("only loopback may differ in port", () => {
 });
 
 test("an explicit public origin overrides everything, including loopback", () => {
-  assert.equal(sameOrigin("https://dbrain.example", "server:3001", "https://dbrain.example"), true);
-  assert.equal(sameOrigin("http://localhost:3000", "localhost:3001", "https://dbrain.example"), false);
+  assert.equal(sameOrigin("https://dbrainx.example", "server:3001", "https://dbrainx.example"), true);
+  assert.equal(sameOrigin("http://localhost:3000", "localhost:3001", "https://dbrainx.example"), false);
 });
 
 test("loopback detection accepts the spellings a browser can produce", () => {

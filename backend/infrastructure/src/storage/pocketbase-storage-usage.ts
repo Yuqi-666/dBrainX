@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { IStorageUsageReader } from "@workspace/domain";
 import type { PocketBaseClient } from "../database/pocketbase-client";
 

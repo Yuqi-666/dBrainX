@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { IDomainEvent, IEventBus } from "@workspace/domain/event-bus";
 import type { EventMetadata } from "@workspace/domain/event-bus/types";
 

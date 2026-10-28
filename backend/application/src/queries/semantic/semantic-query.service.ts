@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { INodeSemanticRepository, IEdgeSemanticRepository, INodeTagRepository, NodeSemantic, EdgeSemantic, NodeTag } from '@workspace/domain';
 import { SemanticId, TagId } from '@workspace/domain';
 import type {

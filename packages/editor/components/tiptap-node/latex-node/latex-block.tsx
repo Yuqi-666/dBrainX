@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useI18n } from "@workspace/ui/lib/i18n";
 import "katex/dist/katex.min.css";
 import katex from "katex";

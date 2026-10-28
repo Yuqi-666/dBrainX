@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client"; // 必须标记为客户端组件，才能访问浏览器API
 
 import { useEffect } from "react";

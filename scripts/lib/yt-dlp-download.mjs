@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Download and cache the self-contained yt-dlp binary used by `pnpm dev`.
  *

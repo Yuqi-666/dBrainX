@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 "use client";
 import { NODE_TYPE_LABELS } from "@workspace/ui/lib/node-type-labels";
 import { useI18n } from "@workspace/ui/lib/i18n";

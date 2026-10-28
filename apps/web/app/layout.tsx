@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Geist_Mono, Manrope, Noto_Serif } from "next/font/google";
 import type { Metadata } from "next";
 
@@ -14,7 +16,7 @@ const notoSerifHeading = Noto_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "dBrain",
+  title: "dBrainX",
   icons: {
     icon: [
       {

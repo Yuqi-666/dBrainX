@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { UserId as UserIdType } from "@workspace/interfaces/models/user/base";
 import { UserId, Email, Nickname, SystemConfig } from "./value-objects";
 

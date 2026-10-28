@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { FilterConfig } from "@workspace/interfaces/models/filter";
 
 export interface VisualConfigDTO {

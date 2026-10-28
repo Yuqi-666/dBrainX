@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import {
   createTRPCClient,
   wsLink,
@@ -17,7 +19,7 @@ import {
 import { resolveBackendUrls } from "../backend-urls";
 import { getDesktopBackend } from "../desktop-backend";
 
-const isDesktop = process.env.NEXT_PUBLIC_DBRAIN_PLATFORM === "desktop";
+const isDesktop = process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop";
 
 function getConnectionParams() {
   const sourceId = useSourceIdStore.getState().getSourceId();

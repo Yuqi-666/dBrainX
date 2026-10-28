@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -13,7 +15,7 @@ import { multipartEnvelope } from "./pocketbase-file-store.ts";
 test("the envelope declares exactly the length of the body it describes", () => {
   for (const fileBytes of [0, 1, 255, 1024, 5 * 1024 ** 2]) {
     const envelope = multipartEnvelope(
-      "----dbrainboundary",
+      "----dbrainxboundary",
       "file",
       "clip.mp4",
       "video/mp4",
@@ -31,7 +33,7 @@ test("the envelope declares exactly the length of the body it describes", () => 
 
 test("the head opens the file part and the tail closes the boundary", () => {
   const envelope = multipartEnvelope(
-    "----dbrainboundary",
+    "----dbrainxboundary",
     "file",
     "clip.mp4",
     "video/mp4",
@@ -41,15 +43,15 @@ test("the head opens the file part and the tail closes the boundary", () => {
   const head = envelope.head.toString("utf8");
   assert.equal(
     head,
-    '------dbrainboundary\r\nContent-Disposition: form-data; name="file"; filename="clip.mp4"\r\nContent-Type: video/mp4\r\n\r\n',
+    '------dbrainxboundary\r\nContent-Disposition: form-data; name="file"; filename="clip.mp4"\r\nContent-Type: video/mp4\r\n\r\n',
   );
-  assert.equal(envelope.tail.toString("utf8"), "\r\n------dbrainboundary--\r\n");
+  assert.equal(envelope.tail.toString("utf8"), "\r\n------dbrainxboundary--\r\n");
 });
 
 test("a file name with a quote or a line break cannot break the header", () => {
   const fileName = 'evil"; name="other" \r\nX-Injected: 1.mp4';
   const envelope = multipartEnvelope(
-    "----dbrainboundary",
+    "----dbrainxboundary",
     "file",
     fileName,
     "application/octet-stream",
@@ -79,7 +81,7 @@ test("the file name keeps a slash out of the disposition header", () => {
   // PocketBase owns the stored name, but the request must not be misread as a
   // path either, so a separator in the user's name is not special-cased.
   const envelope = multipartEnvelope(
-    "----dbrainboundary",
+    "----dbrainxboundary",
     "file",
     "dir/sub/file.bin",
     "application/octet-stream",

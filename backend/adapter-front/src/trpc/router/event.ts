@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { router, protectedProcedure, eventEmitter } from "../server";
 import { observable } from "@trpc/server/observable";
 import type { IDomainEvent } from "@workspace/domain/event-bus";

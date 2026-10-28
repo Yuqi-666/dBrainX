@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The island's public surface — one declaration of it, so the folder has a
  * single place to read what it exports.

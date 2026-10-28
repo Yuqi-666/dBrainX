@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { ComponentProps } from "react";
 import { cn } from "@workspace/ui/lib/utils";
 

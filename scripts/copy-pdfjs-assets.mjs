@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Copies the pdf.js CMap and standard-font trees into the client apps.
  *

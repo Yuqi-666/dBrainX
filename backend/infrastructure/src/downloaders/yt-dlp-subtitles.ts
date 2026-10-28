@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Picks the one subtitle or lyric track the download will store.
  *
@@ -41,6 +43,31 @@ const MAX_SUBTITLE_FILE_BYTES = 16 * 1024 * 1024;
 
 /** Language tag used when a file carries no language, as in `source.vtt`. */
 const UNKNOWN_LANGUAGE = "und";
+
+/**
+ * Subtitle keys a site uses for a track that is not a caption of the media.
+ *
+ * `live_chat` is YouTube's chat replay. `danmaku` is Bilibili's scrolling
+ * comment track, which yt-dlp offers as an `xml` subtitle: FFmpeg cannot read
+ * that file, so `--convert-subs vtt` fails and the whole download is aborted
+ * with `Preprocessing: Error opening input files`.
+ *
+ * yt-dlp gives no format information early enough for the argument list to
+ * filter on, so the tracks are excluded by language name. This list is the one
+ * place that knowledge lives: the download arguments and this module's two
+ * readers both use it.
+ */
+export const NON_CAPTION_SUBTITLE_LANGUAGES: readonly string[] = [
+  "live_chat",
+  "danmaku",
+];
+
+/** True when a language tag names a real caption track. */
+export function isCaptionLanguage(language: string): boolean {
+  return !NON_CAPTION_SUBTITLE_LANGUAGES.includes(
+    language.trim().toLowerCase(),
+  );
+}
 
 /** One candidate track, before the file behind it is checked. */
 interface TrackCandidate {
@@ -109,7 +136,7 @@ export function subtitleLanguages(
 
   for (const track of rankedCandidates(metadata, kind)) {
     const key = track.language.toLowerCase();
-    if (key === "live_chat" || seen.has(key)) continue;
+    if (seen.has(key)) continue;
     seen.add(key);
     result.push(track);
   }
@@ -126,8 +153,13 @@ function rankedCandidates(
   metadata: YtDlpMetadata,
   kind: MediaKind,
 ): TrackCandidate[] {
-  const manual = asCandidates(metadata.manualSubtitles, false);
-  const automatic = asCandidates(metadata.automaticCaptions, true);
+  // A chat replay or a danmaku track is never picked as the media's captions.
+  const manual = asCandidates(metadata.manualSubtitles, false).filter((track) =>
+    isCaptionLanguage(track.language),
+  );
+  const automatic = asCandidates(metadata.automaticCaptions, true).filter(
+    (track) => isCaptionLanguage(track.language),
+  );
   const all = [...manual, ...automatic];
   const ordered: TrackCandidate[] = [];
 

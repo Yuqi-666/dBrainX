@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { mergeAttributes } from "@tiptap/react";
 import TiptapHorizontalRule from "@tiptap/extension-horizontal-rule";
 

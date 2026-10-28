@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { requestToken } from "./request-scope";
 import PocketBase, { ClientResponseError } from 'pocketbase';
 

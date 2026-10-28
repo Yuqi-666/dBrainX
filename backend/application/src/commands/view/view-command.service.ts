@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { IViewRepository } from "@workspace/domain";
 import type { IEventBus } from "@workspace/domain";
 import type { ViewCreated, ViewDeleted, ViewUpdated } from "@workspace/domain";

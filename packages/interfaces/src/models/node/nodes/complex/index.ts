@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export type { CollectionNodeData, CollectionContent } from "./collection";
 
 export type { RichTextNodeData, RichTextContent } from "./rich-text";

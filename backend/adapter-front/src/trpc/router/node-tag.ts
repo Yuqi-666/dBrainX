@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { router, protectedProcedure } from "../server";
 import { z } from "zod";
 import { AppContainer } from "../../di/container";

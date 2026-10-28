@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import {
   createCipheriv,
   createDecipheriv,
@@ -48,7 +50,7 @@ export class MediaCookieCipher {
   constructor(secret: string) {
     if (secret.trim() === "") {
       throw new Error(
-        "The media cookie secret is empty. Set DBRAIN_MEDIA_COOKIE_SECRET.",
+        "The media cookie secret is empty. Set DBRAINX_MEDIA_COOKIE_SECRET.",
       );
     }
     this.key = createHash("sha256").update(secret, "utf8").digest();
@@ -58,7 +60,7 @@ export class MediaCookieCipher {
    * The instance the server uses: the operator's secret when configured, a
    * generated development secret otherwise.
    *
-   * Production must set `DBRAIN_MEDIA_COOKIE_SECRET` (or `MEDIA_COOKIE_SECRET`)
+   * Production must set `DBRAINX_MEDIA_COOKIE_SECRET` (or `MEDIA_COOKIE_SECRET`)
    * for a deployment and keep it stable: changing it makes every saved login
    * undecryptable, and the user has to connect the site again. A development or
    * desktop run with no variable gets a random secret persisted to
@@ -149,7 +151,7 @@ const GENERATED_SECRET_BYTES = 32;
 
 /** The variables an operator may set, in precedence order. */
 const SECRET_ENV_NAMES = [
-  "DBRAIN_MEDIA_COOKIE_SECRET",
+  "DBRAINX_MEDIA_COOKIE_SECRET",
   "MEDIA_COOKIE_SECRET",
 ] as const;
 
@@ -161,7 +163,7 @@ const DEVELOPMENT_SECRET_FILE = join(".cache", "media-cookie-secret");
  * and a container image have no writable repository directory, so the generated
  * secret goes here instead of failing the whole startup with `EACCES`.
  */
-const FALLBACK_SECRET_FILE = "dbrain-media-cookie-secret";
+const FALLBACK_SECRET_FILE = "dbrainx-media-cookie-secret";
 
 /** Parses a hex part, rejecting anything that is not an even-length hex string. */
 function decodeHex(value: string, label: string): Buffer {
@@ -190,7 +192,7 @@ function developmentSecret(): string {
     }
   }
   console.warn(
-    "[media-cookie] no writable location for the generated media cookie secret. A restart drops the saved site logins. Set DBRAIN_MEDIA_COOKIE_SECRET.",
+    "[media-cookie] no writable location for the generated media cookie secret. A restart drops the saved site logins. Set DBRAINX_MEDIA_COOKIE_SECRET.",
   );
   return randomBytes(GENERATED_SECRET_BYTES).toString("base64");
 }

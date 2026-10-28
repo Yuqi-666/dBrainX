@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { IViewRepository, ViewQuery } from '@workspace/domain';
 import { ViewId } from '@workspace/domain';
 import type {

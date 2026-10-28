@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export type { RuleGroupType, RuleType, Field } from "react-querybuilder";
 export {
   QueryBuilder,

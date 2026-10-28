@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { resourceLibraryMessages } from "./messages-resources.ts";
 import { resourceSelectorMessages } from "./messages-resource-selector.ts";
 import { nodeDispositionMessages } from "./messages-node-disposition.ts";
@@ -43,9 +45,9 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
     "zh-CN": "创建账号",
     en: "Create Account",
   },
-  "Join dBrain to build your knowledge graph": {
-    "zh-CN": "加入 dBrain，构建你的知识图谱",
-    en: "Join dBrain to build your knowledge graph",
+  "Join dBrainX to build your knowledge graph": {
+    "zh-CN": "加入 dBrainX，构建你的知识图谱",
+    en: "Join dBrainX to build your knowledge graph",
   },
   Nickname: {
     "zh-CN": "昵称",
@@ -1019,6 +1021,18 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
     "zh-CN": "字幕",
     en: "Subtitles",
   },
+  显示字幕: {
+    "zh-CN": "显示字幕",
+    en: "Show subtitles",
+  },
+  隐藏字幕: {
+    "zh-CN": "隐藏字幕",
+    en: "Hide subtitles",
+  },
+  展开侧栏: {
+    "zh-CN": "展开侧栏",
+    en: "Expand sidebar",
+  },
   笔记: {
     "zh-CN": "笔记",
     en: "Notes",
@@ -1452,9 +1466,9 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
     "zh-CN": "喜马拉雅",
     en: "Ximalaya",
   },
-  "登录后才能下载高清和大会员视频。": {
-    "zh-CN": "登录后才能下载高清和大会员视频。",
-    en: "A sign-in is needed for HD and premium videos.",
+  "登录后才能下载高清视频、大会员视频和获取字幕。": {
+    "zh-CN": "登录后才能下载高清视频、大会员视频和获取字幕。",
+    en: "A sign-in is needed for HD and premium videos and for subtitles.",
   },
   "多数视频需要登录后才能下载。": {
     "zh-CN": "多数视频需要登录后才能下载。",
@@ -1526,6 +1540,10 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
         "在浏览器登录站点后，用扩展导出 Netscape 格式的 cookies.txt，再拖到这里。只保留支持站点的 Cookie。",
       en: "Sign in to the site in a browser, export a Netscape cookies.txt with an extension, then drop it here. Only cookies of supported sites are kept.",
     },
+  "安装导出 cookies.txt 的 Chrome 扩展": {
+    "zh-CN": "安装导出 cookies.txt 的 Chrome 扩展",
+    en: "Install the Chrome extension that exports cookies.txt",
+  },
   "正在读取…": {
     "zh-CN": "正在读取…",
     en: "Reading…",
@@ -1561,6 +1579,14 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
   将同时导入字幕: {
     "zh-CN": "将同时导入字幕",
     en: "Subtitles are imported too",
+  },
+  "未检测到字幕；部分站点需登录后才能获取字幕。": {
+    "zh-CN": "未检测到字幕；部分站点需登录后才能获取字幕。",
+    en: "No subtitles found; some sites show them only after a sign-in.",
+  },
+  "未检测到歌词；部分站点需登录后才能获取歌词。": {
+    "zh-CN": "未检测到歌词；部分站点需登录后才能获取歌词。",
+    en: "No lyrics found; some sites show them only after a sign-in.",
   },
   登录后可解锁: {
     "zh-CN": "登录后可解锁",

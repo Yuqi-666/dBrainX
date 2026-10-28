@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { createServer, request as httpRequest } from "node:http";
 import {
   AppContainer,
@@ -16,7 +18,7 @@ import {
 
 const PORT = Number(process.env.PORT ?? 3001);
 const PB_URL = process.env.PB_URL ?? "http://127.0.0.1:8090";
-const publicOrigin = process.env.DBRAIN_PUBLIC_ORIGIN;
+const publicOrigin = process.env.DBRAINX_PUBLIC_ORIGIN;
 function cookieToken(cookie = ""): string {
   try {
     return decodeURIComponent(

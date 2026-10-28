@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { RecordModel } from "pocketbase";
 import type { WorkspaceRole } from "@workspace/domain/models/workspace/entities";
 import { WorkspaceMember } from "@workspace/domain/models/workspace/entities";

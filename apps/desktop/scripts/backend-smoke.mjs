@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Exercise the packaged backend outside the checkout, with a fresh device database. */
 import { pdfFixture } from "../../../scripts/lib/smoke-fixtures.mjs";
 import { stopRuntimeChild } from "../../../scripts/lib/stop-runtime-child.mjs";
@@ -13,10 +15,10 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const requireClient = createRequire(join(root, "packages/api-client/package.json"));
 const { createTRPCClient, createWSClient, wsLink } = await import(pathToFileURL(requireClient.resolve("@trpc/client")).href);
 const { default: superjson } = await import(pathToFileURL(requireClient.resolve("superjson")).href);
-const scratch = await mkdtemp(join(tmpdir(), "dbrain-backend-smoke-"));
+const scratch = await mkdtemp(join(tmpdir(), "dbrainx-backend-smoke-"));
 const runtime = join(scratch, "runtime");
-const runtimeSource = process.env.DBRAIN_SMOKE_RUNTIME_DIR
-  ? resolve(process.env.DBRAIN_SMOKE_RUNTIME_DIR)
+const runtimeSource = process.env.DBRAINX_SMOKE_RUNTIME_DIR
+  ? resolve(process.env.DBRAINX_SMOKE_RUNTIME_DIR)
   : join(root, "apps/desktop/src-tauri/runtime");
 await cp(runtimeSource, runtime, { recursive: true, dereference: true });
 const data = join(scratch, "data");
@@ -25,7 +27,7 @@ const exe = name => join(runtime, process.platform === "win32" ? `${name}.exe` :
 let child, descriptor, ws, client;
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 let logs = "";
-const env = { ...process.env, DBRAIN_DESKTOP: "1", FFMPEG_PATH: exe("ffmpeg"), FFPROBE_PATH: exe("ffprobe"), LD_LIBRARY_PATH: join(runtime, "lib") };
+const env = { ...process.env, DBRAINX_DESKTOP: "1", FFMPEG_PATH: exe("ffmpeg"), FFPROBE_PATH: exe("ffprobe"), LD_LIBRARY_PATH: join(runtime, "lib") };
 async function start() {
   child = spawn(exe("node"), [join(runtime, "backend.mjs"), data, readyFile], { env, stdio: ["pipe", "pipe", "pipe"] });
   child.stdout.on("data", chunk => { logs += chunk; });

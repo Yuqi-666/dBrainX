@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { randomBytes } from "node:crypto";
 import {
   mkdir,
@@ -25,12 +27,12 @@ import type {
  * flight: on a deployment the operator points this at a volume with room for it,
  * while a laptop keeps it in the temporary directory. A blank value counts as
  * unset, exactly like the other environment variables in this repository: a
- * compose file that passes `DBRAIN_MEDIA_IMPORT_DIR=` through verbatim must not
+ * compose file that passes `DBRAINX_MEDIA_IMPORT_DIR=` through verbatim must not
  * turn the root into an empty (relative) path.
  */
 export function defaultMediaImportDir(): string {
-  const configured = process.env.DBRAIN_MEDIA_IMPORT_DIR?.trim();
-  return configured ? configured : join(tmpdir(), "dbrain-media-imports");
+  const configured = process.env.DBRAINX_MEDIA_IMPORT_DIR?.trim();
+  return configured ? configured : join(tmpdir(), "dbrainx-media-imports");
 }
 
 /** File names the layout is made of. The application never sees these values. */

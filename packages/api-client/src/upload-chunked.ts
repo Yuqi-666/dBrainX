@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type {
   CreateUploadSessionRequest,
   IAttachment,
@@ -110,7 +112,7 @@ const ASSEMBLY_DEADLINE_MS = 30 * 60 * 1000;
  * and per fingerprint so two different files cannot overwrite each other's
  * resume hint.
  */
-const SESSION_STORAGE_PREFIX = "dbrain.upload.session:";
+const SESSION_STORAGE_PREFIX = "dbrainx.upload.session:";
 
 /** Response the retry policy may repeat: a dead socket or a dead timeout. */
 class NetworkError extends Error {
@@ -274,7 +276,7 @@ function clearStoredSession(fingerprint: string): void {
  * not exist.
  */
 function authToken(): string | undefined {
-  if (process.env.NEXT_PUBLIC_DBRAIN_PLATFORM === "desktop") {
+  if (process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop") {
     return getPocketbaseClient().authStore?.token;
   }
   return readAuthSessionToken();

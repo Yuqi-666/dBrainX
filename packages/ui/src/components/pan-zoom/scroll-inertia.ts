@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Frame-rate independent decay: velocity is CSS px/ms, never px/frame. */
 export function inertiaStep(velocity: number, elapsed: number) {
   const dt = Math.min(32, Math.max(0, elapsed));

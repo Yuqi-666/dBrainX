@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * `rows → cards` for the gallery — the data layer behind the card wall.
  *

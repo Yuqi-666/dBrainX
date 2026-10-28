@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { TextNodeData } from "./single/text";
 import type { ImageNodeData } from "./single/image";
 import type { PdfNodeData } from "./single/pdf";

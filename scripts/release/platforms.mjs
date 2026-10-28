@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // The platforms of one release candidate.
 //
 // `scripts/release/release.json` declares the release. It holds the version,

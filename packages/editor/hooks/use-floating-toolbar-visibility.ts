@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { isNodeSelection, type Editor } from "@tiptap/react";
 import { NodeSelection, type Transaction } from "@tiptap/pm/state";
 import { useEffect, useRef, useState } from "react";

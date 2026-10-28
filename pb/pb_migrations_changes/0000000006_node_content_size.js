@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // A web page node stores its HTML source in `nodes.content`, and PocketBase caps
 // a JSON field at 1 MiB unless the field sets a size. The web page file category
-// accepts sources up to `DBRAIN_STORAGE_MAX_WEBPAGE_BYTES` (16 MiB by default),
+// accepts sources up to `DBRAINX_STORAGE_MAX_WEBPAGE_BYTES` (16 MiB by default),
 // so an imported source could never be written: PocketBase answered the node
 // update with "The maximum allowed JSON size is 1048576 bytes", which the editor
 // showed as a failed import. The ceiling is now high enough for the largest

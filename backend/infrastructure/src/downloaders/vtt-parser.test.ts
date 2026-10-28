@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** The VTT contract shared by video subtitles and audio lyrics. */
 import assert from "node:assert/strict";
 import { test } from "node:test";

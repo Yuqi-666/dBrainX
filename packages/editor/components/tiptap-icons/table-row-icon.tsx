@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { memo } from "react";
 
 type SvgProps = React.ComponentPropsWithoutRef<"svg">;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -45,7 +47,7 @@ export async function checkRelease(tag) {
   assert.ok(config.app.security.csp, "Desktop CSP must not be disabled");
   assert.equal(
     config.identifier,
-    "cn.dbrain.desktop",
+    "cn.dbrainx.desktop",
     "Changing identifier relocates existing user data",
   );
   assert.equal((await json("package.json")).packageManager, "pnpm@9.0.0");
@@ -67,11 +69,11 @@ export async function checkRelease(tag) {
       ),
       "PocketBase checksum drift",
     );
-  assert.equal((await json("package.json")).license, "Apache-2.0");
+  assert.equal((await json("package.json")).license, "AGPL-3.0-only");
   assert.ok(
-    (await read("LICENSE")).includes("Apache License") &&
-      (await read("LICENSE")).includes("Version 2.0, January 2004"),
-    "Apache-2.0 distribution license missing",
+    (await read("LICENSE")).includes("GNU AFFERO GENERAL PUBLIC LICENSE") &&
+      (await read("LICENSE")).includes("Version 3, 19 November 2007"),
+    "AGPL-3.0-only distribution license missing",
   );
   if (tag)
     assert.equal(

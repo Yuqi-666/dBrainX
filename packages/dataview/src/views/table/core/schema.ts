@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The table view's data-transformation layer: `fields` → VTable columns,
  * `rows` → VTable records, and a VTable edit result → a `DatabaseCell`.

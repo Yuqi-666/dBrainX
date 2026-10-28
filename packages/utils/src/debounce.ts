@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Creates a debounced version of the provided function.
  * The debounced function delays invoking func until after wait milliseconds

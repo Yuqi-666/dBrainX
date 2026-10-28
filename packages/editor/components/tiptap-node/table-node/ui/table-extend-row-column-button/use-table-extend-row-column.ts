@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Orientation } from "@workspace/editor/components/tiptap-node/table-node/lib/tiptap-table-utils";
 import {
   offset,

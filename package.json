@@ -1,5 +1,5 @@
 {
-  "name": "dBrain",
+  "name": "dBrainX",
   "private": true,
   "scripts": {
     "icons:generate": "node scripts/generate-icons.mjs",
@@ -31,5 +31,5 @@
   "engines": {
     "node": ">=22"
   },
-  "license": "Apache-2.0"
+  "license": "AGPL-3.0-only"
 }

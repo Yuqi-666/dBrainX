@@ -1,10 +1,10 @@
 [package]
 name = "app"
-version = "0.2.1"
-description = "dBrain local knowledge workspace"
-authors = ["dBrain contributors"]
+version = "0.3.0"
+description = "dBrainX local knowledge workspace"
+authors = ["dBrainX contributors"]
 license-file = "../../../LICENSE"
-repository = "https://github.com/Yuqi-666/dBrain"
+repository = "https://github.com/Yuqi-666/dBrainX"
 edition = "2021"
 rust-version = "1.90.0"
 

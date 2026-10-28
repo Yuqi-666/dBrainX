@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   UPLOAD_BASE_PATH,

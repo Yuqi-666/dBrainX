@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * The fixed catalog of media sites the import dialogs show.
  *
@@ -30,7 +32,7 @@ export const MEDIA_SITES: MediaSiteDefinition[] = [
     name: "B 站",
     kinds: ["video"],
     hosts: ["bilibili.com", "b23.tv"],
-    loginHint: "登录后才能下载高清和大会员视频。",
+    loginHint: "登录后才能下载高清视频、大会员视频和获取字幕。",
     probeUrl: "https://www.bilibili.com/video/BV1GJ411x7h7",
   },
   {

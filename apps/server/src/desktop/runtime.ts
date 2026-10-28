@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Desktop composition root: the SAME container/router as apps/server, with a local lifecycle. */
 import { prepareUpgradeBackup, commitReleaseState } from "./upgrade-backup";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -99,13 +101,13 @@ async function main() {
     const url = input instanceof Request ? input.url : String(input);
     if (new URL(url).origin !== pbUrl) return originalFetch(input, init);
     const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
-    headers.set("X-DBrain-Internal", databaseSecret);
+    headers.set("X-DBrainX-Internal", databaseSecret);
     return originalFetch(input, { ...init, headers });
   };
   pocketbase = spawn(executable("pocketbase"), ["serve", `--http=127.0.0.1:${pbPort}`,
     `--dir=${join(dataDir!, "pb_data")}`, `--migrationsDir=${join(dataDir!, "pb_migrations")}`, `--hooksDir=${join(runtimeDir, "pb_hooks")}`, "--automigrate=0",
     "--origins=http://localhost:3002,http://127.0.0.1:3002,tauri://localhost,http://tauri.localhost,https://tauri.localhost",
-  ], { stdio: ["ignore", "ignore", "inherit"], windowsHide: true, env: { ...process.env, DBRAIN_PB_SECRET: databaseSecret } });
+  ], { stdio: ["ignore", "ignore", "inherit"], windowsHide: true, env: { ...process.env, DBRAINX_PB_SECRET: databaseSecret } });
   pocketbase.once("error", error => { console.error("PocketBase launch failed", error); void shutdown(1); });
   pocketbase.once("exit", () => { if (!stopping) { console.error("PocketBase stopped unexpectedly"); void shutdown(1); } });
   let healthy = false;
@@ -120,7 +122,7 @@ async function main() {
   let identity: { email: string; password: string };
   try { identity = JSON.parse(await readFile(identityPath, "utf8")); } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    identity = { email: "desktop@dbrain.local", password: randomBytes(32).toString("hex") };
+    identity = { email: "desktop@dbrainx.local", password: randomBytes(32).toString("hex") };
     await writeFile(identityPath, JSON.stringify(identity), { mode: 0o600, flag: "wx" });
   }
   const pb = new PocketBase(pbUrl);
@@ -137,7 +139,7 @@ async function main() {
   // the patched global fetch below cannot add the internal header. Handing the
   // secret to the file store through the environment keeps the local database
   // reachable while it stays unreachable to every other client.
-  process.env.DBRAIN_PB_INTERNAL_SECRET = databaseSecret;
+  process.env.DBRAINX_PB_INTERNAL_SECRET = databaseSecret;
   startUploadSweeper(() => AppContainer.getInstance().uploadCommandService);
   const secret = randomBytes(32).toString("hex");
   const localOwnerId = String(session.record?.id ?? "");
@@ -169,7 +171,7 @@ async function main() {
       return;
     }
     if (!allowedFileRequest(path, req.method)) { res.writeHead(404).end(); return; }
-    const headers = { ...req.headers, host: `127.0.0.1:${pbPort}`, authorization: pb.authStore.token, "x-dbrain-internal": databaseSecret };
+    const headers = { ...req.headers, host: `127.0.0.1:${pbPort}`, authorization: pb.authStore.token, "x-dbrainx-internal": databaseSecret };
     delete headers.origin;
     const upstream = httpRequest(new URL(path, pbUrl), { method: req.method, headers }, response => {
       for (const key of ["content-type", "content-length", "content-range", "accept-ranges", "etag", "last-modified"]) {
