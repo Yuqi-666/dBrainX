@@ -2,13 +2,13 @@
 
 ## Environment
 
-| Tool | Requirement |
-| --- | --- |
-| Node | The version in `.node-version`, currently 24.15.0 |
-| pnpm | 9.0.0 |
-| FFmpeg / FFprobe | The media functions |
-| Docker Compose | The container build and the deployment |
-| Rust | The version in `rust-toolchain.toml`. The desktop app only. |
+| Tool             | Requirement                                                 |
+| ---------------- | ----------------------------------------------------------- |
+| Node             | The version in `.node-version`, currently 24.15.0           |
+| pnpm             | 9.0.0                                                       |
+| FFmpeg / FFprobe | The media functions                                         |
+| Docker Compose   | The container build and the deployment                      |
+| Rust             | The version in `rust-toolchain.toml`. The desktop app only. |
 
 ```bash
 pnpm install --frozen-lockfile
@@ -28,12 +28,12 @@ pnpm dev
 The first run downloads PocketBase into `pb/` and yt-dlp into `.cache/yt-dlp/`.
 `pnpm dev:remote` adds the development gateway for a public domain.
 
-| Service | Variable | Default | Address |
-| --- | --- | --- | --- |
-| Web | `DBRAINX_WEB_PORT` | 3000 | <http://localhost:3000> |
-| Server | `DBRAINX_SERVER_PORT` | 3001 | <http://localhost:3001> |
-| PocketBase | `DBRAINX_PB_HTTP` | 127.0.0.1:8090 | <http://127.0.0.1:8090> |
-| Gateway (`dev:remote` only) | `DBRAINX_GATEWAY_PORT` | 8080 | <https://p8080>.<development domain> |
+| Service                     | Variable               | Default        | Address                              |
+| --------------------------- | ---------------------- | -------------- | ------------------------------------ |
+| Web                         | `DBRAINX_WEB_PORT`     | 3000           | <http://localhost:3000>              |
+| Server                      | `DBRAINX_SERVER_PORT`  | 3001           | <http://localhost:3001>              |
+| PocketBase                  | `DBRAINX_PB_HTTP`      | 127.0.0.1:8090 | <http://127.0.0.1:8090>              |
+| Gateway (`dev:remote` only) | `DBRAINX_GATEWAY_PORT` | 8080           | <https://p8080>.<development domain> |
 
 The ports come from the root `.env`. A shell variable of the same name has priority.
 Development data goes to `pb/pb_data`.

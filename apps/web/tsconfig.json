@@ -28,12 +28,6 @@
       "@workspace/adapter-front/*": [
         "backend/adapter-front/src/*"
       ],
-      "@workspace/adapter-tauri": [
-        "backend/adapter-tauri/src"
-      ],
-      "@workspace/adapter-tauri/*": [
-        "backend/adapter-tauri/src/*"
-      ],
       "@workspace/application": [
         "backend/application/src"
       ],

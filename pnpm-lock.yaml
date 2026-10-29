@@ -184,9 +184,6 @@ importers:
       '@workspace/adapter-front':
         specifier: workspace:*
         version: link:../../backend/adapter-front
-      '@workspace/adapter-tauri':
-        specifier: workspace:*
-        version: link:../../backend/adapter-tauri
       '@workspace/application':
         specifier: workspace:*
         version: link:../../backend/application
@@ -344,19 +341,6 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
-  backend/adapter-tauri:
-    dependencies:
-      '@workspace/utils':
-        specifier: workspace:*
-        version: link:../../packages/utils
-    devDependencies:
-      '@types/node':
-        specifier: ^25.1.0
-        version: 25.3.5
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-
   backend/application:
     devDependencies:
       '@types/node':
@@ -427,9 +411,6 @@ importers:
       '@workspace/adapter-front':
         specifier: workspace:*
         version: link:../../backend/adapter-front
-      '@workspace/adapter-tauri':
-        specifier: workspace:*
-        version: link:../../backend/adapter-tauri
       '@workspace/interfaces':
         specifier: workspace:*
         version: link:../interfaces

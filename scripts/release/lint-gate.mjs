@@ -68,7 +68,7 @@ if (
   }
   assert.equal(
     packages,
-    19,
+    18,
     "Workspace lint coverage changed; review the gate",
   );
   const actual = diagnosticCounts(results, root);

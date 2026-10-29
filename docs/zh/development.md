@@ -2,13 +2,13 @@
 
 ## 环境
 
-| 工具 | 要求 |
-| --- | --- |
-| Node | 按 `.node-version`，当前为 24.15.0 |
-| pnpm | 9.0.0 |
-| FFmpeg / FFprobe | 媒体功能需要它们。 |
-| Docker Compose | 容器构建与部署需要它。 |
-| Rust | 按 `rust-toolchain.toml`。仅桌面版需要。 |
+| 工具             | 要求                                     |
+| ---------------- | ---------------------------------------- |
+| Node             | 按 `.node-version`，当前为 24.15.0       |
+| pnpm             | 9.0.0                                    |
+| FFmpeg / FFprobe | 媒体功能需要它们。                       |
+| Docker Compose   | 容器构建与部署需要它。                   |
+| Rust             | 按 `rust-toolchain.toml`。仅桌面版需要。 |
 
 ```bash
 pnpm install --frozen-lockfile
@@ -28,12 +28,12 @@ pnpm dev
 首次运行会把 PocketBase 下载到 `pb/`，把 yt-dlp 下载到 `.cache/yt-dlp/`。
 `pnpm dev:remote` 额外启动网关，供公网域名访问。
 
-| 服务 | 变量 | 默认 | 地址 |
-| --- | --- | --- | --- |
-| Web | `DBRAINX_WEB_PORT` | 3000 | <http://localhost:3000> |
-| Server | `DBRAINX_SERVER_PORT` | 3001 | <http://localhost:3001> |
-| PocketBase | `DBRAINX_PB_HTTP` | 127.0.0.1:8090 | <http://127.0.0.1:8090> |
-| 网关（仅 `dev:remote`） | `DBRAINX_GATEWAY_PORT` | 8080 | <https://p8080>.<开发域名> |
+| 服务                    | 变量                   | 默认           | 地址                       |
+| ----------------------- | ---------------------- | -------------- | -------------------------- |
+| Web                     | `DBRAINX_WEB_PORT`     | 3000           | <http://localhost:3000>    |
+| Server                  | `DBRAINX_SERVER_PORT`  | 3001           | <http://localhost:3001>    |
+| PocketBase              | `DBRAINX_PB_HTTP`      | 127.0.0.1:8090 | <http://127.0.0.1:8090>    |
+| 网关（仅 `dev:remote`） | `DBRAINX_GATEWAY_PORT` | 8080           | <https://p8080>.<开发域名> |
 
 端口来自根 `.env`。同名的 shell 变量优先。
 开发数据写入 `pb/pb_data`。

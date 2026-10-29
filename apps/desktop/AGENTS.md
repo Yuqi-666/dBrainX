@@ -32,10 +32,10 @@ The user can work offline. No cloud session exists.
 `app/providers.tsx` calls `initializeDesktopBackend` from `packages/api-client`.
 That function invokes the Tauri command `start_local_backend`.
 
-In local mode the tRPC client uses `localLink`.
-A procedure call therefore runs against the IndexedDB engine in `backend/adapter-tauri`, not against a server.
-The local PocketBase serves identity, health, and file bytes.
-`packages/api-client/src/trpc/local-link.ts` holds that link.
+The shared tRPC client uses `wsLink` to call the local Node backend.
+Procedures and subscriptions use the same router and application services as the web app.
+The local PocketBase stores entity records, identity, and files.
+`packages/api-client/src/trpc/client.ts` selects the local backend address and token.
 
 `local_backend.rs` spawns `runtime/node runtime/backend.mjs <dataDir> <readyFile>`.
 It waits up to 45 seconds for the ready file and stops the child on exit.

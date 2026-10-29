@@ -43,7 +43,7 @@ backend/infrastructure  ->  PocketBase      records, files, and identity
 - `apps/web` and `apps/desktop` share `packages/`. Change shared behavior once, then check both apps.
 - `backend/` uses inward dependencies. The domain layer depends on no other backend layer.
 - `backend/adapter-front` owns the tRPC router and the composition root. Start there to trace a request.
-- PocketBase is the server data store. The desktop local mode keeps entity records in IndexedDB and uses a local PocketBase for identity and files.
+- Both apps use PocketBase for entity records, identity, and files. The desktop app runs the shared backend and PocketBase locally.
 
 ## Commands
 

@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@workspace/adapter-front": "workspace:*",
-    "@workspace/adapter-tauri": "workspace:*",
     "@workspace/application": "workspace:*",
     "@workspace/domain": "workspace:*",
     "@workspace/infrastructure": "workspace:*",

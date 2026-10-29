@@ -26,7 +26,6 @@ It exports:
 | `src/trpc/provider.tsx` | The React provider and the `trpc` object |
 | `src/trpc/subscriptions.ts` | The server event subscription |
 | `src/trpc/hooks/useGraph.ts` | The graph data hook |
-| `src/trpc/local-link.ts` | The desktop link that replaces the network with the local engine |
 | `src/handler/graph-handler.ts` | Applies a server event to the stores |
 | `src/auth/session.ts` | The `pb_token` cookie helpers |
 | `src/pocketbase-client.ts` | The PocketBase singleton |
@@ -46,8 +45,7 @@ In desktop mode the token comes from the desktop backend. Otherwise it comes fro
 `provider.tsx` creates the typed `trpc` object and wraps the React Query provider.
 This package imports `AppRouter` as a type only. All four imports are `import type`, so no runtime edge to `adapter-front` exists.
 
-`local-link.ts` replaces the network with `localRequest` from `adapter-tauri`.
-On desktop a procedure therefore runs against IndexedDB. A subscription resolves with no data.
+Desktop uses the same `wsLink` for procedures and subscriptions. It connects to the local Node backend, which uses the shared router and PocketBase repositories.
 
 `subscriptions.ts` listens on `event.onEvent` and drops an event whose `sourceId` equals this client's own id.
 `graph-handler.ts` then updates the stores through `@workspace/services` and applies a workspace-isolation guard.

@@ -6,7 +6,7 @@ Parent map: [../AGENTS.md](../AGENTS.md).
 This directory holds the server-side code.
 It is the source of truth for business behavior.
 `apps/server` hosts it in a Node process.
-The desktop app uses `adapter-tauri` inside the webview.
+The desktop app runs the same backend in a local Node process and uses the same PocketBase repositories.
 
 ## Layers
 
@@ -17,7 +17,6 @@ The desktop app uses `adapter-tauri` inside the webview.
 | `infrastructure` | PocketBase implementations of the ports | `domain`, `interfaces` |
 | `adapter-back` | DAOs and a factory over `infrastructure` | `domain`, `infrastructure` |
 | `adapter-front` | tRPC router, WebSocket transport, composition root | all of the above |
-| `adapter-tauri` | Local IndexedDB engine for the desktop | nothing |
 
 ```text
 domain          ->  packages/interfaces, packages/utils
@@ -25,7 +24,6 @@ application     ->  domain
 infrastructure  ->  domain
 adapter-back    ->  infrastructure, domain
 adapter-front   ->  application, adapter-back, infrastructure, domain
-adapter-tauri   standalone
 ```
 
 `application` and `infrastructure` are siblings above `domain`.
@@ -60,6 +58,6 @@ Domain events flow through `InMemoryEventBus`.
 3. Add a repository interface to `domain` before you add an implementation.
 4. Add a new module to the matching barrel. The barrels are hand-maintained: `domain/src/index.ts`, `application/src/index.ts`, `infrastructure/src/index.ts`, `adapter-back/src/index.ts`, and `adapter-front/src/index.ts`.
 5. Treat the PocketBase client, the repositories, and `AppContainer` as singletons. Call the reset function in a test.
-6. Change the node-type union in all five places together: the domain entity, the infrastructure mappers, `adapter-back/src/dao/node.dao.ts`, `adapter-front/src/trpc/router/node.ts`, and the `collections` map in `adapter-tauri`.
+6. Change the node-type union in the domain entity, the infrastructure mappers, `adapter-back/src/dao/node.dao.ts`, and `adapter-front/src/trpc/router/node.ts` together. Web and desktop use the same backend path.
 7. Write a test as a co-located `<module>.test.ts` file and run it with `node --test`. Only three backend test files exist today.
 8. Remember that no PocketBase transaction exists in this layer. A multi-record write is not atomic. Order the writes and check each result.

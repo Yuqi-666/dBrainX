@@ -6,8 +6,6 @@
       "@workspace/adapter-back/*": ["backend/adapter-back/src/*"],
       "@workspace/adapter-front": ["backend/adapter-front/src"],
       "@workspace/adapter-front/*": ["backend/adapter-front/src/*"],
-      "@workspace/adapter-tauri": ["backend/adapter-tauri/src"],
-      "@workspace/adapter-tauri/*": ["backend/adapter-tauri/src/*"],
       "@workspace/application": ["backend/application/src"],
       "@workspace/application/*": ["backend/application/src/*"],
       "@workspace/domain": ["backend/domain/src"],
