@@ -19,10 +19,10 @@
  * node, so the host may inject `resolveNode` — an optional **prop**, never a
  * store import, so the leaf constraint above still holds.
  */
-import { FileText } from "lucide-react";
 import type { NodeData } from "@workspace/interfaces";
 import type { NodeContentDescriptor } from "@workspace/plugin-sdk/ui";
 import { resolveFileUrl } from "@workspace/api-client";
+import { resolveNodeTypeIcon } from "@workspace/ui/lib/node-type-display";
 import { cn } from "@workspace/ui/lib/utils";
 import { getNodeContentDescriptor } from "../node-content/registry";
 
@@ -147,7 +147,7 @@ export function NodePreviewCover({
   const cover = resolveCover(node, resolveNode);
   const source = cover.node;
   const text = cover.url || cover.iconOnly ? "" : nodeCoverText(source);
-  const Icon = descriptorOf(source)?.icon ?? FileText;
+  const Icon = resolveNodeTypeIcon(source.nodeType);
 
   if (cover.url) {
     return (

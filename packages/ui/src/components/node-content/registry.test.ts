@@ -22,6 +22,11 @@ import {
   listNodeContentDescriptors,
   registerNodeContent,
 } from "./registry.ts";
+import {
+  DEFAULT_NODE_TYPE_ICON,
+  resolveNodeTypeIcon,
+  resolveNodeTypeLabel,
+} from "../../lib/node-type-display.ts";
 
 function NullContent() {
   return null;
@@ -80,4 +85,39 @@ test("an unregistered type reads as undefined and stays out of the list", () => 
       (descriptor) => descriptor.type === "registry.missing",
     ),
   );
+});
+
+test("a registered type displays its descriptor's label and icon", () => {
+  const descriptor = descriptorOf("plugin.display", "display.registered");
+  registerNodeContent(descriptor);
+
+  assert.equal(resolveNodeTypeLabel("display.registered"), descriptor.label);
+  assert.equal(resolveNodeTypeIcon("display.registered"), descriptor.icon);
+  assert.notEqual(descriptor.icon, DEFAULT_NODE_TYPE_ICON);
+});
+
+test("an unregistered type displays its raw id and the default icon", () => {
+  assert.equal(
+    getNodeContentDescriptor("display.unregistered"),
+    undefined,
+    "the fixture must not be registered by an earlier case",
+  );
+
+  assert.doesNotThrow(() => resolveNodeTypeLabel("display.unregistered"));
+  assert.equal(resolveNodeTypeLabel("display.unregistered"), "display.unregistered");
+  assert.equal(
+    resolveNodeTypeIcon("display.unregistered"),
+    DEFAULT_NODE_TYPE_ICON,
+  );
+  assert.equal(resolveNodeTypeIcon(undefined), DEFAULT_NODE_TYPE_ICON);
+  assert.equal(resolveNodeTypeIcon(null), DEFAULT_NODE_TYPE_ICON);
+});
+
+test("a descriptor with a blank label falls back to the raw id", () => {
+  registerNodeContent({
+    ...descriptorOf("plugin.blank", "display.blank"),
+    label: "   ",
+  });
+
+  assert.equal(resolveNodeTypeLabel("display.blank"), "display.blank");
 });

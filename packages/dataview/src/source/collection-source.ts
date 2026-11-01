@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { NODE_TYPE_LABELS } from "@workspace/ui/lib/node-type-labels";
+import { resolveNodeTypeLabel } from "@workspace/ui/lib/node-type-display";
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 /**
  * `collection` host adapter: projects the graph nodes a collection selects
@@ -102,7 +102,7 @@ export function buildCollectionFields(
       type: "select",
       options: NODE_DATA_TYPES.map((type) => ({
         id: type,
-        name: NODE_TYPE_LABELS[type] ?? type,
+        name: resolveNodeTypeLabel(type),
       })),
     },
     {

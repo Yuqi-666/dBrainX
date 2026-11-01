@@ -23,6 +23,10 @@ import type {
 
 import { registerNodeContent } from "../node-content/registry.ts";
 import { NodeContentHost } from "./node-content-host.tsx";
+import {
+  resolveNodeTypeIcon,
+  resolveNodeTypeLabel,
+} from "../../lib/node-type-display.ts";
 
 /**
  * jsdom ships no type declarations and `@types/jsdom` is not a dependency, so
@@ -119,6 +123,20 @@ function assertFallback(container: HTMLElement, nodeType: string): void {
   assert.match(text, /"title":"Example"/);
 }
 
+/**
+ * The shape of a real consumer (a page header, a library row, a preview header):
+ * it asks the resolver for a glyph and a label and renders both.
+ */
+function DisplayRow({ type }: { type: string }) {
+  const Icon = resolveNodeTypeIcon(type);
+  return (
+    <div data-display-row="">
+      <Icon className="size-4" aria-hidden />
+      <span data-display-label="">{resolveNodeTypeLabel(type)}</span>
+    </div>
+  );
+}
+
 test("an unregistered node type renders the unknown fallback", () => {
   const html = renderToStaticMarkup(
     <NodeContentHost node={makeNode("host.unregistered")} />,
@@ -159,5 +177,50 @@ test("a component that throws renders the unknown fallback", async () => {
     <NodeContentHost node={makeNode("host.throws")} />,
   );
   assertFallback(container, "host.throws");
+  await unmount();
+});
+
+test("a consumer renders a registered type's label and icon, and degrades for an unknown one", async () => {
+  function RegisteredGlyph({ className }: { className?: string }) {
+    return <svg className={className} data-glyph="registered" />;
+  }
+  registerNodeContent({
+    type: "display.rendered",
+    pluginId: "plugin.host",
+    label: "Rendered type",
+    editor: lazy(async () => ({ default: NullContent })),
+    preview: lazy(async () => ({ default: NullContent })),
+    icon: RegisteredGlyph,
+  });
+
+  const { container, unmount } = await renderInDom(
+    <>
+      <DisplayRow type="display.rendered" />
+      <DisplayRow type="display.missing" />
+    </>,
+  );
+
+  const rows = container.querySelectorAll("[data-display-row]");
+  const registered = rows[0];
+  const missing = rows[1];
+
+  assert.equal(
+    registered?.querySelector("[data-display-label]")?.textContent,
+    "Rendered type",
+  );
+  assert.ok(
+    registered?.querySelector("svg[data-glyph='registered']"),
+    "the descriptor's own icon is what the consumer draws",
+  );
+
+  assert.equal(
+    missing?.querySelector("[data-display-label]")?.textContent,
+    "display.missing",
+  );
+  assert.ok(
+    missing?.querySelector("svg"),
+    "an unregistered type still draws the default glyph instead of going blank",
+  );
+
   await unmount();
 });

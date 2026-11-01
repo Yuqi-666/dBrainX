@@ -13,8 +13,10 @@ import {
   EmptyTitle,
 } from "@workspace/ui/components/ui/empty";
 import { Input } from "@workspace/ui/components/ui/input";
-import { NODE_TYPE_ICONS } from "@workspace/ui/components/icon/node-type-icons";
-import { NODE_TYPE_LABELS } from "@workspace/ui/components/selector/node-data-type-selector";
+import {
+  resolveNodeTypeIcon,
+  resolveNodeTypeLabel,
+} from "@workspace/ui/lib/node-type-display";
 import { cn } from "@workspace/ui/lib/utils";
 import { Check, Plus, Search, X } from "lucide-react";
 
@@ -74,7 +76,7 @@ export function DashboardLibrary({
       </div>
       <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4 lg:pb-[calc(var(--dynamic-island-height,48px)+24px)]">
         {candidates.map((node) => {
-          const Icon = NODE_TYPE_ICONS[node.nodeType];
+          const Icon = resolveNodeTypeIcon(node.nodeType);
           const added = page?.widgets.some(
             (widget) => widget.nodeId === node.id,
           );
@@ -101,7 +103,7 @@ export function DashboardLibrary({
                   {node.title || t("未命名节点")}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {added ? t("已添加") : NODE_TYPE_LABELS[node.nodeType]}
+                  {added ? t("已添加") : resolveNodeTypeLabel(node.nodeType)}
                 </p>
               </div>
               <Button

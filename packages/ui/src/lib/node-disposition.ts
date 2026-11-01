@@ -15,8 +15,8 @@
  *    `useUIStore`).
  * 3. **Clearing a type without one payload is a no-op.** `clearedNodeUpdates`
  *    answers `null` for `collection` / `database`; emptying a table silently is
- *    not the same gesture as emptying a text block, so the entry point hides the
- *    action instead.
+ *    not the same gesture as emptying a text block. The type's descriptor says
+ *    the same thing with `clearable`, and the entry point hides the action on it.
  *
  * The dialog itself lives next to the semantic dialogs
  * (`components/dialog/node-disposition-dialog.tsx`). This module holds the
@@ -31,6 +31,7 @@ import {
 import { NodeService } from "@workspace/services";
 import { useDataStore, useUIStore, type UIStore } from "@workspace/store";
 import { clearedNodeUpdates } from "@workspace/utils/node-content";
+import { getNodeContentDescriptor } from "@workspace/ui/components/node-content/registry";
 import {
   fileRecordIdsInNode,
   nodeReferencesAnyFile,
@@ -38,19 +39,6 @@ import {
 
 /** Which of the two node-ending gestures the disposition dialog is asking for. */
 export type NodeDispositionMode = UIStore["nodeDispositionDialog"]["mode"];
-
-/**
- * Node types whose content is edited by an **uncontrolled** Tiptap editor
- * (`text-node-content.tsx`, `rich-text-node-content.tsx`).
- *
- * The editor seeds itself once per mount, so after the store content is replaced
- * the open editor has to be remounted. Every other node type renders from the
- * store on each render and needs no signal.
- */
-const UNCONTROLLED_EDITOR_NODE_TYPES: ReadonlySet<string> = new Set([
-  "text",
-  "rich-text",
-]);
 
 /** One uploaded resource a node points at, plus the other nodes that share it. */
 export interface NodeDispositionResource {
@@ -134,6 +122,11 @@ export async function applyNodeDelete(nodeId: string): Promise<void> {
 /**
  * Apply a clear's updates and remount the uncontrolled editor, if there is one.
  *
+ * An uncontrolled editor seeds itself once per mount, so after the store content
+ * is replaced the open editor has to be remounted; the type's own descriptor
+ * says so (`uncontrolledEditors`, today `text` and `rich-text`), and every other
+ * type renders from the store on each render and needs no signal.
+ *
  * Returns `false` when the node type is not clearable. Throws when the service
  * fails.
  */
@@ -144,7 +137,7 @@ export async function applyNodeClear(
   const resolved = updates ?? clearedNodeUpdates(node);
   if (!resolved) return false;
   await NodeService.upsert(node.id, resolved as Partial<NodeData>);
-  if (UNCONTROLLED_EDITOR_NODE_TYPES.has(node.nodeType)) {
+  if (getNodeContentDescriptor(node.nodeType)?.uncontrolledEditors) {
     useUIStore.getState().resetNodeContent(node.id);
   }
   return true;

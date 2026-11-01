@@ -12,9 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/ui/dropdown-menu";
 import { NodeSemanticSelector } from "@workspace/ui/components/selector/node-semantic-selector";
-import { NODE_TYPE_LABELS } from "@workspace/ui/components/selector/node-data-type-selector";
 import { IconView } from "@workspace/ui/components/icon/icon-view";
-import { NODE_TYPE_ICONS } from "@workspace/ui/components/icon/node-type-icons";
+import {
+  resolveNodeTypeIcon,
+  resolveNodeTypeLabel,
+} from "@workspace/ui/lib/node-type-display";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   useCallback,
@@ -167,8 +169,8 @@ export function NodeContentHeader({
 
   const nodeSemantics = useDataStore((state) => state.nodeSemantics);
   const semantic = nodeSemantics.get(node.semanticId);
-  const TypeIcon = NODE_TYPE_ICONS[node.nodeType];
-  const typeLabel = NODE_TYPE_LABELS[node.nodeType] ?? node.nodeType;
+  const TypeIcon = resolveNodeTypeIcon(node.nodeType);
+  const typeLabel = resolveNodeTypeLabel(node.nodeType);
   const hasCover = node.cover != null;
 
   // The two fields the user types into directly. Both keep a local draft so the
@@ -291,9 +293,10 @@ export function NodeContentHeader({
           )}
 
           {/* 5 — meta: the node's type and its semantic on one muted line, the
-              reference page's "Page • Tag". The type label is the shared
-              `NODE_TYPE_LABELS` table (a second copy would drift the way the
-              icon table once did, §M2.2-3); the semantic half keeps
+              reference page's "Page • Tag". The type label comes from the type's
+              registered descriptor (`resolveNodeTypeLabel`), so a plugin type
+              names itself and a second ten-type table cannot drift again
+              (§M2.2-3); the semantic half keeps
               `preview-header.tsx:43-60`'s coloured pill — the colour is the
               category's own (sel §4), not decoration this line may drop — and is
               now the **switch** for it (G3 追加交付 二 r2): a dropdown trigger that

@@ -5,16 +5,15 @@ import { useI18n } from "@workspace/ui/lib/i18n";
 
 import { useDataStore } from "@workspace/store";
 import type { NodeData } from "@workspace/interfaces";
-import { FileText } from "lucide-react";
 import { IconView } from "@workspace/ui/components/icon/icon-view";
-import { getNodeContentDescriptor } from "../node-content/registry";
+import { resolveNodeTypeIcon } from "@workspace/ui/lib/node-type-display";
 
 export function PreviewHeader({ node }: { node: NodeData }) {
   const { t } = useI18n();
 
   const nodeSemantics = useDataStore((state) => state.nodeSemantics);
   const semantic = nodeSemantics.get(node.semanticId);
-  const Icon = getNodeContentDescriptor(node.nodeType)?.icon ?? FileText;
+  const Icon = resolveNodeTypeIcon(node.nodeType);
 
   return (
     <div className="px-4 pt-4 pb-2 pr-12">

@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/ui/dropdown-menu";
 import { NodeSemanticSelector } from "@workspace/ui/components/selector/node-semantic-selector";
-import { NODE_TYPE_LABELS } from "@workspace/ui/components/selector/node-data-type-selector";
+import { resolveNodeTypeLabel } from "@workspace/ui/lib/node-type-display";
 import {
   NodeSemanticDialogContent,
   createNodeSemantic,
@@ -100,7 +100,7 @@ export function AddNodeDialog({ open, onOpenChange }: AddNodeDialogProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="justify-start">
                     {nodeType
-                      ? NODE_TYPE_LABELS[nodeType]
+                      ? resolveNodeTypeLabel(nodeType)
                       : t("Select node type")}
                   </Button>
                 </DropdownMenuTrigger>
@@ -114,7 +114,7 @@ export function AddNodeDialog({ open, onOpenChange }: AddNodeDialogProps) {
                         setNodeType(type);
                       }}
                     >
-                      {NODE_TYPE_LABELS[type] || type}
+                      {resolveNodeTypeLabel(type)}
                     </Button>
                   ))}
                 </DropdownMenuContent>

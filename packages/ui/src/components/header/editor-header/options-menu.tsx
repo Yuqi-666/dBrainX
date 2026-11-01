@@ -17,7 +17,7 @@ import {
   requestNodeClear,
   requestNodeDelete,
 } from "@workspace/ui/lib/node-disposition";
-import { clearedNodeUpdates } from "@workspace/utils/node-content";
+import { getNodeContentDescriptor } from "@workspace/ui/components/node-content/registry";
 import {
   CopyIcon,
   EraserIcon,
@@ -49,10 +49,11 @@ export function OptionsMenu({ nodeId, className }: OptionsMenuProps) {
 
   const targetNodeId = nodeId || currentEditingNodeId;
   const currentNode = targetNodeId ? nodes.get(targetNodeId) : null;
-  // A type without one payload (`collection`, `database`) cannot be cleared,
-  // so the item is not offered at all — the dialog must never open on a no-op.
+  // The type's descriptor owns the capability: a type that declares no clearable
+  // payload (`collection`, `database`) hides the item, so the menu can never open
+  // a dialog on a no-op. A type with no descriptor is not clearable either.
   const canClear = currentNode
-    ? clearedNodeUpdates(currentNode) !== null
+    ? getNodeContentDescriptor(currentNode.nodeType)?.clearable === true
     : false;
 
   const handleDelete = () => {

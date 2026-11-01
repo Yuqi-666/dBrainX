@@ -5,13 +5,13 @@ import { translate } from "@workspace/ui/lib/i18n/runtime";
 
 import { useI18n } from "@workspace/ui/lib/i18n";
 
-import { FileText, Unlink } from "lucide-react";
+import { Unlink } from "lucide-react";
 
 import { useDataStore } from "@workspace/store";
 
 import { Button } from "@workspace/ui/components/ui/button";
 import { IconView } from "@workspace/ui/components/icon/icon-view";
-import { NODE_TYPE_ICONS } from "@workspace/ui/components/icon/node-type-icons";
+import { resolveNodeTypeIcon } from "@workspace/ui/lib/node-type-display";
 import {
   Tooltip,
   TooltipContent,
@@ -51,7 +51,7 @@ export function NoteReferenceCard({
   const { t } = useI18n();
 
   const node = useDataStore((state) => state.getNode(nodeId));
-  const TypeIcon = node ? NODE_TYPE_ICONS[node.nodeType] : FileText;
+  const TypeIcon = resolveNodeTypeIcon(node?.nodeType);
   const title = node?.title?.trim() || t("未命名节点");
 
   return (

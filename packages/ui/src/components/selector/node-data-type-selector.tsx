@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 "use client";
-import { NODE_TYPE_LABELS } from "@workspace/ui/lib/node-type-labels";
+import { resolveNodeTypeLabel } from "@workspace/ui/lib/node-type-display";
 import { useI18n } from "@workspace/ui/lib/i18n";
 
 import type { ReactNode } from "react";
@@ -12,8 +12,6 @@ import {
 } from "@workspace/ui/components/ui/dropdown-menu";
 import type { NodeDataType } from "@workspace/interfaces";
 import { NODE_DATA_TYPES } from "@workspace/interfaces";
-
-export { NODE_TYPE_LABELS } from "@workspace/ui/lib/node-type-labels";
 
 export interface NodeDataTypeSelectorProps {
   children: (nodeType: NodeDataType) => ReactNode;
@@ -28,7 +26,7 @@ export function NodeDataTypeSelector({ children }: NodeDataTypeSelectorProps) {
       {NODE_DATA_TYPES.map((type) => (
         <DropdownMenuSub key={type}>
           <DropdownMenuSubTrigger className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md [&>svg]:hidden">
-            <span>{NODE_TYPE_LABELS[type] || type}</span>
+            <span>{resolveNodeTypeLabel(type)}</span>
           </DropdownMenuSubTrigger>
           {children(type)}
         </DropdownMenuSub>

@@ -5,7 +5,7 @@ import { CellSelection } from "@tiptap/pm/tables";
 import type { JSONContent, Editor } from "@tiptap/react";
 import { isTextSelection, isNodeSelection, posToDOMRect } from "@tiptap/react";
 
-const NODE_TYPE_LABELS: Record<string, string> = {
+const TIPTAP_NODE_LABELS: Record<string, string> = {
   paragraph: "Text",
   heading: "Heading",
   blockquote: "Blockquote",
@@ -28,7 +28,7 @@ export const getNodeDisplayName = (editor: Editor | null): string => {
 
   if (selection instanceof NodeSelection) {
     const nodeType = selection.node.type.name;
-    return NODE_TYPE_LABELS[nodeType] || nodeType.toLowerCase();
+    return TIPTAP_NODE_LABELS[nodeType] || nodeType.toLowerCase();
   }
 
   if (selection instanceof CellSelection) {
@@ -37,7 +37,7 @@ export const getNodeDisplayName = (editor: Editor | null): string => {
 
   const { $anchor } = selection;
   const nodeType = $anchor.parent.type.name;
-  return NODE_TYPE_LABELS[nodeType] || nodeType.toLowerCase();
+  return TIPTAP_NODE_LABELS[nodeType] || nodeType.toLowerCase();
 };
 
 /**
