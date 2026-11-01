@@ -13,14 +13,15 @@ It is the single owner of that sequence.
 | Export | Content |
 | --- | --- |
 | `.` | Re-exports `./graph` |
-| `./graph` | The eight services and the view-enumeration helpers |
+| `./graph` | The eight services, the operation catalogue, and the view-enumeration helpers |
 | `./graph/*` | A direct service module |
 
 ## Map
 
 | Path | Content |
 | --- | --- |
-| `src/graph/node.service.ts` | `NodeService`. It can debounce an update call, and it owns the resource-reference reads: which nodes point at one file, and clearing a deleted file from the open nodes. |
+| `src/graph/node.service.ts` | `NodeService`. It exposes the single write entry (`invoke`, plus one typed helper per operation), and it owns the resource-reference reads: which nodes point at one file, and clearing a deleted file from the open nodes. |
+| `src/graph/operations.ts` | The operation catalogue (id, target kind, effect, resource), the typed inputs, the target builders, and `invokeGraphOperation`: one `operation.invoke`, then the store update from the reply. |
 | `src/graph/edge.service.ts` | `EdgeService` |
 | `src/graph/view.service.ts` | `ViewService` |
 | `src/graph/workspace.service.ts` | `WorkspaceService`. It calls the other services. |
@@ -33,7 +34,7 @@ It is the single owner of that sequence.
 
 ## Mechanisms
 
-An update and a delete write the store first.
+The legacy whole-record methods (kept until todo 43/44) write the store first.
 Then the service calls `trpcClient`, and on an error it restores the previous store value.
 
 A create calls the server first, because the server supplies the record id.
@@ -42,6 +43,8 @@ The service then writes the result into the store and updates the view enumerati
 `NodeService` can debounce the network call through `DebounceScheduler`.
 The store update stays synchronous. The default delay is 500 milliseconds.
 The scheduler also rolls back to the snapshot from before the debounce window.
+
+The current write path is `invokeGraphOperation`: one `operation.invoke`, then the canonical `node` / `edge` / `view` snapshot the server reloaded is written to the store. A refusal throws `OperationInvokeError` with the server's code and writes nothing. `NodeService`, `EdgeService`, and `ViewService` expose typed helpers over it. The whole-record `upsert` methods stay only until todo 43/44 and are marked deprecated.
 
 A service can read as well as write.
 `sync` and `syncByWorkspace` call a query and load the result into the store.
@@ -58,7 +61,7 @@ That import and `graph-handler.ts` form the known `api-client` and `services` cy
 
 ## Rules
 
-1. Keep the order: store first, then network, then restore on an error.
+1. For the legacy whole-record methods, keep the order: store first, then network, then restore on an error.
 2. Keep the store update synchronous. Debounce the network call only.
 3. Add a service for a new aggregate and export it from `src/graph/index.ts`.
 4. Call `syncViewEnumerationOnCreate` or `syncViewEnumerationOnDelete` after a node create or delete.

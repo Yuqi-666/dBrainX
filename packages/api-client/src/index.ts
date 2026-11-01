@@ -1,8 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 export { trpcClient, createClient } from "./trpc/client";
+export {
+  OPERATION_ERROR_CODES,
+  OperationInvokeError,
+  asOperationInvokeError,
+  invokeOperation,
+  operationErrorCodeOf,
+} from "./trpc/operations";
+export type {
+  OperationCatalogBody,
+  OperationErrorCode,
+  OperationFailureCode,
+  OperationInvokeBody,
+  OperationInvoker,
+  OperationResult,
+  OperationSummary,
+  OperationTarget,
+} from "./trpc/operations";
 export { TRPCReactProvider, trpc } from "./trpc/provider";
 export * from "./trpc/hooks/useGraph";
+export { useOperation, useOperationCatalog } from "./trpc/hooks/useOperation";
 export { useGraphSubscriptions } from "./trpc/subscriptions";
 export * from "./handler/graph-handler";
 export {

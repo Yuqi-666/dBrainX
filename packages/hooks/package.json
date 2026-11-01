@@ -7,7 +7,7 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noemit",
-    "test": "node ../../scripts/run-ui-tests.mjs packages/hooks"
+    "test": "node --experimental-strip-types --test src/graph-gestures.test.mjs"
   },
   "dependencies": {
     "react": "^19.2.4",

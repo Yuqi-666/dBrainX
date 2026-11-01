@@ -3,6 +3,7 @@
 import type {
   NodeData,
   NodeId,
+  NodeStateData,
   WorkspaceId,
 } from "@workspace/interfaces";
 import {
@@ -10,6 +11,8 @@ import {
   resourceIdFromStoredUrl,
   trpcClient,
   type NodeFileReference,
+  type OperationResult,
+  type OperationTarget,
 } from "@workspace/api-client";
 import { useDataStore, useUIStore, useWorkspaceStore } from "@workspace/store";
 import {
@@ -18,6 +21,14 @@ import {
   shouldDebounce,
 } from "@workspace/utils";
 import { nodeWithoutFileReferences } from "@workspace/utils/resource-references";
+import {
+  NODE_OPERATIONS,
+  invokeGraphOperation,
+  nodeTarget,
+  workspaceTarget,
+  type GraphInvokeOptions,
+  type GraphOperationId,
+} from "./operations";
 import {
   syncViewEnumerationOnCreate,
   syncViewEnumerationOnDelete,
@@ -43,6 +54,119 @@ export interface NodeUpsertOptions {
 }
 
 export const NodeService = {
+  /**
+   * The single graph write entry: one `operation.invoke`, then the store update
+   * from the canonical snapshot the server reloaded.
+   *
+   * A refusal is an `OperationInvokeError` carrying the server's code
+   * (`VERSION_CONFLICT`, `FORBIDDEN`, `OPERATION_NOT_FOUND`); the store is not
+   * touched in that case and the call is never retried here.
+   */
+  async invoke(
+    operationId: GraphOperationId,
+    target: OperationTarget,
+    input: unknown,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(operationId, target, input, options);
+  },
+
+  /** `node.add`: only the type id is sent; the server supplies the record. */
+  async add(
+    nodeType: string,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    const result = await invokeGraphOperation(
+      NODE_OPERATIONS.add,
+      workspaceTarget(),
+      { nodeType },
+      options,
+    );
+    if (result.node !== undefined) syncViewEnumerationOnCreate(result.node.id);
+    return result;
+  },
+
+  /** `node.setTitle`; the reply's node snapshot replaces the stored copy. */
+  setTitle(
+    id: NodeId,
+    title: string,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      NODE_OPERATIONS.setTitle,
+      nodeTarget(id),
+      { title },
+      options,
+    );
+  },
+
+  /** `node.setAbstract`. */
+  setAbstract(
+    id: NodeId,
+    abstract: string,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      NODE_OPERATIONS.setAbstract,
+      nodeTarget(id),
+      { abstract },
+      options,
+    );
+  },
+
+  /** `node.setSemanticId`. */
+  setSemanticId(
+    id: NodeId,
+    semanticId: string,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      NODE_OPERATIONS.setSemanticId,
+      nodeTarget(id),
+      { semanticId },
+      options,
+    );
+  },
+
+  /** `node.setStateData`, the graph-owned position and style payload. */
+  setStateData(
+    id: NodeId,
+    stateData: NodeStateData,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      NODE_OPERATIONS.setStateData,
+      nodeTarget(id),
+      { stateData },
+      options,
+    );
+  },
+
+  /** `node.pin`. */
+  pin(id: NodeId, options?: GraphInvokeOptions): Promise<OperationResult> {
+    return invokeGraphOperation(
+      NODE_OPERATIONS.pin,
+      nodeTarget(id),
+      {},
+      options,
+    );
+  },
+
+  /** `node.unpin`. */
+  unpin(id: NodeId, options?: GraphInvokeOptions): Promise<OperationResult> {
+    return invokeGraphOperation(
+      NODE_OPERATIONS.unpin,
+      nodeTarget(id),
+      {},
+      options,
+    );
+  },
+
+  /**
+   * @deprecated The whole-node write is going away in todo 43/44. Use `add`,
+   * `setTitle`, `setAbstract`, `setSemanticId`, `setStateData`, `pin` or
+   * `unpin`; each one is one `operation.invoke`.
+   */
   async upsert(
     idOrNode: NodeId | NodeData,
     updates?: Partial<NodeData>,
@@ -52,7 +176,8 @@ export const NodeService = {
 
     if (typeof idOrNode === "string") {
       const id = idOrNode;
-      if (!updates) throw new Error("Updates are required for update operation");
+      if (!updates)
+        throw new Error("Updates are required for update operation");
       const oldNode = store.nodes.get(id);
       if (!oldNode) throw new Error("Node not found");
       const merged = { ...oldNode, ...updates } as NodeData;
@@ -101,7 +226,9 @@ export const NodeService = {
     // active workspace, regardless of which UI code triggered the create.
     const node = idOrNode;
     const workspaceId =
-      node.workspaceId ?? useWorkspaceStore.getState().currentWorkspaceId ?? undefined;
+      node.workspaceId ??
+      useWorkspaceStore.getState().currentWorkspaceId ??
+      undefined;
     const scopedNode = workspaceId ? { ...node, workspaceId } : node;
     const result = await trpcClient.node.add.mutate(scopedNode);
     store.upsertNode(result);
@@ -109,6 +236,10 @@ export const NodeService = {
     return result;
   },
 
+  /**
+   * @deprecated The `node.delete` operation has no bound handler yet (todo 43;
+   * endpoint removal in todo 44). Until then this stays the working delete.
+   */
   async delete(id: NodeId): Promise<void> {
     const store = useDataStore.getState();
     const oldNode = store.nodes.get(id);
@@ -230,7 +361,9 @@ export const NodeService = {
    */
   async syncByWorkspace(workspaceId: WorkspaceId): Promise<void> {
     const store = useDataStore.getState();
-    const results = await trpcClient.node.listByWorkspace.query({ workspaceId });
+    const results = await trpcClient.node.listByWorkspace.query({
+      workspaceId,
+    });
     store.loadWorkspaceData({ nodes: results });
   },
 

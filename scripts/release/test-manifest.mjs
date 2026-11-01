@@ -68,6 +68,7 @@ export const testFiles = [
   "pb/node-timestamps.test.mjs",
 
   // Shared package tests that need no DOM or browser globals.
+  "packages/hooks/src/graph-gestures.test.mjs",
   "packages/plugin-sdk/src/define-operation.test.ts",
   "packages/ui/src/components/node-content/registry.test.ts",
   "packages/utils/src/node-content.test.ts",
@@ -142,6 +143,7 @@ export const testFiles = [
  * @type {readonly SkippedTest[]}
  */
 export const skippableTests = [
+  { path: "packages/services/test/node.service.test.ts", reason: "bundled TS service test: runs under `pnpm --filter @workspace/services test` (esbuild bundle), not node --test" },
   { path: "packages/ui/src/components/annotation/colors.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/components/annotation/draw.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/components/annotation/erase.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },

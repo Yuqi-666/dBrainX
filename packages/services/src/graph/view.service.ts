@@ -1,17 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type {
+  FilterConfig,
   View,
   ViewId,
+  VisualConfig,
   WorkspaceId,
 } from "@workspace/interfaces";
-import { trpcClient } from "@workspace/api-client";
+import { trpcClient, type OperationResult } from "@workspace/api-client";
 import { useDataStore, useWorkspaceStore } from "@workspace/store";
 import {
   DebounceScheduler,
   resolveDebounceMs,
   shouldDebounce,
 } from "@workspace/utils";
+import {
+  VIEW_OPERATIONS,
+  invokeGraphOperation,
+  viewTarget,
+  workspaceTarget,
+  type GraphInvokeOptions,
+  type ViewOperationInput,
+} from "./operations";
 
 const DEFAULT_VIEW_UPDATE_DEBOUNCE_MS = 500;
 const viewUpdateScheduler = new DebounceScheduler<View, void>(
@@ -31,6 +41,51 @@ export interface ViewUpsertOptions {
 }
 
 export const ViewService = {
+  /** `view.create`; the server generates the id and every config field. */
+  create(
+    input: ViewOperationInput["view.create"],
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      VIEW_OPERATIONS.create,
+      workspaceTarget(),
+      input,
+      options,
+    );
+  },
+
+  /** `view.setLayout`, the graph renderer's settings. */
+  setLayout(
+    id: ViewId,
+    visualConfig: VisualConfig,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      VIEW_OPERATIONS.setLayout,
+      viewTarget(id),
+      { visualConfig },
+      options,
+    );
+  },
+
+  /** `view.setFilter`, the stored query. */
+  setFilter(
+    id: ViewId,
+    filterConfig: FilterConfig,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      VIEW_OPERATIONS.setFilter,
+      viewTarget(id),
+      { filterConfig },
+      options,
+    );
+  },
+
+  /**
+   * @deprecated The whole-record write is going away in todo 43/44. Use
+   * `create`, `setLayout` or `setFilter`.
+   */
   async upsert(
     idOrView: ViewId | View,
     updates?: Partial<View>,
@@ -39,7 +94,8 @@ export const ViewService = {
     const store = useDataStore.getState();
 
     if (typeof idOrView === "string") {
-      if (!updates) throw new Error("Updates are required for update operation");
+      if (!updates)
+        throw new Error("Updates are required for update operation");
       const id = idOrView;
       const oldView = store.views.get(id);
       if (!oldView) throw new Error("View not found");
@@ -82,7 +138,9 @@ export const ViewService = {
 
     const view = idOrView;
     const workspaceId =
-      view.workspaceId ?? useWorkspaceStore.getState().currentWorkspaceId ?? undefined;
+      view.workspaceId ??
+      useWorkspaceStore.getState().currentWorkspaceId ??
+      undefined;
     // `view.add` 只接受 `View` 的部分字段：`visualConfig` 不在 addSchema 里
     // （zod 会静默丢弃未知字段，因此它只能由 `view.update` 写入）。显式构造
     // payload，避免字段名对不上时静默丢配置。
@@ -98,21 +156,22 @@ export const ViewService = {
     return result;
   },
 
-  async delete(id: ViewId): Promise<void> {
+  /** `view.delete`; the server owns the default-view refusal as well. */
+  async delete(id: ViewId, options?: GraphInvokeOptions): Promise<void> {
     const store = useDataStore.getState();
     const oldView = store.views.get(id);
     if (!oldView) throw new Error("View not found");
     // The default global view keeps every workspace renderable; the sidebar
     // hides its delete entry, and the service refuses it too so a stale menu
     // cannot bypass the rule.
-    if (oldView.isDefault) throw new Error("The default view cannot be deleted");
-    store.deleteView(id);
-    try {
-      await trpcClient.view.delete.mutate({ id });
-    } catch (error) {
-      store.upsertView(oldView);
-      throw error;
-    }
+    if (oldView.isDefault)
+      throw new Error("The default view cannot be deleted");
+    await invokeGraphOperation(
+      VIEW_OPERATIONS.delete,
+      viewTarget(id),
+      {},
+      options,
+    );
   },
 
   async sync(ids?: ViewId[]): Promise<void> {
@@ -134,7 +193,9 @@ export const ViewService = {
    */
   async syncByWorkspace(workspaceId: WorkspaceId): Promise<void> {
     const store = useDataStore.getState();
-    const results = await trpcClient.view.listByWorkspace.query({ workspaceId });
+    const results = await trpcClient.view.listByWorkspace.query({
+      workspaceId,
+    });
     store.loadWorkspaceData({ views: results });
   },
 
