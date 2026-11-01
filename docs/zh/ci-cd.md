@@ -8,6 +8,12 @@
 
 首次使用前，先把这些工作流文件合入 `main`，再推送新版本标签。GitHub 从默认分支读取 `workflow_run` 工作流文件。
 
+## 私有 backend 子模块
+
+`backend/` 是私有仓库 [Yuqi-666/dBrainX-backend](https://github.com/Yuqi-666/dBrainX-backend) 的子模块。公开仓库不保存 backend 源码。克隆后运行 `git submodule update --init backend`，并保留对该私有仓库的读权限。
+
+`checks`、容器构建和桌面构建作业也会检出该子模块。`DBRAINX_BACKEND_TOKEN` 是仓库密钥，保存该仓库上一个只读 deploy key 的私钥。`actions/checkout` 通过 `ssh-key` 安装它，下一步运行 `git submodule update --init backend`。marketing 子模块与以往一样保持未检出。该密钥只有读权限，且来自 fork 的 PR 不运行检查，因此密钥不会离开仓库。
+
 ## 检查
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) 中的 `checks` 作业是唯一的检查流水线。仓库不再保留第二套本地 gate。该作业从锁文件安装依赖，并使用只读令牌。然后它运行 `release:check`、类型检查、lint 基线、发行测试、Web 与 Server 构建、Server smoke 测试和 actionlint。推送 `develop` 或 `main` 本身不会创建发行。

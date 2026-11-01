@@ -8,6 +8,12 @@ The repository is public source. The owner makes the development and the release
 
 Merge these workflow files into `main` before you push the first new version tag. GitHub reads the `workflow_run` workflow file from the default branch.
 
+## Private backend submodule
+
+`backend/` is a submodule of the private repository [Yuqi-666/dBrainX-backend](https://github.com/Yuqi-666/dBrainX-backend). The public repository holds no backend source. Run `git submodule update --init backend` after a clone, and keep read access to the private repository.
+
+The `checks`, container build, and desktop build jobs check out the submodule too. `DBRAINX_BACKEND_TOKEN` is a repository secret that holds the private key of a read-only deploy key on that repository. `actions/checkout` installs the key with `ssh-key`, and the next step runs `git submodule update --init backend`. The marketing submodule stays empty, as before. The key can only read, and a fork pull request does not run the checks, so the secret never leaves the repository.
+
 ## Checks
 
 The `checks` job in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) is the only check pipeline. The repository keeps no second local gate. The job installs from the lockfile and uses a read-only token. Then it runs `release:check`, the type check, the lint baseline, the release tests, the web and server build, the server smoke test, and actionlint. A push to `develop` or `main` does not create a release.

@@ -118,6 +118,8 @@ jobs:
     uses: ./.github/workflows/container-build.yml
     with:
       platforms: ${{ needs.verify-tag.outputs.container_platforms }}
+    # The build job reads the private backend submodule with DBRAINX_BACKEND_TOKEN.
+    secrets: inherit
 
   assemble:
     needs: [verify-tag, desktop, containers]

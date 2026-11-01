@@ -24,7 +24,7 @@ The product is in early public development. The source version is in `scripts/re
 | --- | --- | --- |
 | `apps/` | The web, desktop, and server programs, plus the marketing submodule | [apps/AGENTS.md](apps/AGENTS.md) |
 | `packages/` | Shared UI, editor, graph, data view, state, client | [packages/AGENTS.md](packages/AGENTS.md) |
-| `backend/` | Domain model, use cases, storage, adapters | [backend/AGENTS.md](backend/AGENTS.md) |
+| `backend/` | Domain model, use cases, storage, adapters. A submodule of the private repository `Yuqi-666/dBrainX-backend`. | [backend/AGENTS.md](backend/AGENTS.md) |
 | `scripts/` | Development and release automation | [scripts/AGENTS.md](scripts/AGENTS.md) |
 | `pb/` | PocketBase hooks and migrations | [pb/AGENTS.md](pb/AGENTS.md) |
 | `deploy/` | Container, gateway, and deployment templates | [deploy/AGENTS.md](deploy/AGENTS.md) |

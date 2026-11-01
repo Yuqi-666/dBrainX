@@ -2,3 +2,7 @@
 	path = apps/marketing
 	url = https://github.com/Yuqi-666/dBrainX-marketing.git
 	branch = main
+[submodule "backend"]
+	path = backend
+	url = git@github.com:Yuqi-666/dBrainX-backend.git
+	branch = main

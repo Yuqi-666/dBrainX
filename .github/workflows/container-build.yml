@@ -52,6 +52,10 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+          # backend/ is a private submodule; this read-only deploy key reads it.
+          ssh-key: ${{ secrets.DBRAINX_BACKEND_TOKEN }}
+      - name: Check out the private backend submodule
+        run: git submodule update --init backend
       - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2
         with:
           version: 9.0.0
