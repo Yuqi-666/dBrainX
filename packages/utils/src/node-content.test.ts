@@ -8,6 +8,23 @@ import {
   isHtmlDocument,
   storedFileName,
 } from "./node-content.ts";
+// The builder lives in `interfaces`, whose package entry points at a directory
+// (`./src`), so `@workspace/interfaces` cannot be imported by plain node; the
+// relative path is the only loadable form in a `node --test` file.
+import { buildNodeFilterFields } from "../../interfaces/src/models/filter.ts";
+
+test("the node-type filter field offers the ids it is given, not a constant", () => {
+  const fieldValues = (nodeTypes: readonly string[]) =>
+    buildNodeFilterFields(new Map(), nodeTypes).find(
+      (field) => field.name === "nodeType",
+    )?.values;
+
+  assert.deepEqual(fieldValues(["acme.widget", "text"]), [
+    { name: "acme.widget", label: "acme.widget" },
+    { name: "text", label: "text" },
+  ]);
+  assert.deepEqual(fieldValues([]), []);
+});
 
 test("clears the editable document of a text or rich-text node", () => {
   assert.deepEqual(clearedNodeUpdates({ nodeType: "text", content: {} }), {

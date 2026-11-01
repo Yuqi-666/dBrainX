@@ -28,8 +28,9 @@ import type {
   NodeContentViewProps,
 } from "@workspace/plugin-sdk/ui";
 
-import { registerNodeContent } from "./registry.ts";
+import { listNodeContentDescriptors, registerNodeContent } from "./registry.ts";
 import { NodeContentEditor } from "./node-content-editor.tsx";
+import { NodeTypeOptions } from "../dialog/node-type-options.tsx";
 
 const jsdomSpecifier = "jsdom";
 interface JsdomModule {
@@ -170,4 +171,35 @@ test("an unregistered type renders the fallback and no editor control", () => {
   assert.match(html, /data-node-content-fallback=""/);
   assert.match(html, /plugin\.unregistered/);
   assert.doesNotMatch(html, /data-editor-control/);
+});
+
+test("the add-node type list has one row per registered descriptor", () => {
+  const html = renderToStaticMarkup(
+    <NodeTypeOptions
+      nodeTypes={listNodeContentDescriptors().map(
+        (descriptor) => descriptor.type,
+      )}
+      emptyLabel="No node types registered"
+      onSelect={() => {}}
+    />,
+  );
+
+  assert.equal(
+    html.split("<button").length - 1,
+    listNodeContentDescriptors().length,
+  );
+});
+
+test("no registered type renders the empty state instead of throwing", () => {
+  const html = renderToStaticMarkup(
+    <NodeTypeOptions
+      nodeTypes={[]}
+      emptyLabel="No node types registered"
+      onSelect={() => {}}
+    />,
+  );
+
+  assert.match(html, /data-node-type-options-empty=""/);
+  assert.match(html, /No node types registered/);
+  assert.doesNotMatch(html, /<button/);
 });

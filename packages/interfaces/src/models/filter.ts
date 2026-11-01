@@ -2,7 +2,7 @@
 
 import type { RuleGroupType, Field } from "@workspace/utils";
 import type { NodeId, NodeSemantic, NodeSemanticId } from "./node";
-import { NODE_DATA_TYPES } from "./node/types";
+import type { NodeTypeId } from "./node/types";
 
 export interface FilterConfig {
   //Filter->selectedNodes AND ruleGroup
@@ -20,10 +20,12 @@ export interface FilterConfig {
  *
  * The `semanticId` field is rendered as a select whose options are the current
  * node-semantic set (subscribed by the caller), so users pick a semantic type
- * by its display name rather than typing a raw id.
+ * by its display name rather than typing a raw id. `nodeTypes` comes from the
+ * caller's registry, so a plugin type is filterable without a change here.
  */
 export function buildNodeFilterFields(
   nodeSemantics: ReadonlyMap<NodeSemanticId, NodeSemantic>,
+  nodeTypes: readonly NodeTypeId[],
 ): Field[] {
   return [
     {
@@ -64,7 +66,7 @@ export function buildNodeFilterFields(
       name: "nodeType",
       label: "节点类型",
       inputType: "select",
-      values: NODE_DATA_TYPES.map((type) => ({ name: type, label: type })),
+      values: nodeTypes.map((type) => ({ name: type, label: type })),
     },
     {
       name: "createdAt",

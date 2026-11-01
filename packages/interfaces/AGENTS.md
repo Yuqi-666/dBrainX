@@ -21,7 +21,7 @@ It is the agreement between the two client apps, the packages, and `backend/`.
 
 | Path | Content |
 | --- | --- |
-| `src/models/node/types.ts` | `NodeDataType`: seven single types and three complex types |
+| `src/models/node/types.ts` | `NodeTypeId`, `NodeType<T>`, and the open `NodeData<C>` shape. No runtime list. |
 | `src/models/node/nodes/single/` | text, image, pdf, video, audio, webpage, website, and timestamp-data |
 | `src/models/node/nodes/complex/` | collection, database, and rich-text |
 | `src/models/node/base.ts` | The node base shape that every node type extends |
@@ -48,8 +48,11 @@ Note that `packages/ui` does import `@workspace/store` in many components today.
 The persisted shape must round-trip through the API without a renderer.
 `@workspace/dataview` declares the renderer contract that consumes it.
 
-`NodeDataType` is the source list for the ten node types.
-`backend/domain` and the PocketBase schema mirror it.
+A node type id is `NodeTypeId`, a plain string, because node types are runtime data.
+The ten builtin types are declared by the plugin packages; the client registry
+(`packages/ui/src/components/node-content/registry.ts`) is the runtime list, and
+`backend/domain` validates a type through its own node-type registry.
+Nothing in this package may hold a list of type ids.
 
 ## Rules
 

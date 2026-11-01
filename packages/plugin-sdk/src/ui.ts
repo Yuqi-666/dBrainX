@@ -121,4 +121,13 @@ export interface NodeContentDescriptor<T extends NodeData = NodeData> {
    * of opening a dialog that does nothing. Consumed by `options-menu.tsx`.
    */
   clearable?: boolean
+  /**
+   * Natural width of this type's expanded preview, in CSS pixels.
+   *
+   * A media or document surface (`image`, `video`, `pdf`, `webpage`) needs room;
+   * a text-like preview reads better narrow. Omitted means the host's default
+   * width. Consumed by the web app's dynamic-island host through the registry,
+   * so the host holds no list of type ids.
+   */
+  previewContentWidth?: number
 }

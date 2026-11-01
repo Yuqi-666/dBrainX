@@ -10,11 +10,11 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@workspace/ui/components/ui/dropdown-menu";
-import type { NodeDataType } from "@workspace/interfaces";
-import { NODE_DATA_TYPES } from "@workspace/interfaces";
+import type { NodeTypeId } from "@workspace/interfaces";
+import { listNodeTypeIds } from "@workspace/ui/lib/node-type-options";
 
 export interface NodeDataTypeSelectorProps {
-  children: (nodeType: NodeDataType) => ReactNode;
+  children: (nodeType: NodeTypeId) => ReactNode;
 }
 
 /** Node data-type picker with nested selectors supplied by the host. */
@@ -23,7 +23,7 @@ export function NodeDataTypeSelector({ children }: NodeDataTypeSelectorProps) {
 
   return (
     <DropdownMenuSubContent className="w-48" sideOffset={0} alignOffset={0}>
-      {NODE_DATA_TYPES.map((type) => (
+      {listNodeTypeIds().map((type) => (
         <DropdownMenuSub key={type}>
           <DropdownMenuSubTrigger className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md [&>svg]:hidden">
             <span>{resolveNodeTypeLabel(type)}</span>

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { resolveNodeTypeLabel } from "@workspace/ui/lib/node-type-display";
+import { listNodeTypeIds } from "@workspace/ui/lib/node-type-options";
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 /**
  * `collection` host adapter: projects the graph nodes a collection selects
@@ -28,7 +29,6 @@ import type {
   Permission,
   View,
 } from "@workspace/interfaces";
-import { NODE_DATA_TYPES } from "@workspace/interfaces";
 import { filterByViewFilterConfig } from "@workspace/utils";
 
 /** Field ids of the fixed collection projection schema. */
@@ -100,7 +100,7 @@ export function buildCollectionFields(
       id: COLLECTION_FIELD_IDS.nodeType,
       name: translate("节点类型"),
       type: "select",
-      options: NODE_DATA_TYPES.map((type) => ({
+      options: listNodeTypeIds().map((type) => ({
         id: type,
         name: resolveNodeTypeLabel(type),
       })),

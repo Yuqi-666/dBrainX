@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/ui/dropdown-menu";
 import { NodeSemanticSelector } from "@workspace/ui/components/selector/node-semantic-selector";
+import { NodeTypeOptions } from "@workspace/ui/components/dialog/node-type-options";
 import { resolveNodeTypeLabel } from "@workspace/ui/lib/node-type-display";
 import {
   NodeSemanticDialogContent,
@@ -27,8 +28,8 @@ import {
 import { Button } from "@workspace/ui/components/ui/button";
 import { useGraph } from "@workspace/hooks";
 import { useDataStore } from "@workspace/store";
-import type { NodeDataType } from "@workspace/interfaces";
-import { NODE_DATA_TYPES } from "@workspace/interfaces";
+import type { NodeTypeId } from "@workspace/interfaces";
+import { listNodeTypeIds } from "@workspace/ui/lib/node-type-options";
 
 export interface AddNodeDialogProps {
   open: boolean;
@@ -37,10 +38,11 @@ export interface AddNodeDialogProps {
 
 export function AddNodeDialog({ open, onOpenChange }: AddNodeDialogProps) {
   const { t } = useI18n();
+  const nodeTypes = listNodeTypeIds();
 
   const { onAddNode } = useGraph();
   const nodeSemanticsMap = useDataStore((state) => state.nodeSemantics);
-  const [nodeType, setNodeType] = useState<NodeDataType | null>(null);
+  const [nodeType, setNodeType] = useState<NodeTypeId | null>(null);
   const [semanticId, setSemanticId] = useState<string | null>(null);
   const [semanticDialogOpen, setSemanticDialogOpen] = useState(false);
 
@@ -105,18 +107,11 @@ export function AddNodeDialog({ open, onOpenChange }: AddNodeDialogProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48">
-                  {NODE_DATA_TYPES.map((type) => (
-                    <Button
-                      key={type}
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => {
-                        setNodeType(type);
-                      }}
-                    >
-                      {resolveNodeTypeLabel(type)}
-                    </Button>
-                  ))}
+                  <NodeTypeOptions
+                    nodeTypes={nodeTypes}
+                    emptyLabel={t("No node types registered")}
+                    onSelect={setNodeType}
+                  />
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

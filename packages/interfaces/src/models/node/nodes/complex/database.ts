@@ -15,7 +15,7 @@ export interface DatabaseNodeData extends NodeBase, NodeType<"database"> {
  * `DatabaseFieldType` union below is derived from it, the domain value objects
  * re-export it, and the tRPC schema builds its enum from it. Adding a type means
  * touching this array, the `DatabaseCell` union and the render switch — nothing
- * else needs a new literal list. (Same pattern as `NODE_DATA_TYPES`.)
+ * else needs a new literal list.
  */
 export const DATABASE_FIELD_TYPES = [
   "text",

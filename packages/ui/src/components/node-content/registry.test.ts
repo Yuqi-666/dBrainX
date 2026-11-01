@@ -22,6 +22,7 @@ import {
   listNodeContentDescriptors,
   registerNodeContent,
 } from "./registry.ts";
+import { listNodeTypeIds, nodeTypeIds } from "../../lib/node-type-options.ts";
 import {
   DEFAULT_NODE_TYPE_ICON,
   resolveNodeTypeIcon,
@@ -131,6 +132,28 @@ test("a descriptor with a blank label falls back to the raw id", () => {
   });
 
   assert.equal(resolveNodeTypeLabel("display.blank"), "display.blank");
+});
+
+test("a newly registered type appears in the pickers' source", () => {
+  const before = listNodeTypeIds();
+
+  registerNodeContent(descriptorOf("plugin.picker", "picker.extra"));
+
+  const ids = listNodeTypeIds();
+  assert.equal(ids.length, before.length + 1);
+  assert.equal(ids.at(-1), "picker.extra");
+});
+
+test("the pickers' source is exactly the registered descriptors", () => {
+  assert.deepEqual(
+    listNodeTypeIds(),
+    listNodeContentDescriptors().map((descriptor) => descriptor.type),
+  );
+});
+
+test("no descriptor yields an empty picker instead of a throw", () => {
+  assert.doesNotThrow(() => nodeTypeIds([]));
+  assert.deepEqual(nodeTypeIds([]), []);
 });
 
 const attributeFields = [

@@ -132,6 +132,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       label: translate("Image"),
       attributes: { fields: builtinAttributeFields.image },
       icon: ImageIcon,
+      previewContentWidth: 400,
       editor: lazyOf<NodeContentViewProps<ImageNodeData>>(() =>
         import("./node-content/image-node-content").then((module) => ({
           default: module.ImageNodeContent,
@@ -154,6 +155,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       label: "PDF",
       attributes: { fields: builtinAttributeFields.pdf },
       icon: FileType,
+      previewContentWidth: 400,
       editor: lazyOf<NodeContentViewProps<PdfNodeData>>(() =>
         import("./node-content/pdf-node-content").then((module) => ({
           default: module.PdfNodeContent,
@@ -177,6 +179,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       label: translate("Video"),
       attributes: { fields: builtinAttributeFields.video },
       icon: Video,
+      previewContentWidth: 400,
       editor: lazyOf<NodeContentViewProps<VideoNodeData>>(() =>
         import("./node-content/video-node-content").then((module) => ({
           default: module.VideoNodeContent,
@@ -225,6 +228,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       label: translate("Webpage"),
       attributes: { fields: builtinAttributeFields.webpage },
       icon: Globe,
+      previewContentWidth: 400,
       editor: lazyOf<NodeContentViewProps<WebpageNodeData>>(() =>
         import("./node-content/webpage-node-content").then((module) => ({
           default: module.WebpageNodeContent,

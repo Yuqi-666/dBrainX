@@ -15,6 +15,7 @@ import {
 } from "@workspace/ui/components/dynamic-island/index";
 
 import { IslandNodePreview } from "@workspace/ui/components/preview-block/island-node-preview";
+import { getNodeContentDescriptor } from "@workspace/ui/components/node-content/registry";
 
 import {
   ISLAND_ROUTES,
@@ -43,6 +44,9 @@ export function DynamicIslandHost() {
   const previewType = useDataStore((s) =>
     previewNodeId ? s.nodes.get(previewNodeId)?.nodeType : undefined,
   );
+  const previewWidth =
+    (previewType ? getNodeContentDescriptor(previewType)?.previewContentWidth : undefined) ??
+    360;
   const close = () => setIslandPanel("idle");
 
   /**
@@ -180,11 +184,7 @@ export function DynamicIslandHost() {
       onPanelChange={setIslandPanel}
       nav={nav}
       contentWidths={{
-        preview: ["image", "video", "pdf", "webpage"].includes(
-          previewType ?? "",
-        )
-          ? 400
-          : 360,
+        preview: previewWidth,
       }}
       content={{
         search: <SearchPanel onClose={close} />,

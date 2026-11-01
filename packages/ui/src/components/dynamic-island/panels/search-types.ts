@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { translate } from "@workspace/ui/lib/i18n/runtime";
-import type { NodeDataType } from "@workspace/interfaces";
-import { NODE_DATA_TYPES } from "@workspace/interfaces";
+import type { NodeTypeId } from "@workspace/interfaces";
+import { listNodeTypeIds } from "@workspace/ui/lib/node-type-options";
 export const SEARCH_TAB_KEYS = [
   "all",
   "text",
@@ -19,7 +19,7 @@ export type SearchTabKey = (typeof SEARCH_TAB_KEYS)[number];
 export interface SearchTabConfig {
   key: SearchTabKey;
   label: string;
-  nodeTypes?: NodeDataType[];
+  nodeTypes?: NodeTypeId[];
   kind: "nodes" | "node-types" | "edge-types";
 }
 
@@ -29,7 +29,9 @@ export const SEARCH_TABS: SearchTabConfig[] = [
     get label() {
       return translate("全部");
     },
-    nodeTypes: [...NODE_DATA_TYPES],
+    get nodeTypes() {
+      return listNodeTypeIds();
+    },
     kind: "nodes",
   },
   {
@@ -98,7 +100,7 @@ export interface SearchMatch {
   subtitle?: string;
   group: SearchGroupKey;
   icon?: "node" | "type";
-  nodeType?: NodeDataType;
+  nodeType?: NodeTypeId;
   edgeType?: string;
   semanticId?: string;
   semanticKind?: SemanticKind;

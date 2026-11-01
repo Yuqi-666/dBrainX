@@ -2,18 +2,20 @@
 
 import {
   buildNodeFilterFields as buildFields,
-  NODE_DATA_TYPES,
   type NodeSemantic,
   type NodeSemanticId,
+  type NodeTypeId,
 } from "@workspace/interfaces";
 import { resolveNodeTypeLabel } from "@workspace/ui/lib/node-type-display";
+import { listNodeTypeIds } from "@workspace/ui/lib/node-type-options";
 import { translate } from "./i18n/runtime";
 
 /** Localize built-in filter fields while preserving users' semantic names. */
 export function buildNodeFilterFields(
   semantics: ReadonlyMap<NodeSemanticId, NodeSemantic>,
+  nodeTypes: readonly NodeTypeId[] = listNodeTypeIds(),
 ) {
-  return buildFields(semantics).map((field) => ({
+  return buildFields(semantics, nodeTypes).map((field) => ({
     ...field,
     label: translate(field.label),
     values:
@@ -24,7 +26,7 @@ export function buildNodeFilterFields(
             { name: "restricted", label: translate("受限") },
           ]
         : field.name === "nodeType"
-          ? NODE_DATA_TYPES.map((type) => ({
+          ? nodeTypes.map((type) => ({
               name: type,
               label: resolveNodeTypeLabel(type),
             }))
