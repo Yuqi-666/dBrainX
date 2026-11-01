@@ -60,6 +60,9 @@ pb/pocketbase.exe
 .sisyphus/
 .vscode/
 
+# Local design notes
+.agents/docs/
+
 # Release candidates and prepared dependency staging
 release-artifacts/
 backups/
