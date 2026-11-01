@@ -73,6 +73,8 @@ export const testFiles = [
   // Plugin package tests that need no DOM or browser globals.
   "plugins/builtin/server/node-types.test.ts",
   "plugins/builtin/server/operations.test.ts",
+  "plugins/builtin/server/type-operations.test.ts",
+  "plugins/counter/server/index.test.ts",
 
   // Backend tests. These construct their own fakes; none needs PocketBase.
   "backend/adapter-front/src/trpc/router/event.test.ts",
@@ -82,6 +84,7 @@ export const testFiles = [
   "backend/application/src/commands/media/cookie-file.test.ts",
   "backend/application/src/commands/media/media-import.service.test.ts",
   "backend/application/src/commands/node/node-command.service.test.ts",
+  "backend/application/src/commands/operation/operation.service.test.ts",
   "backend/application/src/engine/capability-gateway.test.ts",
   "backend/application/src/events/event-metadata.test.ts",
   "backend/domain/src/contract-compile.test.ts",
