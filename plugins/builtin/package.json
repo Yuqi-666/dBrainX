@@ -1,0 +1,19 @@
+{
+  "name": "@plugin/builtin",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^25.1.0"
+  },
+  "exports": {
+    "./ui": "./ui",
+    "./server": "./server"
+  }
+}

@@ -6,3 +6,4 @@ packages:
   - "apps/marketing/site"
   - "packages/*"
   - "backend/*"
+  - "plugins/*"

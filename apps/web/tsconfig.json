@@ -46,6 +46,18 @@
       "@workspace/infrastructure/*": [
         "backend/infrastructure/src/*"
       ],
+      "@workspace/plugin-host": [
+        "backend/plugin-host/src"
+      ],
+      "@workspace/plugin-host/*": [
+        "backend/plugin-host/src/*"
+      ],
+      "@workspace/sandbox": [
+        "backend/sandbox/src"
+      ],
+      "@workspace/sandbox/*": [
+        "backend/sandbox/src/*"
+      ],
       "@workspace/api-client": [
         "packages/api-client/src/index.ts"
       ],
@@ -82,6 +94,12 @@
       "@workspace/interfaces/*": [
         "packages/interfaces/src/*"
       ],
+      "@workspace/plugin-sdk": [
+        "packages/plugin-sdk/src/index.ts"
+      ],
+      "@workspace/plugin-sdk/*": [
+        "packages/plugin-sdk/src/*"
+      ],
       "@workspace/services": [
         "packages/services/src/index.ts"
       ],
@@ -105,6 +123,15 @@
       ],
       "@workspace/utils/*": [
         "packages/utils/src/*"
+      ],
+      "@plugin/*": [
+        "plugins/*"
+      ],
+      "@plugin/*/ui": [
+        "plugins/*/ui"
+      ],
+      "@plugin/*/server": [
+        "plugins/*/server"
       ],
       "@/*": [
         "apps/web/*"
