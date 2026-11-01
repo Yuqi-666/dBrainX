@@ -50,6 +50,11 @@ The base copy in a run directory is made once, at genesis, and its sha256 is rec
 Databases created before this baseline are unsupported. The launcher refuses them instead of silently skipping schema work.
 The `files.file` cap is 2 GiB, which must stay equal to `MAX_UPLOAD_BYTES` in `packages/utils/src/upload.ts`.
 
+`0000000012_node_timestamps.js` declares PocketBase's autodate `created` / `updated` on `nodes` and `edges`, which a base collection does not get on its own.
+Both mappers read those columns, and `updated` is the version marker `expectedVersion` compares against, so a record without them handed every read a fresh `new Date()` and `VERSION_CONFLICT` could never fire.
+The script backfills the rows that already exist with the moment it runs: the historical timestamp was never stored, and PocketBase drops an explicit value for an autodate field on save, so the backfill writes the columns with SQL instead of `record.set`.
+Its down drops both columns.
+
 The development launcher `scripts/dev-pocketbase.mjs` prepares the run directory inside the selected data directory before creating the operator account.
 It passes `--dir`, `--migrationsDir`, and `--hooksDir`, and it sets `--automigrate=0`.
 The working directory of the shell therefore does not change the target database.

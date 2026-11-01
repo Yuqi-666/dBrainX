@@ -64,6 +64,9 @@ export const testFiles = [
   "scripts/release/view-theme-sync.test.mjs",
   "scripts/release/webpage-object-storage.test.mjs",
 
+  // PocketBase schema tests: they run the pinned binary against a temporary database.
+  "pb/node-timestamps.test.mjs",
+
   // Shared package tests that need no DOM or browser globals.
   "packages/plugin-sdk/src/define-operation.test.ts",
   "packages/ui/src/components/node-content/registry.test.ts",

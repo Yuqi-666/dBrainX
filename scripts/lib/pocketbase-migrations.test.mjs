@@ -276,8 +276,13 @@ function schemaOf(dataDir, names) {
       assert.ok(row, `${name} exists`);
       schema[name] = {
         // PocketBase derives the field id from the field itself and rewrites it
-        // when a collection is rebuilt; it is not part of the contract.
-        fields: JSON.parse(row.fields).map(({ id, ...field }) => field),
+        // when a collection is rebuilt; it is not part of the contract. Nor is
+        // the order: a migration that removes and re-adds a field leaves it at
+        // the end of the list (0011 does that with `typeVersion` and `deletedAt`
+        // on every down/up), so the comparison is by name.
+        fields: JSON.parse(row.fields)
+          .map(({ id, ...field }) => field)
+          .sort((left, right) => left.name.localeCompare(right.name)),
         indexes: JSON.parse(row.indexes ?? "[]").slice().sort(),
         columns: db.prepare(`pragma table_info('${name}')`).all().map((column) => column.name).sort(),
       };

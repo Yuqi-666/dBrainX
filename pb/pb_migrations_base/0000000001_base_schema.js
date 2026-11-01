@@ -190,10 +190,16 @@ migrate(
         // `0000000011_dynamic_engine.js`.
         { name: "typeVersion", type: "number", min: 1 },
         { name: "deletedAt", type: "date" },
+        // The stored timestamps the node mapper reads. `updated` is also the
+        // version marker `expectedVersion` compares against; a PocketBase base
+        // collection declares no such columns itself, so both are named here
+        // (`0000000012_node_timestamps.js` adds them to an existing database).
+        { name: "created", type: "autodate", onCreate: true },
+        { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
       ],
-      // `idx_nodes_ws_updated` from the design document is absent on purpose:
-      // this PocketBase build gives a base collection only `id`, so there is no
-      // `updated` column to index.
+      // `idx_nodes_ws_updated` from the design document is still not declared:
+      // `updated` exists now, but no query filters it together with
+      // `workspaceId`. Add the index with the query that needs it.
       indexes: [
         "CREATE INDEX idx_nodes_ws_type ON nodes (workspaceId, nodeType)",
         "CREATE INDEX idx_nodes_ws_pinned ON nodes (workspaceId, isPinned)",
@@ -227,6 +233,11 @@ migrate(
         // produced it. Both stay empty for an edge a person drew.
         { name: "createdBy", type: "text", max: 100 },
         { name: "runId", type: "text", max: 100 },
+        // The stored timestamps the edge mapper reads; `updated` is the version
+        // marker of the record, as on `nodes`. See
+        // `0000000012_node_timestamps.js`.
+        { name: "created", type: "autodate", onCreate: true },
+        { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
       ],
       indexes: [
         "CREATE INDEX idx_edges_ws_from ON edges (workspaceId, from)",
