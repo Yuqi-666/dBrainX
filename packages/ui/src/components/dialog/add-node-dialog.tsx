@@ -26,6 +26,7 @@ import {
   type NodeSemanticFormData,
 } from "@workspace/ui/components/dialog/semantic-dialog";
 import { Button } from "@workspace/ui/components/ui/button";
+import { toast } from "@workspace/ui/components/ui/toast";
 import { useGraph } from "@workspace/hooks";
 import { useDataStore } from "@workspace/store";
 import type { NodeTypeId } from "@workspace/interfaces";
@@ -52,7 +53,16 @@ export function AddNodeDialog({ open, onOpenChange }: AddNodeDialogProps) {
 
   const handleConfirm = async () => {
     if (!nodeType || !semanticId) return;
-    await onAddNode(nodeType, semanticId);
+    const result = await onAddNode(nodeType, semanticId);
+    if (result.failures.length > 0) {
+      toast({
+        variant: "destructive",
+        title: t("节点已创建，但部分设置未保存"),
+        description: result.failures
+          .map((failure) => failure.operationId)
+          .join(", "),
+      });
+    }
     setNodeType(null);
     setSemanticId(null);
     onOpenChange(false);

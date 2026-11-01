@@ -10,7 +10,9 @@ import {
 } from "@workspace/ui/components/ui/dropdown-menu";
 import { Plus } from "lucide-react";
 import type { NodeDataType } from "@workspace/interfaces";
+import type { AddNodeResult } from "@workspace/hooks";
 import { useUIStore } from "@workspace/store";
+import { toast } from "@workspace/ui/components/ui/toast";
 import { NodeDataTypeSelector } from "@workspace/ui/components/selector/node-data-type-selector";
 import { NodeSemanticSelector } from "@workspace/ui/components/selector/node-semantic-selector";
 
@@ -21,7 +23,7 @@ export interface GraphContextMenuCanvasProps {
     simX?: number,
     simY?: number,
     viewId?: string,
-  ) => void;
+  ) => Promise<AddNodeResult> | void;
   simX?: number;
   simY?: number;
   viewId?: string;
@@ -51,8 +53,23 @@ export function GraphContextMenuCanvas({
         {(nodeType) => (
           <DropdownMenuSubContent>
             <NodeSemanticSelector
-              onSelect={(semanticId) => {
-                onAddNode?.(nodeType, semanticId, simX, simY, viewId);
+              onSelect={async (semanticId) => {
+                const result = await onAddNode?.(
+                  nodeType,
+                  semanticId,
+                  simX,
+                  simY,
+                  viewId,
+                );
+                if (result && result.failures.length > 0) {
+                  toast({
+                    variant: "destructive",
+                    title: t("节点已创建，但部分设置未保存"),
+                    description: result.failures
+                      .map((failure) => failure.operationId)
+                      .join(", "),
+                  });
+                }
                 onClose();
               }}
               onCreateRequest={() =>

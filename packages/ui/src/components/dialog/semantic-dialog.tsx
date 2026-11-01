@@ -20,6 +20,7 @@ import {
   DialogFooter,
 } from "@workspace/ui/components/ui/dialog";
 import { Button } from "@workspace/ui/components/ui/button";
+import { toast } from "@workspace/ui/components/ui/toast";
 import { Input } from "@workspace/ui/components/ui/input";
 import { Textarea } from "@workspace/ui/components/ui/textarea";
 import {
@@ -99,13 +100,22 @@ export function NodeSemanticDialog() {
             if (afterCreate.kind === "assign") {
               await onChangeNodeSemantic(afterCreate.nodeId, created.id);
             } else {
-              await onAddNode(
+              const added = await onAddNode(
                 afterCreate.nodeType,
                 created.id,
                 afterCreate.simX,
                 afterCreate.simY,
                 afterCreate.viewId,
               );
+              if (added.failures.length > 0) {
+                toast({
+                  variant: "destructive",
+                  title: translate("节点已创建，但部分设置未保存"),
+                  description: added.failures
+                    .map((failure) => failure.operationId)
+                    .join(", "),
+                });
+              }
             }
           }
         }
