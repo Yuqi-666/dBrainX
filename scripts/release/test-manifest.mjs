@@ -97,6 +97,7 @@ export const testFiles = [
   "backend/infrastructure/src/downloaders/yt-dlp-media-downloader.test.ts",
   "backend/infrastructure/src/downloaders/yt-dlp-media-probe.test.ts",
   "backend/infrastructure/src/event-bus/in-memory-event-bus.test.ts",
+  "backend/infrastructure/src/event-store/pocketbase-event-store.test.ts",
   "backend/infrastructure/src/storage/file-address.test.ts",
   "backend/infrastructure/src/storage/file-upload-sessions.test.ts",
   "backend/infrastructure/src/storage/media-cookie-cipher.test.ts",
