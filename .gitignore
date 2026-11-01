@@ -16,6 +16,10 @@ node_modules
 
 # Testing
 coverage
+# Playwright run output (scripts/e2e/playwright.config.ts)
+scripts/e2e/test-results/
+# esbuild output of scripts/run-ui-tests.mjs, removed on exit
+packages/*/.test-run-*/
 
 # Turbo
 .turbo

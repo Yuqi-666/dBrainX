@@ -15,9 +15,11 @@
     "build:desktop": "pnpm --filter desktop desktop:build",
     "release:check": "node scripts/release/check.mjs",
     "release:version": "node scripts/release/version.mjs",
-    "test:release": "node --experimental-strip-types --test --test-isolation=none scripts/lib/*.test.mjs scripts/policy/*.test.mjs scripts/release/*.test.mjs apps/server/src/desktop/security.test.ts apps/server/src/origin.test.ts backend/application/src/commands/file/hls-playlist.test.ts backend/application/src/commands/file/file-command.service.test.ts backend/domain/src/models/workspace/name.test.ts backend/infrastructure/src/database/request-scope.test.ts backend/infrastructure/src/storage/file-address.test.ts backend/infrastructure/src/storage/file-upload-sessions.test.ts backend/infrastructure/src/storage/multipart-envelope.test.ts backend/infrastructure/src/storage/pocketbase-media-analysis.test.ts backend/infrastructure/src/downloaders/vtt-parser.test.ts backend/infrastructure/src/downloaders/media-quality.test.ts backend/infrastructure/src/downloaders/media-sites.test.ts backend/infrastructure/src/downloaders/media-browser-detector.test.ts backend/infrastructure/src/downloaders/yt-dlp-args.test.ts backend/infrastructure/src/downloaders/yt-dlp-cookie.test.ts backend/infrastructure/src/downloaders/yt-dlp-media-downloader.test.ts backend/infrastructure/src/downloaders/yt-dlp-media-probe.test.ts backend/infrastructure/src/transcoders/ffmpeg-audio-transcoder.test.ts backend/infrastructure/src/storage/media-import-jobs.test.ts backend/infrastructure/src/storage/media-cookie-cipher.test.ts backend/application/src/commands/media/cookie-file.test.ts backend/application/src/commands/media/media-import.service.test.ts packages/utils/src/storage-limits.test.ts packages/utils/src/resource-references.test.ts packages/utils/src/node-content.test.ts apps/server/src/desktop/upgrade-backup.test.ts",
+    "test:release": "node --experimental-strip-types --test --test-isolation=none scripts/release/run-release-tests.mjs",
     "smoke:server": "node scripts/release/server-smoke.mjs",
-    "lint:gate": "node scripts/release/lint-gate.mjs"
+    "lint:gate": "node scripts/release/lint-gate.mjs",
+    "test:ui": "node scripts/run-ui-tests.mjs",
+    "test:e2e": "playwright test --config scripts/e2e/playwright.config.ts"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
@@ -25,11 +27,21 @@
     "concurrently": "^9.0.0",
     "prettier": "^3.7.4",
     "turbo": "^2.9.6",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "@playwright/test": "^1.64.1"
   },
   "packageManager": "pnpm@9.0.0",
+  "pnpm": {
+    "packageExtensions": {
+      "node-pty@1.1.0": {
+        "dependencies": {
+          "node-gyp": "^13.1.0"
+        }
+      }
+    }
+  },
   "engines": {
-    "node": ">=22"
+    "node": ">=24.21.0"
   },
   "license": "AGPL-3.0-only"
 }

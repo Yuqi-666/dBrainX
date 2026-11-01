@@ -6,7 +6,8 @@
   "scripts": {
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noemit"
+    "typecheck": "tsc --noemit",
+    "test": "node ../../scripts/run-ui-tests.mjs packages/api-client"
   },
   "dependencies": {
     "@trpc/client": "^11.0.0",
