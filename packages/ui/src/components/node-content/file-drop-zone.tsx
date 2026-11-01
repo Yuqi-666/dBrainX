@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
+import { attachMediaFile } from "@workspace/ui/lib/media-attach";
 import { Input } from "@workspace/ui/components/ui/input";
 import { ResourceSelectorDialog } from "@workspace/ui/components/selector/resource-selector";
 import { Progress } from "@workspace/ui/components/ui/progress";
@@ -33,6 +34,7 @@ import {
   matchesAccept,
   useFileUpload,
   useStorageLimits,
+  uploadAttachment,
   uploadFile,
   analyzePdf,
   cancelMediaImport,
@@ -196,19 +198,6 @@ interface FilePreview {
   height?: number;
 }
 
-/** Creates an object URL for `file`, runs `consume`, and always revokes it again. */
-async function withObjectUrl<T>(
-  file: File,
-  consume: (url: string) => Promise<T>,
-): Promise<T> {
-  const url = URL.createObjectURL(file);
-  try {
-    return await consume(url);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
 /**
  * Intrinsic size of the image at `src`.
  *
@@ -272,14 +261,6 @@ async function generatePreviewFromUrl(
     );
     return {};
   }
-}
-
-/** The preview of a freshly picked file: it has no address yet, so give it one. */
-function generatePreview(
-  file: File,
-  variant: LocalVariant,
-): Promise<FilePreview> {
-  return withObjectUrl(file, (src) => generatePreviewFromUrl(src, variant));
 }
 
 /**
@@ -847,11 +828,15 @@ function UploadDropZone({
   const Icon = config.icon;
 
   /**
-   * The node's freshest `content`, read when a write is built. The write itself
-   * stays an awaited `NodeService.upsert` (not the writer's `patchContent`)
-   * because every media path below reports `onUploaded` / drops its `packaging`
-   * note only once the node is really written, and because a failed write has
-   * to reach `onUploadError`.
+   * The node's freshest `content`, read when a write is built.
+   *
+   * The upload path no longer reads it — a completed upload attaches through
+   * `*.attachFile`, which the server answers with the canonical node — so this
+   * is only for the paths that still build a content half here: a referenced
+   * library resource and a site import. Those stay an awaited
+   * `NodeService.upsert` (not the writer's `patchContent`) because they report
+   * `onUploaded` / drop their `packaging` note only once the node is really
+   * written, and because a failed write has to reach `onUploadError`.
    */
   const { liveContent } = useNodeContentWriter<Record<string, unknown>>(
     nodeId,
@@ -1045,55 +1030,38 @@ function UploadDropZone({
     // Outlives this dialog: the key lets a reopened zone subscribe to the
     // upload that started before it unmounted.
     key: `${nodeId}:${variant}`,
-    upload: uploadFile,
-    // `file` comes straight from the uploader — reading `fileItems[0]` here
-    // would see the pre-upload state and silently skip post-processing.
-    onSuccess: async (url: string, file: File) => {
-      try {
-        if (variant === "pdf") {
-          // Parsing happens on the server: it takes a PDF parser and a
-          // rasterizer, neither of which belongs in the client bundle. The
-          // blob is already stored, so only its address is sent over.
-          const patch = await analyzePdfUpload(url, file);
-          await writeContentPatch(nodeId, liveContent(), patch);
-          onUploaded?.();
-          showUploadSuccessToast(file);
-          return;
-        }
-
-        if (variant === "video") {
-          // Packaging happens on the server as well, and for a stronger reason
-          // than for a PDF: the codec the file arrived in may be one this
-          // browser cannot decode at all. The node only learns it can play the
-          // video once the playlist is back, so the drop zone stays up with a
-          // "packaging" note until then.
-          setPackaging(true);
-          try {
-            const patch = await packageVideoUpload(url, file);
-            await writeContentPatch(nodeId, liveContent(), patch);
-          } finally {
-            setPackaging(false);
-          }
-          onUploaded?.();
-          showUploadSuccessToast(file);
-          return;
-        }
-
-        const preview = await generatePreview(file, variant);
-        // Cache what the browser just measured, so a later reference reads it
-        // off the resource record instead of loading the blob to measure it
-        // again. Best effort: the helper never throws.
-        await cacheResourceMeasurements(url, preview);
-
-        const patch = buildNodeUpdates(variant, url, file, preview);
-        await writeContentPatch(nodeId, liveContent(), patch);
-        onUploaded?.();
-        showUploadSuccessToast(file);
-      } catch (error) {
-        onUploadError?.(
-          error instanceof Error ? error : new Error("Upload failed"),
-        );
+    /**
+     * Stores the bytes, then attaches them through this type's own operation
+     * (plan item 41).
+     *
+     * The operation takes `{ uploadId }` — the id of the stored upload result —
+     * and the server reads that result to fill the file address, size, duration
+     * and page count. Nothing about the file is measured or assembled here, so
+     * there is no per-type branch left: the type only picks the operation
+     * (`media-attach.ts`). Returning the url *after* the attach is what makes
+     * `useFileUpload` report a refused attach as a failed upload, with the
+     * operation's code in the item's error line, and leaves the node untouched.
+     */
+    upload: async (file, onProgress, signal) => {
+      const attachment = await uploadAttachment(file, onProgress, signal);
+      const outcome = await attachMediaFile({
+        nodeId,
+        mediaType: variant,
+        uploadId: attachment.id,
+      });
+      if (!outcome.ok) {
+        // The server's message already starts with the code; only a client-side
+        // refusal (a type with no operation) has to have it added.
+        const detail = outcome.message.startsWith(`${outcome.code}:`)
+          ? outcome.message
+          : `${outcome.code}: ${outcome.message}`;
+        throw new Error(detail);
       }
+      return attachment.url;
+    },
+    onSuccess: (_url, file) => {
+      onUploaded?.();
+      showUploadSuccessToast(file);
     },
     onError: (error) => {
       onUploadError?.(error);
