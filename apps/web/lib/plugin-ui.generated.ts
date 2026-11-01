@@ -11,4 +11,6 @@ export interface PluginUiDescriptor {
   readonly entry: string;
 }
 
-export const pluginUiDescriptors: readonly PluginUiDescriptor[] = [];
+export const pluginUiDescriptors: readonly PluginUiDescriptor[] = [
+  { pluginId: "dbrainx.builtin", entry: "@plugin/builtin/ui" },
+];

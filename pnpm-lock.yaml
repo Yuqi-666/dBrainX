@@ -1142,6 +1142,12 @@ importers:
       '@cfworker/json-schema':
         specifier: ^4.1.4
         version: 4.1.4
+      '@workspace/interfaces':
+        specifier: workspace:*
+        version: link:../../packages/interfaces
+      '@workspace/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
     devDependencies:
       '@types/node':
         specifier: ^25.1.0

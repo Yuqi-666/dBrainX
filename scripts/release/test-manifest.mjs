@@ -68,6 +68,9 @@ export const testFiles = [
   "packages/utils/src/resource-references.test.ts",
   "packages/utils/src/storage-limits.test.ts",
 
+  // Plugin package tests that need no DOM or browser globals.
+  "plugins/builtin/server/node-types.test.ts",
+
   // Backend tests. These construct their own fakes; none needs PocketBase.
   "backend/application/src/commands/file/file-command.service.test.ts",
   "backend/application/src/commands/file/hls-playlist.test.ts",

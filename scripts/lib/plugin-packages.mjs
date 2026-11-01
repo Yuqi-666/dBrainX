@@ -23,12 +23,17 @@
  *   entry, either the entry file (`"./server/index.ts"`) or its directory
  *   (`"./server"`). A directory ships recursively, so every file a server
  *   entry imports at run time must live inside it or be declared below.
- * - `nodeTypes` (optional): path relative to the plugin directory of the node
- *   type definition entry, file or directory, packed beside the server entry.
+ * - `nodeTypes` (optional): either the array of type ids the manifest declares
+ *   (the `PluginManifest` shape in the architecture document) or, in the older
+ *   form, the path of the node type definition entry. `nodeTypesEntry` is the
+ *   path, file or directory, packed beside the server entry. A manifest may
+ *   declare the path as `nodeTypesEntry` (preferred), as `nodeTypes` (legacy),
+ *   or both with the same value; a list of ids under `nodeTypes` never names a
+ *   path and does not conflict with `nodeTypesEntry`.
  *
- * `uiEntry`, `serverEntry`, and `nodeTypesEntry` are accepted aliases: the
- * architecture document names the fields that way. Declaring both a field and
- * its alias is an error, so one manifest cannot mean two things.
+ * `uiEntry` and `serverEntry` are accepted aliases: the architecture document
+ * names the fields that way. Declaring both a field and its alias is an error,
+ * so one manifest cannot mean two things.
  *
  * Paths are resolved inside the plugin directory and must stay there, must
  * exist, and must not be absolute. A link that resolves outside the plugin
@@ -72,6 +77,12 @@ async function packageName(pluginDirectory) {
     if (typeof pkg.name === "string" && pkg.name.trim() !== "") return pkg.name;
   }
   return `@plugin/${basename(pluginDirectory)}`;
+}
+
+function nonEmptyString(value, name, file) {
+  if (typeof value !== "string" || value.trim() === "")
+    throw new Error(`${file}: "${name}" must be a non-empty string`);
+  return value;
 }
 
 /** Resolve one declared plugin path and prove it stays inside the plugin. */
@@ -122,7 +133,7 @@ async function uiSpecifier(pluginDirectory, name, declared, file) {
  * @returns {Promise<Array<{directory: string, directoryPath: string,
  *   id: string, version: string, ui: string, server: string,
  *   serverPath: string, nodeTypes: string | undefined,
- *   nodeTypesPath: string | undefined}>>}
+ *   nodeTypesPath: string | undefined, nodeTypeIds: string[] | undefined}>>}
  */
 export async function readPluginManifests(root) {
   const pluginsRoot = join(root, "plugins");
@@ -169,14 +180,51 @@ export async function readPluginManifests(root) {
       declaredServer,
       file,
     );
-    const declaredNodeTypes = field(manifest, "nodeTypes", file);
+    const nodeTypesValue = manifest.nodeTypes;
+    if (
+      nodeTypesValue !== undefined &&
+      typeof nodeTypesValue !== "string" &&
+      !Array.isArray(nodeTypesValue)
+    )
+      throw new Error(
+        `${file}: "nodeTypes" must be an array of type ids or a path`,
+      );
+    const nodeTypeIds = Array.isArray(nodeTypesValue)
+      ? nodeTypesValue.map((id, index) => {
+          if (typeof id !== "string" || id.trim() === "")
+            throw new Error(
+              `${file}: "nodeTypes[${index}]" must be a non-empty string`,
+            );
+          return id;
+        })
+      : undefined;
+    const declaredNodeTypesEntry =
+      manifest.nodeTypesEntry === undefined
+        ? undefined
+        : nonEmptyString(manifest.nodeTypesEntry, "nodeTypesEntry", file);
+    const legacyNodeTypesPath =
+      typeof nodeTypesValue === "string"
+        ? nonEmptyString(nodeTypesValue, "nodeTypes", file)
+        : undefined;
+    if (
+      declaredNodeTypesEntry !== undefined &&
+      legacyNodeTypesPath !== undefined &&
+      declaredNodeTypesEntry !== legacyNodeTypesPath
+    )
+      throw new Error(
+        `${file}: "nodeTypes" and its alias "nodeTypesEntry" disagree; declare one`,
+      );
+    const declaredNodeTypesPath =
+      declaredNodeTypesEntry ?? legacyNodeTypesPath;
     const nodeTypes =
-      declaredNodeTypes === undefined
+      declaredNodeTypesPath === undefined
         ? undefined
         : await declaredPath(
             directoryPath,
-            "nodeTypes",
-            declaredNodeTypes,
+            declaredNodeTypesEntry === undefined
+              ? "nodeTypes"
+              : "nodeTypesEntry",
+            declaredNodeTypesPath,
             file,
           );
     plugins.push({
@@ -187,8 +235,9 @@ export async function readPluginManifests(root) {
       ui: await uiSpecifier(directoryPath, "ui", declaredUi, file),
       server: declaredServer,
       serverPath: server.path,
-      nodeTypes: declaredNodeTypes,
+      nodeTypes: declaredNodeTypesPath,
       nodeTypesPath: nodeTypes?.path,
+      nodeTypeIds,
     });
   }
   return plugins.sort((a, b) => a.id.localeCompare(b.id));
@@ -238,7 +287,10 @@ async function copyEntry(source, declared, destination) {
 /**
  * Copy every plugin manifest and its declared server/node type entry into
  * `destination/plugins/<directory>`, preserving the manifest-relative layout so
- * the plugin host resolves declared paths inside the packaged tree.
+ * the plugin host resolves declared paths inside the packaged tree. A plugin's
+ * `types/` directory (§4.10.2) ships as well: the node type entry imports its
+ * content schemas from there, so omitting it would package an entry whose
+ * relative imports cannot resolve.
  */
 export async function preparePlugins(root, destination) {
   const plugins = await readPluginManifests(root);
@@ -252,6 +304,12 @@ export async function preparePlugins(root, destination) {
     await copyEntry(plugin.serverPath, plugin.server, target);
     if (plugin.nodeTypesPath !== undefined)
       await copyEntry(plugin.nodeTypesPath, plugin.nodeTypes, target);
+    const typesDirectory = join(plugin.directoryPath, "types");
+    if (existsSync(typesDirectory))
+      await cp(typesDirectory, join(target, "types"), {
+        recursive: true,
+        dereference: true,
+      });
   }
   return plugins;
 }

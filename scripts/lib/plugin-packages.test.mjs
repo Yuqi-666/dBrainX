@@ -94,6 +94,30 @@ describe("plugin manifests", () => {
     }
   });
 
+  it("accepts the design-doc nodeTypes id array beside nodeTypesEntry", async () => {
+    const root = await fixture({
+      "plugins/builtin/plugin.json": manifest({
+        id: "example.builtin",
+        version: "0.1.0",
+        ui: "./ui/index.ts",
+        server: "./server/index.ts",
+        nodeTypesEntry: "./server/node-types.ts",
+        nodeTypes: ["text", "video"],
+      }),
+      "plugins/builtin/ui/index.ts": "",
+      "plugins/builtin/server/index.ts": "",
+      "plugins/builtin/server/node-types.ts": "types",
+    });
+    try {
+      const [plugin] = await readPluginManifests(root);
+      assert.deepEqual(plugin.nodeTypeIds, ["text", "video"]);
+      assert.equal(plugin.nodeTypes, "./server/node-types.ts");
+      assert.ok(plugin.nodeTypesPath);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("rejects a relative ui path that does not exist", async () => {
     const root = await fixture({
       "plugins/ghost/server/index.ts": "",
@@ -289,6 +313,7 @@ describe("plugin packaging", () => {
       "plugins/example/ui/index.ts": "ui",
       "plugins/example/server/index.ts": 'import "./node-types.ts";',
       "plugins/example/server/node-types.ts": "types",
+      "plugins/example/types/single/text.ts": "text content",
     });
     try {
       const destination = join(root, "out");
@@ -306,6 +331,10 @@ describe("plugin packaging", () => {
       assert.equal(
         await readFile(join(packaged, "server", "node-types.ts"), "utf8"),
         "types",
+      );
+      assert.equal(
+        await readFile(join(packaged, "types", "single", "text.ts"), "utf8"),
+        "text content",
       );
     } finally {
       await rm(root, { recursive: true, force: true });

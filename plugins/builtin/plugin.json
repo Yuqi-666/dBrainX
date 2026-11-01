@@ -1,0 +1,23 @@
+{
+  "id": "dbrainx.builtin",
+  "name": "dBrainX builtin",
+  "version": "0.1.0",
+  "apiVersion": "1",
+  "serverEntry": "./server/index.ts",
+  "nodeTypesEntry": "./server/node-types.ts",
+  "uiEntry": "./ui/index.ts",
+  "dependencies": [],
+  "nodeTypes": [
+    "text",
+    "rich-text",
+    "image",
+    "pdf",
+    "video",
+    "audio",
+    "webpage",
+    "website",
+    "collection",
+    "database"
+  ],
+  "permissions": []
+}
