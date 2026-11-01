@@ -16,7 +16,7 @@
 
 ## 检查
 
-[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) 中的 `checks` 作业是唯一的检查流水线。仓库不再保留第二套本地 gate。该作业从锁文件安装依赖，并使用只读令牌。然后它运行 `release:check`、类型检查、lint 基线、发行测试、Web 与 Server 构建、Server smoke 测试和 actionlint。推送 `develop` 或 `main` 本身不会创建发行。
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) 中的 `checks` 作业是唯一的检查流水线。仓库不再保留第二套本地 gate。该作业从锁文件安装依赖，并使用只读令牌。然后它运行 `release:check`、类型检查、lint 基线、发行测试、UI 测试、服务层测试、Web 与 Server 构建、Server smoke 测试和 actionlint。UI 测试与服务层测试是单独步骤，因为 [`test-manifest.mjs`](../../scripts/release/test-manifest.mjs) 把这些文件排除在发行测试之外，并写明由这两条命令负责覆盖。推送 `develop` 或 `main` 本身不会创建发行。
 
 推送前请在本地运行同样的命令。smoke 测试需要已构建的 Server，因此先执行构建。它使用隔离数据库，绝不指向线上服务。
 
@@ -26,6 +26,8 @@ pnpm release:check
 pnpm check-types
 pnpm lint:gate
 pnpm test:release
+pnpm test:ui
+pnpm --filter @workspace/services test
 pnpm build
 pnpm smoke:server
 bash scripts/release/check-workflows.sh

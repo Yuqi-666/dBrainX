@@ -16,7 +16,7 @@ The `checks`, container build, and desktop build jobs check out the submodule to
 
 ## Checks
 
-The `checks` job in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) is the only check pipeline. The repository keeps no second local gate. The job installs from the lockfile and uses a read-only token. Then it runs `release:check`, the type check, the lint baseline, the release tests, the web and server build, the server smoke test, and actionlint. A push to `develop` or `main` does not create a release.
+The `checks` job in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) is the only check pipeline. The repository keeps no second local gate. The job installs from the lockfile and uses a read-only token. Then it runs `release:check`, the type check, the lint baseline, the release tests, the UI tests, the services tests, the web and server build, the server smoke test, and actionlint. The UI and services tests are separate steps because [`test-manifest.mjs`](../scripts/release/test-manifest.mjs) keeps those files out of the release tests and names these commands as the runners that cover them. A push to `develop` or `main` does not create a release.
 
 Run the same commands locally before you push. The smoke test needs the built server, so build first. It uses an isolated database and never a live service.
 
@@ -26,6 +26,8 @@ pnpm release:check
 pnpm check-types
 pnpm lint:gate
 pnpm test:release
+pnpm test:ui
+pnpm --filter @workspace/services test
 pnpm build
 pnpm smoke:server
 bash scripts/release/check-workflows.sh

@@ -44,6 +44,10 @@ jobs:
       - run: pnpm check-types
       - run: pnpm lint:gate
       - run: pnpm test:release
+      # `test-manifest.mjs` excludes these files from the release tests and
+      # names these runners as their replacement, so CI has to run them.
+      - run: pnpm test:ui
+      - run: pnpm --filter @workspace/services test
       - run: pnpm build
       # The built server runs the isolated two-user smoke test here. A version
       # tag cannot be moved or deleted, so a server regression must fail on the
