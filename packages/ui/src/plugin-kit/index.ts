@@ -20,11 +20,23 @@
 export { FileDropZone } from "../components/node-content/file-drop-zone";
 export {
   useNodeContentWriter,
+  createContentWriteQueue,
+  OPERATION_NOT_DECLARED,
+  type ContentInvocation,
+  type ContentWriteFailure,
+  type ContentWriteOutcome,
+  type ContentWriteQueue,
   type NodeContentWriter,
 } from "../components/node-content/use-node-content-writer";
 export {
-  mergeNodePatches,
+  coalesceIntents,
+  intentPreview,
+  isMergeableOperation,
+  isReplayableOperation,
   queuedContent,
+  translateNodePatch,
+  type ContentWriteIntent,
+  type OperationWriteIntent,
 } from "../components/node-content/node-content-patches";
 
 /** The media layer's own types (players, timeline, notes). */

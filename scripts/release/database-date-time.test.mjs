@@ -13,7 +13,7 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const result = await build({
   stdin: {
     contents: `
-      export { queuedContent, mergeNodePatches } from './packages/ui/src/components/node-content/node-content-patches.ts';
+      export { queuedContent, coalesceIntents } from './packages/ui/src/components/node-content/node-content-patches.ts';
       export { rowsToEvents, eventToCells, selectionToRow, readEventReadout } from './packages/dataview/src/views/calendar/core/schema.ts';
       export { DatabaseContent, DatabaseField } from './backend/domain/src/models/node/value-objects.ts';
     `,
@@ -34,7 +34,7 @@ new Function("module", "exports", "require", result.outputFiles[0].text)(
 );
 const {
   queuedContent,
-  mergeNodePatches,
+  coalesceIntents,
   DatabaseContent,
   DatabaseField,
   rowsToEvents,
@@ -180,21 +180,48 @@ test("one calendar drag queues both date changes without reverting the start", (
         ? { ...row, cells: { ...row.cells, [write.fieldId]: write.cell } }
         : row,
     );
-    pending.push({ content: { rows } });
+    pending.push({
+      kind: "operation",
+      operationId: "database.updateCell",
+      input: {
+        rowId: write.rowId,
+        fieldId: write.fieldId,
+        cell: write.cell,
+      },
+      preview: { content: { rows } },
+    });
   }
-  const merged = mergeNodePatches(pending);
-  assert.equal(merged.content.rows[0].cells.start.date, "2026-10-13T14:35");
-  assert.equal(merged.content.rows[0].cells.end.date, "2026-10-13T15:45");
+  const writes = coalesceIntents(pending);
+  assert.equal(writes.length, 2);
+  assert.deepEqual(
+    writes.map((write) => write.operationId),
+    ["database.updateCell", "database.updateCell"],
+  );
+  assert.equal(writes[0].input.cell.date, "2026-10-13T14:35");
+  assert.equal(writes[1].input.cell.date, "2026-10-13T15:45");
+  assert.equal(
+    writes[1].preview.content.rows[0].cells.start.date,
+    "2026-10-13T14:35",
+  );
   assert.equal(content.rows[0].cells.start.date, "2026-10-12T14:35");
 });
 
-test("queued node writes preserve separate content keys and top-level changes", () => {
-  const rows = [{ id: "row", cells: {} }];
-  const pending = [
-    { content: { rows } },
-    { title: "标题", content: { fields: calendarFields } },
-  ];
-  const merged = mergeNodePatches(pending);
-  assert.deepEqual(merged.content, { rows, fields: calendarFields });
-  assert.equal(merged.title, "标题");
+test("queued writes keep different operations separate and in order", () => {
+  const writes = coalesceIntents([
+    {
+      kind: "operation",
+      operationId: "database.updateCell",
+      input: { rowId: "row", fieldId: "start", cell: { type: "date" } },
+    },
+    {
+      kind: "operation",
+      operationId: "node.setTitle",
+      input: { title: "标题" },
+    },
+  ]);
+  assert.deepEqual(
+    writes.map((write) => write.operationId),
+    ["database.updateCell", "node.setTitle"],
+  );
+  assert.equal(writes[1].input.title, "标题");
 });

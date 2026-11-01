@@ -254,12 +254,16 @@ function idOfTarget(target: OperationTarget): string {
  * leave a half-written store behind.
  */
 function applyOperationResult(
-  operationId: GraphOperationId,
+  operationId: string,
   target: OperationTarget,
   result: OperationResult,
 ): void {
-  const definition: GraphOperationDefinition | undefined =
-    GRAPH_OPERATIONS[operationId];
+  // A node type's own operation (`text.setDocument`, a plugin's `aws.monitor.poll`)
+  // is runtime data (§3.5.4.1), so the client table cannot hold every id; an id
+  // that is not in it still receives a `node` snapshot, which is applied below.
+  const definition: GraphOperationDefinition | undefined = (
+    GRAPH_OPERATIONS as Record<string, GraphOperationDefinition | undefined>
+  )[operationId];
   const store = useDataStore.getState();
 
   if (result.node !== undefined) {
@@ -286,7 +290,7 @@ function applyOperationResult(
  * the same function, so there is one request shape and one apply rule.
  */
 export async function invokeGraphOperation(
-  operationId: GraphOperationId,
+  operationId: string,
   target: OperationTarget,
   input: unknown,
   options?: GraphInvokeOptions,

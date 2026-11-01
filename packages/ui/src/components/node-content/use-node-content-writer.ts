@@ -4,67 +4,503 @@
 
 import { useCallback, useRef } from "react";
 import type { NodeData, NodeDataType, NodeId } from "@workspace/interfaces";
-import { NodeService } from "@workspace/services";
+import {
+  asOperationInvokeError,
+  type OperationResult,
+  type OperationTarget,
+} from "@workspace/api-client";
+import { NodeService, type GraphInvokeOptions } from "@workspace/services";
 import { useDataStore } from "@workspace/store";
-import { queuedContent, mergeNodePatches } from "./node-content-patches";
+import { getNodeContentDescriptor } from "./registry";
+import {
+  coalesceIntents,
+  intentPreview,
+  isReplayableOperation,
+  queuedContent,
+  translateNodePatch,
+  type ContentWriteIntent,
+  type OperationWriteIntent,
+} from "./node-content-patches";
+
+/**
+ * One queued write exactly as `operation.invoke` receives it (§4.3.2).
+ *
+ * The queue element used to be a `Partial<NodeData>`; it is this now, so a
+ * drain can only send an operation id and that operation's own input.
+ */
+export interface ContentInvocation {
+  readonly operationId: string;
+  readonly target: OperationTarget;
+  readonly input: Record<string, unknown>;
+  readonly expectedVersion?: string;
+  readonly correlationId?: string;
+}
+
+/** What one `apply` did. A refusal never writes and never retries. */
+export type ContentWriteOutcome =
+  | {
+      readonly ok: true;
+      readonly operationId: string;
+      /** `result.node.updatedAt` — the version the next write carries. */
+      readonly updatedAt?: string;
+    }
+  | {
+      readonly ok: false;
+      readonly operationId: string;
+      /** The server's code, or `OPERATION_NOT_DECLARED` for a local refusal. */
+      readonly code: string;
+      readonly message: string;
+    };
+
+/** A write that failed; its input stays held so the draft is recoverable. */
+export interface ContentWriteFailure {
+  readonly operationId: string;
+  readonly code: string;
+  readonly message: string;
+  readonly input: Record<string, unknown>;
+}
+
+/** The code a write gets when this node type declares no such operation. */
+export const OPERATION_NOT_DECLARED = "OPERATION_NOT_DECLARED";
+
+/** The node operations every node type accepts (`plugins/builtin/server/operations.ts`). */
+const SHARED_NODE_OPERATIONS: ReadonlySet<string> = new Set([
+  "node.setTitle",
+  "node.setAbstract",
+  "node.setSemanticId",
+  "node.setStateData",
+  "node.setIcon",
+  "node.clearIcon",
+  "node.setCover",
+  "node.clearCover",
+  "node.setPermission",
+  "node.pin",
+  "node.unpin",
+  "node.addTag",
+  "node.removeTag",
+]);
+
+/**
+ * Whether a node type may carry an operation id.
+ *
+ * A metadata operation targets any node; a type operation is named
+ * `<type>.<verb>` and needs a registered descriptor. An unregistered type
+ * therefore has no edit path at all — it is refused instead of falling back to
+ * a whole-node patch that would look saved.
+ */
+function declaresByRegistry(nodeType: string, operationId: string): boolean {
+  if (SHARED_NODE_OPERATIONS.has(operationId)) return true;
+  if (getNodeContentDescriptor(nodeType) === undefined) return false;
+  return operationId.startsWith(`${nodeType}.`);
+}
+
+let correlationSeed = 0;
+
+function newCorrelationId(): string {
+  correlationSeed += 1;
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `content-${Date.now().toString(36)}-${correlationSeed}`
+  );
+}
+
+/** Test seams; a real writer leaves every one of them out. */
+export interface ContentWriteQueueOptions {
+  nodeId: NodeId;
+  nodeType: string;
+  declares?: (operationId: string) => boolean;
+  isRegistered?: () => boolean;
+  read?: (nodeId: NodeId) => NodeData | undefined;
+  invoke?: (invocation: ContentInvocation) => Promise<OperationResult>;
+  writeLegacy?: (nodeId: NodeId, patch: Partial<NodeData>) => Promise<void>;
+  schedule?: (task: () => void) => void;
+  onError?: (failure: ContentWriteFailure) => void;
+}
+
+/** The serial write queue one node-content host owns (§3.5.4.5). */
+export interface ContentWriteQueue {
+  readonly nodeId: NodeId;
+  readonly nodeType: string;
+  apply(
+    operationId: string,
+    input: Record<string, unknown>,
+    preview?: Partial<NodeData>,
+  ): Promise<ContentWriteOutcome>;
+  write(intent: ContentWriteIntent): Promise<ContentWriteOutcome>;
+  liveContent<C>(fallback: C): C;
+  failure(): ContentWriteFailure | null;
+  held(): readonly ContentWriteIntent[];
+  retryHeld(): Promise<void>;
+  pending(): number;
+}
+
+interface Waiter {
+  readonly resolve: (outcome: ContentWriteOutcome) => void;
+}
+
+interface QueuedWrite {
+  readonly intent: ContentWriteIntent;
+  /** One per caller whose input this write carries (a coalesced burst). */
+  readonly waiters: readonly Waiter[];
+}
+
+function failureOf(error: unknown): { code: string; message: string } {
+  const invokeError = asOperationInvokeError(error);
+  return { code: invokeError.code, message: invokeError.message };
+}
+
+function invocationOf(
+  nodeId: NodeId,
+  intent: OperationWriteIntent,
+  version: string | undefined,
+): ContentInvocation {
+  return {
+    operationId: intent.operationId,
+    target: { kind: "node", nodeId },
+    input: intent.input,
+    ...(version === undefined ? {} : { expectedVersion: version }),
+    correlationId: newCorrelationId(),
+  };
+}
+
+/**
+ * Create the queue one node-content host owns.
+ *
+ * It is a plain function, not a hook, so the concurrency rules can be tested
+ * without a renderer: a burst of `apply` calls in one tick reaches the server as
+ * one invocation, different operations keep their order, every write carries the
+ * `updatedAt` of the previous reply, and a failure halts the queue instead of
+ * replaying itself.
+ */
+export function createContentWriteQueue(
+  options: ContentWriteQueueOptions,
+): ContentWriteQueue {
+  const { nodeId, nodeType } = options;
+  const declares =
+    options.declares ??
+    ((operationId: string) => declaresByRegistry(nodeType, operationId));
+  const isRegistered =
+    options.isRegistered ??
+    (() => getNodeContentDescriptor(nodeType) !== undefined);
+  const read =
+    options.read ?? ((id: NodeId) => useDataStore.getState().nodes.get(id));
+  const invoke =
+    options.invoke ??
+    ((invocation: ContentInvocation) =>
+      NodeService.invokeTypeOperation(
+        invocation.operationId,
+        nodeId,
+        invocation.input,
+        invokeOptionsOf(invocation),
+      ));
+  const writeLegacy =
+    options.writeLegacy ??
+    ((id: NodeId, patch: Partial<NodeData>) =>
+      NodeService.upsert(id, patch).then(() => undefined));
+  const schedule =
+    options.schedule ?? ((task: () => void) => queueMicrotask(task));
+  const onError =
+    options.onError ??
+    ((failed: ContentWriteFailure) =>
+      console.error(
+        `[${nodeType} content] ${failed.operationId} was refused: ${failed.code}`,
+        failed.message,
+      ));
+
+  const queue: QueuedWrite[] = [];
+  let heldIntents: ContentWriteIntent[] = [];
+  let lastFailure: ContentWriteFailure | null = null;
+  let draining = false;
+  let drainScheduled = false;
+  let halted = false;
+  /** The server version the next write names as `expectedVersion`. */
+  let version: string | undefined = read(nodeId)?.updatedAt;
+
+  const project = (preview: Partial<NodeData> | undefined): void => {
+    if (preview === undefined) return;
+    const live = read(nodeId);
+    if (live === undefined) return;
+    const next = { ...live, ...preview } as NodeData;
+    if (preview.content !== undefined) {
+      next.content = {
+        ...(live.content as Record<string, unknown>),
+        ...(preview.content as Record<string, unknown>),
+      } as NodeData["content"];
+    }
+    useDataStore.getState().upsertNode(next);
+  };
+
+  const settle = (write: QueuedWrite, outcome: ContentWriteOutcome): void => {
+    for (const waiter of write.waiters) waiter.resolve(outcome);
+  };
+
+  const operationIdOf = (intent: ContentWriteIntent): string =>
+    intent.kind === "operation" ? intent.operationId : "node.patch";
+
+  const inputOf = (intent: ContentWriteIntent): Record<string, unknown> =>
+    intent.kind === "operation" ? intent.input : {};
+
+  const fail = (write: QueuedWrite, code: string, message: string): void => {
+    const operationId = operationIdOf(write.intent);
+    lastFailure = { operationId, code, message, input: inputOf(write.intent) };
+    halted = true;
+    // The write that failed and everything behind it are held, not dropped:
+    // the editor keeps showing the draft, and only a replayable intent may be
+    // retried (never an insertion or an attachment).
+    heldIntents = [
+      write.intent,
+      ...queue.map((queued) => queued.intent),
+      ...heldIntents,
+    ];
+    for (const queued of queue.splice(0)) {
+      settle(queued, { ok: false, operationId, code, message });
+    }
+    settle(write, { ok: false, operationId, code, message });
+    onError(lastFailure);
+  };
+
+  const send = async (write: QueuedWrite): Promise<void> => {
+    const { intent } = write;
+
+    if (intent.kind === "legacy") {
+      if (!isRegistered()) {
+        fail(
+          write,
+          OPERATION_NOT_DECLARED,
+          `node type "${nodeType}" is not registered, so it has no edit path`,
+        );
+        return;
+      }
+      NodeService.cancelPendingUpdate(nodeId);
+      // `NodeService.upsert` replaces `content` whole, so a patch that names one
+      // key has to be merged onto the freshest content or it drops its siblings.
+      const live = read(nodeId);
+      const patch: Partial<NodeData> =
+        intent.patch.content === undefined || live === undefined
+          ? intent.patch
+          : {
+              ...intent.patch,
+              content: {
+                ...(live.content as Record<string, unknown>),
+                ...(intent.patch.content as Record<string, unknown>),
+              } as NodeData["content"],
+            };
+      try {
+        await writeLegacy(nodeId, patch);
+        settle(write, { ok: true, operationId: "node.patch" });
+      } catch (error) {
+        const { code, message } = failureOf(error);
+        fail(write, code, message);
+      }
+      return;
+    }
+
+    if (!declares(intent.operationId)) {
+      fail(
+        write,
+        OPERATION_NOT_DECLARED,
+        `node type "${nodeType}" declares no operation "${intent.operationId}"`,
+      );
+      return;
+    }
+
+    try {
+      const result = await invoke(invocationOf(nodeId, intent, version));
+      const updatedAt = result.node?.updatedAt;
+      if (updatedAt !== undefined) version = updatedAt;
+      settle(write, {
+        ok: true,
+        operationId: intent.operationId,
+        ...(updatedAt === undefined ? {} : { updatedAt }),
+      });
+    } catch (error) {
+      const { code, message } = failureOf(error);
+      fail(write, code, message);
+    }
+  };
+
+  /** Take the head of the queue plus every intent it may legally absorb. */
+  const takeCoalescedHead = (): QueuedWrite | undefined => {
+    const head = queue.shift();
+    if (head === undefined) return undefined;
+    let write = head;
+    while (queue.length > 0) {
+      const next = queue[0] as QueuedWrite;
+      const merged = coalesceIntents([write.intent, next.intent]);
+      if (merged.length !== 1) break;
+      queue.shift();
+      write = {
+        intent: merged[0] as ContentWriteIntent,
+        waiters: [...write.waiters, ...next.waiters],
+      };
+    }
+    return write;
+  };
+
+  const drain = async (): Promise<void> => {
+    if (draining) return;
+    draining = true;
+    try {
+      // Re-check the queue every round, so a write raised while one is in
+      // flight is picked up instead of waiting for the next gesture.
+      while (queue.length > 0 && !halted) {
+        const write = takeCoalescedHead();
+        if (write === undefined) break;
+        await send(write);
+      }
+    } finally {
+      draining = false;
+      if (queue.length > 0 && !halted) scheduleDrain();
+    }
+  };
+
+  function scheduleDrain(): void {
+    if (draining || drainScheduled) return;
+    drainScheduled = true;
+    schedule(() => {
+      drainScheduled = false;
+      void drain();
+    });
+  }
+
+  const enqueue = (intent: ContentWriteIntent): Promise<ContentWriteOutcome> =>
+    new Promise((resolve) => {
+      if (halted) {
+        heldIntents = [...heldIntents, intent];
+        resolve({
+          ok: false,
+          operationId: operationIdOf(intent),
+          code: lastFailure?.code ?? OPERATION_NOT_DECLARED,
+          message: lastFailure?.message ?? "the write queue is halted",
+        });
+        return;
+      }
+      queue.push({ intent, waiters: [{ resolve }] });
+      scheduleDrain();
+    });
+
+  const write = async (
+    intent: ContentWriteIntent,
+  ): Promise<ContentWriteOutcome> => {
+    project(intent.kind === "legacy" ? intent.patch : intent.preview);
+    return enqueue(intent);
+  };
+
+  const apply = (
+    operationId: string,
+    input: Record<string, unknown>,
+    preview?: Partial<NodeData>,
+  ): Promise<ContentWriteOutcome> => {
+    const resolved = preview ?? intentPreview(operationId, input);
+    return write({
+      kind: "operation",
+      operationId,
+      input,
+      ...(resolved === undefined ? {} : { preview: resolved }),
+    });
+  };
+
+  const liveContent = <C>(fallback: C): C => {
+    const live = read(nodeId);
+    const content =
+      live?.nodeType === nodeType ? (live.content as C) : fallback;
+    return queuedContent(content, [
+      ...queue.map((queued) => queued.intent),
+      ...heldIntents,
+    ]);
+  };
+
+  const retryHeld = async (): Promise<void> => {
+    const replay = heldIntents.filter(
+      (intent) =>
+        intent.kind === "operation" &&
+        isReplayableOperation(intent.operationId),
+    );
+    if (replay.length === 0) return;
+    heldIntents = heldIntents.filter((intent) => !replay.includes(intent));
+    lastFailure = null;
+    halted = false;
+    version = read(nodeId)?.updatedAt ?? version;
+    for (const intent of replay) await write(intent);
+  };
+
+  return {
+    nodeId,
+    nodeType,
+    apply,
+    write,
+    liveContent,
+    failure: () => lastFailure,
+    held: () => heldIntents,
+    retryHeld,
+    pending: () => queue.length,
+  };
+}
+
+function invokeOptionsOf(invocation: ContentInvocation): GraphInvokeOptions {
+  return {
+    ...(invocation.expectedVersion === undefined
+      ? {}
+      : { expectedVersion: invocation.expectedVersion }),
+    ...(invocation.correlationId === undefined
+      ? {}
+      : { correlationId: invocation.correlationId }),
+  };
+}
 
 /** What {@link useNodeContentWriter} hands back to a node-content host. */
 export interface NodeContentWriter<C> {
-  /** The freshest content, read back from the store (never this render's snapshot). */
+  /** The freshest content: the store, plus whatever is still queued. */
   liveContent(): C;
-  /** Queue a content-half patch; patches raised in the same tick merge into one write. */
-  patchContent(patch: Partial<C>): void;
   /**
-   * Queue a **top-level** node patch (`title` / `abstract` / `semanticId` /
-   * `icon` / `cover` …) through the *same* queue as {@link patchContent}.
+   * Persist one edit through the node type's declared operation.
    *
-   * The shared queue is the point (plan `node-content-ui.md` §M3.2-10): a header
-   * edit raised while the body is being typed must not become a second in-flight
-   * request for the same record — PocketBase's SDK cancels the earlier one
-   * (the repositories pass the record id as `requestKey`) and the aborted write
-   * rolls the store back. Raised in one tick, a content patch and a top-level
-   * patch are merged into a single upsert.
-   *
-   * Never route `content` through here; use {@link patchContent} so the content
-   * half keeps its merge rule.
+   * The queue coalesces a burst of same-operation input in one tick into one
+   * invocation, sends different operations in order, and carries the previous
+   * reply's `updatedAt` as this one's `expectedVersion`.
    */
+  apply(
+    operationId: string,
+    input: Record<string, unknown>,
+    preview?: Partial<NodeData>,
+  ): Promise<ContentWriteOutcome>;
+  /**
+   * @deprecated Todo 43 removes the patch-shaped entry points; an editor names
+   * its operation through {@link apply}.
+   *
+   * A metadata key (`title`, `abstract`, `icon`, …) and a document
+   * (`content.docs`) are translated into their operations here. A content key
+   * that has no whole-value operation yet is sent as the old whole-node write —
+   * one at a time, never merged.
+   */
+  patchContent(patch: Partial<C>): void;
+  /** @deprecated See {@link patchContent}. */
   patchNode(patch: Partial<NodeData>): void;
+  /** The last refused write, with its server code and its input. */
+  failure(): ContentWriteFailure | null;
+  /** Every write still holding a draft after a failure, oldest first. */
+  held(): readonly ContentWriteIntent[];
+  /** Replay only the replayable intents of a halted queue. */
+  retryHeld(): Promise<void>;
 }
 
 /**
  * The shared content writer every node-content host uses.
  *
- * `database-node-content.tsx` and `collection-node-content.tsx` carried this
- * logic twice; this hook is a **dedup**, not a refactor. The concurrency
- * semantics are load-bearing and must stay verbatim: one gesture is one write,
- * several patches raised in the same tick merge into a single upsert, and the
- * drain keeps emptying the queue while it is running.
+ * Two rules make content persistence safe, and both survive the move from
+ * whole-node patches to operations:
  *
- * Two rules make content persistence safe:
+ * 1. **One queue per node.** The queue serializes every write for the node, so
+ *    two of them are never in flight together; PocketBase's SDK cancels a
+ *    pending request when another one for the same record starts, which used to
+ *    abort half of a gesture and roll the store back.
+ * 2. **The order is the user's.** A burst of the *same* whole-value operation
+ *    (typing a title, replacing a document) collapses to the last input; anything
+ *    with its own identity (a timeline entry, a cell, an attachment) is sent in
+ *    the order it happened.
  *
- * 1. **Patch the freshest content, never the render's copy.** One gesture can
- *    report two changes (adding a field writes its column config _and_ the
- *    field), and a patch built from a snapshot taken before the first write
- *    silently drops it. {@link NodeContentWriter.liveContent} therefore reads
- *    the node back from the store and applies queued content patches, so a
- *    second cell edit sees the first even before the microtask drain begins.
- * 2. **Serialize the writes.** Two writes for the same node must never be in
- *    flight together: PocketBase's SDK cancels a pending request when another
- *    one for the same record starts (the repositories pass the record id as the
- *    `requestKey`), which used to abort the first half of a gesture and roll the
- *    store back — the new row of an empty table flashed and vanished with
- *    `TRPCClientError: The request was aborted (most likely autocancelled…)`.
- *    A microtask-queued drain merges every patch raised in the same tick into a
- *    single upsert, then awaits it before sending the next.
- *
- * Since M3 the same queue also carries **top-level** patches
- * ({@link NodeContentWriter.patchNode}), because a node can be edited from two
- * places at once — the rich-text content header writes `title`/`icon`/`cover`
- * while the body editor writes `docs`. Two queues would be two in-flight requests
- * for one record; one queue is the invariant above, kept.
- *
- * @param nodeId   the node whose `content` is being written
- * @param nodeType guards `liveContent` against reading another node type's content
+ * @param nodeId   the node whose content is being written
+ * @param nodeType guards `liveContent` and names the operation domain
  * @param fallback this render's content, used only when the store has no live node
  * @param label    prefix for the error log; defaults to `nodeType`
  */
@@ -74,84 +510,57 @@ export function useNodeContentWriter<C>(
   fallback: C,
   label?: string,
 ): NodeContentWriter<C> {
-  /** Patches queued for the current drain; merged one write at a time. */
-  const pendingPatches = useRef<Partial<NodeData>[]>([]);
-  const draining = useRef(false);
-  const drainScheduled = useRef(false);
+  const queueRef = useRef<ContentWriteQueue | null>(null);
+  if (queueRef.current?.nodeId !== nodeId) {
+    queueRef.current = createContentWriteQueue({
+      nodeId,
+      nodeType,
+      onError: (failed) =>
+        console.error(
+          `[${label ?? nodeType} content] ${failed.operationId} was refused: ${failed.code}`,
+          failed.message,
+        ),
+    });
+  }
+  const queue = queueRef.current;
 
-  const liveContent = useCallback((): C => {
-    const live = useDataStore.getState().nodes.get(nodeId);
-    const content =
-      live?.nodeType === nodeType ? (live.content as C) : fallback;
-    return queuedContent(content, pendingPatches.current);
-  }, [fallback, nodeId, nodeType]);
+  const liveContent = useCallback(
+    () => queue.liveContent(fallback),
+    [queue, fallback],
+  );
 
-  const drainWrites = useCallback(async () => {
-    if (draining.current) return;
-    draining.current = true;
-    try {
-      // Re-checks the queue every round, so a patch raised while a write is in
-      // flight is picked up instead of being left to a later gesture.
-      while (pendingPatches.current.length > 0) {
-        const merged = mergeNodePatches(pendingPatches.current.splice(0));
+  const apply = useCallback(
+    (
+      operationId: string,
+      input: Record<string, unknown>,
+      preview?: Partial<NodeData>,
+    ) => queue.apply(operationId, input, preview),
+    [queue],
+  );
 
-        // The content half is merged onto the freshest content, so a patch that
-        // names one key never drops its siblings.
-        if (merged.content !== undefined) {
-          merged.content = {
-            ...liveContent(),
-            ...(merged.content as Partial<C>),
-          } as unknown as NodeData["content"];
-        }
-
-        // Any debounced payload already scheduled for this node was captured from
-        // the store this write is about to read, i.e. it is a strict subset of
-        // what we send — and it would otherwise fire *after* us and put a stale
-        // copy back (a title typed earlier would revert an icon set since).
-        NodeService.cancelPendingUpdate(nodeId);
-
-        try {
-          // `C` is the content half of one node type; TypeScript cannot see that
-          // through the generic, so assert at this single boundary.
-          await NodeService.upsert(nodeId, merged);
-        } catch (error) {
-          console.error(
-            `[${label ?? nodeType} content] Failed to persist content`,
-            error,
-          );
-        }
-      }
-    } finally {
-      draining.current = false;
-    }
-  }, [label, liveContent, nodeId, nodeType]);
-
-  const enqueue = useCallback(
+  const writePatch = useCallback(
     (patch: Partial<NodeData>) => {
-      pendingPatches.current.push(patch);
-      if (draining.current || drainScheduled.current) return;
-      drainScheduled.current = true;
-      queueMicrotask(() => {
-        drainScheduled.current = false;
-        void drainWrites();
-      });
+      for (const intent of translateNodePatch(nodeType, patch)) {
+        void queue.write(intent);
+      }
     },
-    [drainWrites],
+    [queue, nodeType],
   );
 
   const patchContent = useCallback(
     (patch: Partial<C>) => {
-      enqueue({ content: patch } as unknown as Partial<NodeData>);
+      writePatch({ content: patch } as unknown as Partial<NodeData>);
     },
-    [enqueue],
+    [writePatch],
   );
 
-  const patchNode = useCallback(
-    (patch: Partial<NodeData>) => {
-      enqueue(patch);
-    },
-    [enqueue],
-  );
-
-  return { liveContent, patchContent, patchNode };
+  return {
+    liveContent,
+    apply,
+    patchContent,
+    patchNode: writePatch,
+    failure: () => queue.failure(),
+    held: () => queue.held(),
+    retryHeld: () => queue.retryHeld(),
+  };
 }

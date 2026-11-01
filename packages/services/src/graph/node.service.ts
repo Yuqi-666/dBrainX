@@ -71,6 +71,25 @@ export const NodeService = {
     return invokeGraphOperation(operationId, target, input, options);
   },
 
+  /**
+   * One `operation.invoke` for an operation a node type declares.
+   *
+   * A type is runtime data after the plugin upgrade (§4.3.4), so its operations
+   * (`text.setDocument`, `rich-text.setDocument`, `video.timeline.add`, a third
+   * party's `aws.monitor.poll`) are not in the client's compile-time catalogue.
+   * The server is authoritative on which ids exist and answers
+   * `OPERATION_NOT_FOUND` for one it does not register; the reply's canonical
+   * node snapshot is applied exactly like {@link invoke}'s.
+   */
+  invokeTypeOperation(
+    operationId: string,
+    id: NodeId,
+    input: unknown,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(operationId, nodeTarget(id), input, options);
+  },
+
   /** `node.add`: only the type id is sent; the server supplies the record. */
   async add(
     nodeType: string,

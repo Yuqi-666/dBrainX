@@ -1,0 +1,398 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
+/**
+ * The content write queue is an `OperationInvocation` producer (todo 40).
+ *
+ * The queue is a plain factory, so these tests drive it directly: no renderer,
+ * no store writes needed. The transport is the seam the service documents for
+ * tests, so what runs is the real merge and drain logic with a fake
+ * `operation.invoke`.
+ *
+ * `packages/ui` test files normally run under `node --test` with type stripping,
+ * and that resolver rejects the workspace packages' extensionless imports. This
+ * file therefore bundles the module under test with esbuild, the same recipe
+ * `attribute-operations.test.ts` and `packages/services/test/run.mjs` use.
+ */
+import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after, before, beforeEach, describe, it } from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { build } from "esbuild";
+import type { NodeData } from "@workspace/interfaces";
+
+const NODE_ID = "node-1";
+const VERSION = "2026-11-01T00:00:00.000Z";
+const DIR = fileURLToPath(new URL("./", import.meta.url));
+
+const ENTRY = [
+  'export { createContentWriteQueue } from "./use-node-content-writer.ts";',
+  'export { coalesceIntents, translateNodePatch } from "./node-content-patches.ts";',
+  'export { useDataStore } from "@workspace/store";',
+].join("\n");
+
+const DOC_A = { type: "doc", content: [{ type: "paragraph", content: "A" }] };
+const DOC_B = { type: "doc", content: [{ type: "paragraph", content: "B" }] };
+const DOC_C = { type: "doc", content: [{ type: "paragraph", content: "C" }] };
+
+interface ContentInvocation {
+  readonly operationId: string;
+  readonly target: { readonly kind: string; readonly nodeId?: string };
+  readonly input: Record<string, unknown>;
+  readonly expectedVersion?: string;
+  readonly correlationId?: string;
+}
+
+interface OperationResult {
+  readonly operationId: string;
+  readonly correlationId: string;
+  readonly output: unknown;
+  readonly eventIds: readonly string[];
+  readonly node?: NodeData;
+}
+
+type ContentWriteOutcome =
+  | {
+      readonly ok: true;
+      readonly operationId: string;
+      readonly updatedAt?: string;
+    }
+  | {
+      readonly ok: false;
+      readonly operationId: string;
+      readonly code: string;
+      readonly message: string;
+    };
+
+interface ContentWriteFailure {
+  readonly operationId: string;
+  readonly code: string;
+  readonly message: string;
+  readonly input: Record<string, unknown>;
+}
+
+interface ContentWriteIntent {
+  readonly kind: "operation" | "legacy";
+  readonly operationId?: string;
+  readonly input?: Record<string, unknown>;
+  readonly preview?: Partial<NodeData>;
+  readonly patch?: Partial<NodeData>;
+}
+
+interface QueueOptions {
+  nodeId: string;
+  nodeType: string;
+  declares?: (operationId: string) => boolean;
+  isRegistered?: () => boolean;
+  read?: (nodeId: string) => NodeData | undefined;
+  invoke?: (invocation: ContentInvocation) => Promise<OperationResult>;
+  writeLegacy?: (nodeId: string, patch: Partial<NodeData>) => Promise<void>;
+  schedule?: (task: () => void) => void;
+  onError?: (failure: ContentWriteFailure) => void;
+}
+
+interface ContentWriteQueue {
+  apply(
+    operationId: string,
+    input: Record<string, unknown>,
+    preview?: Partial<NodeData>,
+  ): Promise<ContentWriteOutcome>;
+  write(intent: ContentWriteIntent): Promise<ContentWriteOutcome>;
+  liveContent<C>(fallback: C): C;
+  failure(): ContentWriteFailure | null;
+  held(): readonly ContentWriteIntent[];
+  retryHeld(): Promise<void>;
+  pending(): number;
+}
+
+interface RuntimeModule {
+  createContentWriteQueue: (options: QueueOptions) => ContentWriteQueue;
+  coalesceIntents: (
+    intents: readonly ContentWriteIntent[],
+  ) => ContentWriteIntent[];
+  translateNodePatch: (
+    nodeType: string,
+    patch: Partial<NodeData>,
+  ) => ContentWriteIntent[];
+  useDataStore: {
+    getState: () => {
+      nodes: Map<string, NodeData>;
+      reset?: () => void;
+      upsertNode: (node: NodeData) => void;
+    };
+  };
+}
+
+let outDir = "";
+let runtime: RuntimeModule;
+
+before(async () => {
+  outDir = await mkdtemp(join(tmpdir(), "ui-node-content-writer-"));
+  const outfile = join(outDir, "writer.mjs");
+  await build({
+    stdin: { contents: ENTRY, resolveDir: DIR, loader: "ts" },
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node24",
+    outfile,
+    logLevel: "warning",
+  });
+  runtime = (await import(pathToFileURL(outfile).href)) as RuntimeModule;
+});
+
+after(async () => {
+  await rm(outDir, { recursive: true, force: true });
+});
+
+beforeEach(() => {
+  runtime.useDataStore.getState().reset?.();
+});
+
+function textNode(): NodeData {
+  return {
+    id: NODE_ID,
+    title: "Title",
+    permission: "private",
+    semanticId: "semantic-1",
+    createdAt: VERSION,
+    updatedAt: VERSION,
+    nodeType: "text",
+    content: { docs: DOC_A },
+  } as unknown as NodeData;
+}
+
+function reply(
+  invocation: ContentInvocation,
+  updatedAt: string,
+): OperationResult {
+  return {
+    operationId: invocation.operationId,
+    correlationId: invocation.correlationId ?? "correlation",
+    output: {},
+    eventIds: [],
+    node: { ...textNode(), updatedAt } as NodeData,
+  };
+}
+
+describe("content write queue", () => {
+  it("coalesces a burst of one operation into one invocation with the settled input", async () => {
+    const calls: ContentInvocation[] = [];
+    const queue = runtime.createContentWriteQueue({
+      nodeId: NODE_ID,
+      nodeType: "text",
+      declares: () => true,
+      read: () => textNode(),
+      invoke: async (invocation) => {
+        calls.push(invocation);
+        return reply(invocation, "2026-11-01T00:00:01.000Z");
+      },
+    });
+
+    const outcomes = await Promise.all([
+      queue.apply("text.setDocument", { docs: DOC_A }),
+      queue.apply("text.setDocument", { docs: DOC_B }),
+      queue.apply("text.setDocument", { docs: DOC_C }),
+    ]);
+
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0]?.input, { docs: DOC_C });
+    assert.equal(calls[0]?.target.kind, "node");
+    assert.equal(calls[0]?.expectedVersion, VERSION);
+    for (const outcome of outcomes) assert.equal(outcome.ok, true);
+  });
+
+  it("keeps different operations separate, in order, each carrying the last reply's version", async () => {
+    const calls: ContentInvocation[] = [];
+    const queue = runtime.createContentWriteQueue({
+      nodeId: NODE_ID,
+      nodeType: "text",
+      declares: () => true,
+      read: () => textNode(),
+      invoke: async (invocation) => {
+        calls.push(invocation);
+        return reply(invocation, `2026-11-01T00:00:0${calls.length}.000Z`);
+      },
+    });
+
+    await Promise.all([
+      queue.apply("video.timeline.add", { item: { id: "note_1" } }),
+      queue.apply("video.timeline.add", { item: { id: "note_2" } }),
+      queue.apply("node.setTitle", { title: "Renamed" }),
+    ]);
+
+    assert.deepEqual(
+      calls.map((call) => call.operationId),
+      ["video.timeline.add", "video.timeline.add", "node.setTitle"],
+    );
+    assert.deepEqual(calls[0]?.input, { item: { id: "note_1" } });
+    assert.deepEqual(calls[1]?.input, { item: { id: "note_2" } });
+    assert.equal(calls[0]?.expectedVersion, VERSION);
+    assert.equal(calls[1]?.expectedVersion, "2026-11-01T00:00:01.000Z");
+    assert.equal(calls[2]?.expectedVersion, "2026-11-01T00:00:02.000Z");
+  });
+
+  it("surfaces a conflict, stops the queue, and keeps the draft", async () => {
+    const calls: ContentInvocation[] = [];
+    const queue = runtime.createContentWriteQueue({
+      nodeId: NODE_ID,
+      nodeType: "text",
+      declares: () => true,
+      read: () => textNode(),
+      invoke: async (invocation) => {
+        calls.push(invocation);
+        throw new Error("VERSION_CONFLICT: the node moved on");
+      },
+    });
+
+    const [document, title] = await Promise.all([
+      queue.apply("text.setDocument", { docs: DOC_B }),
+      queue.apply("node.setTitle", { title: "Renamed" }),
+    ]);
+
+    assert.equal(calls.length, 1);
+    assert.equal(document.ok, false);
+    assert.equal(
+      document.ok === false ? document.code : "",
+      "VERSION_CONFLICT",
+    );
+    assert.equal(title.ok, false);
+    assert.equal(title.ok === false ? title.code : "", "VERSION_CONFLICT");
+    assert.equal(queue.failure()?.code, "VERSION_CONFLICT");
+
+    const held = queue.held();
+    assert.equal(held.length, 2);
+    assert.equal(held[0]?.operationId, "text.setDocument");
+    assert.equal(held[1]?.operationId, "node.setTitle");
+
+    const content = queue.liveContent({ docs: null }) as { docs: unknown };
+    assert.deepEqual(content.docs, DOC_B);
+  });
+
+  it("replays only a replayable write after a conflict, never an insertion", async () => {
+    const calls: ContentInvocation[] = [];
+    const queue = runtime.createContentWriteQueue({
+      nodeId: NODE_ID,
+      nodeType: "video",
+      declares: () => true,
+      read: () => textNode(),
+      invoke: async (invocation) => {
+        calls.push(invocation);
+        throw new Error("VERSION_CONFLICT: the node moved on");
+      },
+    });
+
+    await queue.apply("video.timeline.add", { item: { id: "note_1" } });
+    const after = await queue.apply("node.setTitle", { title: "Renamed" });
+
+    assert.equal(calls.length, 1);
+    assert.equal(after.ok, false);
+    assert.equal(queue.held()[0]?.operationId, "video.timeline.add");
+
+    await queue.retryHeld();
+    assert.deepEqual(
+      calls.map((call) => call.operationId),
+      ["video.timeline.add", "node.setTitle"],
+    );
+    assert.deepEqual(
+      queue.held().map((intent) => intent.operationId),
+      ["node.setTitle", "video.timeline.add"],
+    );
+  });
+
+  it("refuses an unregistered type's edit instead of patching the node", async () => {
+    const calls: ContentInvocation[] = [];
+    const legacyWrites: Partial<NodeData>[] = [];
+    const queue = runtime.createContentWriteQueue({
+      nodeId: NODE_ID,
+      nodeType: "ghost",
+      declares: () => false,
+      isRegistered: () => false,
+      read: () => ({ ...textNode(), nodeType: "ghost" }) as NodeData,
+      invoke: async (invocation) => {
+        calls.push(invocation);
+        return reply(invocation, VERSION);
+      },
+      writeLegacy: async (_nodeId, patch) => {
+        legacyWrites.push(patch);
+      },
+    });
+
+    const refused = await queue.apply("ghost.setPayload", { payload: 1 });
+    const refusedPatch = await queue.write({
+      kind: "legacy",
+      patch: { content: { payload: 1 } },
+    });
+
+    assert.equal(refused.ok, false);
+    assert.equal(
+      refused.ok === false ? refused.code : "",
+      "OPERATION_NOT_DECLARED",
+    );
+    assert.equal(refusedPatch.ok, false);
+    assert.equal(
+      refusedPatch.ok === false ? refusedPatch.code : "",
+      "OPERATION_NOT_DECLARED",
+    );
+    assert.equal(calls.length, 0);
+    assert.equal(legacyWrites.length, 0);
+  });
+});
+
+describe("content write intents", () => {
+  it("translates a document edit into the type's setDocument operation", () => {
+    const intents = runtime.translateNodePatch("text", {
+      content: { docs: DOC_A },
+    } as Partial<NodeData>);
+
+    assert.equal(intents.length, 1);
+    assert.equal(intents[0]?.kind, "operation");
+    assert.equal(intents[0]?.operationId, "text.setDocument");
+    assert.deepEqual(intents[0]?.input, { docs: DOC_A });
+  });
+
+  it("keeps a content key with no whole-value operation out of the document operation", () => {
+    const intents = runtime.translateNodePatch("video", {
+      content: { timestamps: [{ type: "note", id: "note_1" }] },
+    } as Partial<NodeData>);
+
+    assert.equal(intents.length, 1);
+    assert.equal(intents[0]?.kind, "legacy");
+  });
+
+  it("merges only adjacent inputs of one mergeable operation", () => {
+    const writes = runtime.coalesceIntents([
+      {
+        kind: "operation",
+        operationId: "text.setDocument",
+        input: { docs: DOC_A },
+      },
+      {
+        kind: "operation",
+        operationId: "text.setDocument",
+        input: { docs: DOC_B },
+      },
+      {
+        kind: "operation",
+        operationId: "node.setTitle",
+        input: { title: "T" },
+      },
+      {
+        kind: "operation",
+        operationId: "text.setDocument",
+        input: { docs: DOC_C },
+      },
+    ]);
+
+    assert.deepEqual(
+      writes.map((write) => [write.operationId, write.input]),
+      [
+        ["text.setDocument", { docs: DOC_B }],
+        ["node.setTitle", { title: "T" }],
+        ["text.setDocument", { docs: DOC_C }],
+      ],
+    );
+  });
+});
