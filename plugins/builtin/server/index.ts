@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * Builtin plugin server entry: the node type contributions.
+ * Builtin plugin server entry: the node type and operation contributions.
  *
- * Operations and triggers land in later plan todos; the package structure is
- * already the one §4.10.2 describes.
+ * Triggers land in a later plan todo; the package structure is already the one
+ * §4.10.2 describes.
  */
 
 export { builtinPluginId, nodeTypes } from "./node-types.ts";
+export { operations } from "./operations.ts";

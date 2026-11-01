@@ -19,10 +19,11 @@ export { defineNodeType } from "./define-node-type.ts"
 // (§4.10.3); this re-export is type-only and adds no runtime dependency.
 export type * from "./types.ts"
 
-export { defineOperation } from "./define-operation.ts"
+export { defineOperation, defineOperationDefinition } from "./define-operation.ts"
 export type {
   DefinedOperation,
   OperationDefinitionOptions,
+  OperationDefinitionSpec,
   OperationRun,
 } from "./define-operation.ts"
 

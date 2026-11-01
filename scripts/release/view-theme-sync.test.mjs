@@ -125,6 +125,7 @@ test("theme preferences round-trip through storage, command patches and query re
     id: "test-view",
     name: "Test",
     viewType: "Force",
+    workspaceId: "test-workspace",
     visualConfig: {
       backgroundColor: "#93c5fd",
       gridColor: "#fca5a5",

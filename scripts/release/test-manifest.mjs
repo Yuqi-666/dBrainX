@@ -64,6 +64,7 @@ export const testFiles = [
   "scripts/release/webpage-object-storage.test.mjs",
 
   // Shared package tests that need no DOM or browser globals.
+  "packages/plugin-sdk/src/define-operation.test.ts",
   "packages/ui/src/components/node-content/registry.test.ts",
   "packages/utils/src/node-content.test.ts",
   "packages/utils/src/resource-references.test.ts",
@@ -71,6 +72,7 @@ export const testFiles = [
 
   // Plugin package tests that need no DOM or browser globals.
   "plugins/builtin/server/node-types.test.ts",
+  "plugins/builtin/server/operations.test.ts",
 
   // Backend tests. These construct their own fakes; none needs PocketBase.
   "backend/adapter-front/src/trpc/router/event.test.ts",
@@ -81,6 +83,7 @@ export const testFiles = [
   "backend/application/src/commands/media/media-import.service.test.ts",
   "backend/application/src/commands/node/node-command.service.test.ts",
   "backend/application/src/engine/capability-gateway.test.ts",
+  "backend/application/src/events/event-metadata.test.ts",
   "backend/domain/src/contract-compile.test.ts",
   "backend/domain/src/event-bus/envelope.test.ts",
   "backend/domain/src/event-bus/event-adapter.test.ts",

@@ -11,7 +11,6 @@
  *
  * Still missing from `domain`, and therefore not re-exported yet:
  * - `PluginManifest` / `PluginPermission` (plan todo 30)
- * - `OperationContext` / `OperationHandler` (plan todo 28)
  * - `TriggerDefinition` (plan todo 61)
  * - `EventEnvelope`, `Actor`, `CapabilityGrant`, `ExecutionScope`, `SandboxPort`
  */
@@ -32,4 +31,7 @@ export type {
   OperationInvocation,
   OperationReach,
   OperationTarget,
+  /** What a handler receives; the domain port, not a copy (§4.4.2). */
+  OperationContext,
+  OperationHandler,
 } from "@workspace/domain"
