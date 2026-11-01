@@ -4,7 +4,7 @@
 
 | Tool             | Requirement                                                 |
 | ---------------- | ----------------------------------------------------------- |
-| Node             | The version in `.node-version`, currently 24.15.0           |
+| Node             | The version in `.node-version`, currently 24.21.0           |
 | pnpm             | 9.0.0                                                       |
 | FFmpeg / FFprobe | The media functions                                         |
 | Docker Compose   | The container build and the deployment                      |

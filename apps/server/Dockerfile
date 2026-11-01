@@ -1,5 +1,8 @@
-FROM node:24.15.0-bookworm-slim AS builder
+FROM node:24.21.0-bookworm-slim AS builder
 WORKDIR /app
+# koffi and node-pty compile native addons during install, and node-pty ships no
+# Linux prebuild, so the builder image needs a C++ toolchain.
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm fetch
@@ -7,7 +10,7 @@ COPY . .
 RUN pnpm install --offline --frozen-lockfile
 RUN pnpm --filter server build
 
-FROM node:24.15.0-bookworm-slim AS runner
+FROM node:24.21.0-bookworm-slim AS runner
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates curl libfontconfig1 && rm -rf /var/lib/apt/lists/*
 # The video-link import spawns yt-dlp to download a remote video before the
 # server stores and packages it. Install the self-contained release binary at
@@ -26,6 +29,8 @@ RUN set -eux; \
     yt-dlp --version
 WORKDIR /app
 ENV NODE_ENV=production PORT=3001
+# apps/server/dist carries node_modules from the build stage: the external
+# packages and the MXC bin/<arch> native assets resolve from there.
 COPY --from=builder --chown=node:node /app/apps/server/dist ./
 USER node
 EXPOSE 3001

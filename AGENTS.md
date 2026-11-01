@@ -47,7 +47,7 @@ backend/infrastructure  ->  PocketBase      records, files, and identity
 
 ## Commands
 
-Prerequisites: Node 24.15.0, pnpm 9.0.0, and FFmpeg with FFprobe.
+Prerequisites: Node 24.21.0, pnpm 9.0.0, and FFmpeg with FFprobe. MXC needs Node 24 or newer; its Windows native stdio path needs 24.21.0.
 
 ```bash
 pnpm install --frozen-lockfile

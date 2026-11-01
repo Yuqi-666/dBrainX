@@ -15,7 +15,15 @@ export async function bundleBackend(root, entry, output) {
     format: "esm",
     target: "node22",
     tsconfig: join(root, "apps/server/tsconfig.json"),
-    external: ["@napi-rs/canvas", "pdfjs-dist", "bufferutil", "utf-8-validate"],
+    // MXC resolves its FFI library and helper executables from bin/<arch> under
+    // its own package root, so it must stay a real package at run time.
+    external: [
+      "@microsoft/mxc-sdk",
+      "@napi-rs/canvas",
+      "pdfjs-dist",
+      "bufferutil",
+      "utf-8-validate",
+    ],
     banner: {
       js: 'import { createRequire as __dbrainxCreateRequire } from "node:module"; const require = __dbrainxCreateRequire(import.meta.url);',
     },
