@@ -73,6 +73,7 @@ export const testFiles = [
   "backend/application/src/commands/file/hls-playlist.test.ts",
   "backend/application/src/commands/media/cookie-file.test.ts",
   "backend/application/src/commands/media/media-import.service.test.ts",
+  "backend/domain/src/models/node-type/registry.test.ts",
   "backend/domain/src/models/workspace/name.test.ts",
   "backend/infrastructure/src/database/request-scope.test.ts",
   "backend/infrastructure/src/downloaders/media-browser-detector.test.ts",
