@@ -142,6 +142,7 @@ export const testFiles = [
   "backend/plugin-host/src/ports/http-allowlist.test.ts",
   "backend/plugin-host/src/registry.test.ts",
   "backend/plugin-host/src/worker-bridge.test.ts",
+  "backend/sandbox/src/mxc-support.test.ts",
 
   // Server and desktop entry points that run without PocketBase.
   "apps/server/src/desktop/security.test.ts",

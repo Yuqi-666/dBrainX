@@ -15,6 +15,7 @@ The JavaScript files use the `.mjs` suffix and run directly, so no build step ex
 | `dev-run.mjs` | Starts the development stack from the root `.env`. The root scripts `pnpm dev` and `pnpm dev:remote` call it. Its preflight downloads PocketBase and yt-dlp when they are missing. |
 | `dev-gateway.mjs` | One-port entry for remote development. It routes `/trpc` and `/pb/api/*` to the backends, `/pb/upload/*` to the API, and everything else to Next, and forwards the browser Host unchanged. The root script `pnpm dev:remote` calls it. |
 | `plugin-sign.mjs` | Signs one plugin manifest with the test-only key, or verifies one against the fixture's trusted keys. |
+| `sandbox-probe.mjs` | Prints the MXC capability matrix for this host and exits 0 with `SANDBOX_UNAVAILABLE` when no backend is usable. `backend/sandbox/src/mxc-support.ts` holds the data; `--markdown` and `--json` change the output only. |
 | `lib/` | Shared modules. Examples: the yt-dlp release download and checksum check (`yt-dlp-download.mjs`), runtime bundling, development port resolution, development gateway routing, child-process shutdown, macOS library rewriting, Windows signing. |
 | `release/` | Version, check, build, signing, and release scripts. Many scripts have a `.test.mjs` neighbour. |
 | `policy/` | The owner-maintained GitHub policy. The root script `pnpm policy` calls `apply-ruleset.mjs`. |
