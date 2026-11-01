@@ -91,6 +91,15 @@ interface QueueOptions {
   writeLegacy?: (nodeId: string, patch: Partial<NodeData>) => Promise<void>;
   schedule?: (task: () => void) => void;
   onError?: (failure: ContentWriteFailure) => void;
+  resync?: (nodeId: string) => Promise<void>;
+  onConflict?: (conflict: ContentWriteConflict) => void;
+}
+
+interface ContentWriteConflict {
+  readonly operationId: string;
+  readonly code: string;
+  readonly message: string;
+  readonly held: readonly ContentWriteIntent[];
 }
 
 interface ContentWriteQueue {
@@ -104,6 +113,8 @@ interface ContentWriteQueue {
   failure(): ContentWriteFailure | null;
   held(): readonly ContentWriteIntent[];
   retryHeld(): Promise<void>;
+  conflict(): ContentWriteConflict | null;
+  resyncing(): Promise<void> | null;
   pending(): number;
 }
 
@@ -299,6 +310,108 @@ describe("content write queue", () => {
     assert.deepEqual(
       queue.held().map((intent) => intent.operationId),
       ["node.setTitle", "video.timeline.add"],
+    );
+  });
+
+  it("requests one refetch on VERSION_CONFLICT and sends nothing while it runs", async () => {
+    let stored = textNode();
+    const calls: ContentInvocation[] = [];
+    const resynced: string[] = [];
+    const conflicts: ContentWriteConflict[] = [];
+    let releaseResync: (() => void) | undefined;
+    const resyncGate = new Promise<void>((resolve) => {
+      releaseResync = resolve;
+    });
+    const queue = runtime.createContentWriteQueue({
+      nodeId: NODE_ID,
+      nodeType: "text",
+      declares: () => true,
+      read: () => stored,
+      invoke: async (invocation) => {
+        calls.push(invocation);
+        throw new Error("VERSION_CONFLICT: the node moved on");
+      },
+      resync: async (nodeId) => {
+        resynced.push(nodeId);
+        await resyncGate;
+        stored = {
+          ...textNode(),
+          title: "Theirs",
+          updatedAt: "2026-11-01T00:00:09.000Z",
+        } as unknown as NodeData;
+      },
+      onConflict: (conflict) => conflicts.push(conflict),
+    });
+
+    const [document] = await Promise.all([
+      queue.apply("text.setDocument", { docs: DOC_B }),
+      queue.apply("node.setTitle", { title: "Renamed" }),
+    ]);
+
+    assert.equal(calls.length, 1);
+    assert.equal(document.ok, false);
+    assert.deepEqual(resynced, [NODE_ID]);
+    assert.equal(conflicts.length, 1);
+    assert.equal(conflicts[0]?.code, "VERSION_CONFLICT");
+    assert.equal(queue.conflict()?.code, "VERSION_CONFLICT");
+
+    const heldWhileStopped = queue.held();
+    assert.deepEqual(
+      heldWhileStopped.map((intent) => intent.operationId),
+      ["text.setDocument", "node.setTitle"],
+    );
+
+    const refused = await queue.apply("node.setAbstract", { abstract: "x" });
+    assert.equal(refused.ok, false);
+    assert.equal(calls.length, 1);
+    assert.equal(queue.pending(), 0);
+
+    releaseResync?.();
+    await queue.resyncing();
+    assert.equal(queue.conflict()?.held.length, 2);
+  });
+
+  it("accepts a later edit from the refetched version and never replays the draft", async () => {
+    let stored = textNode();
+    const latestVersion = "2026-11-01T00:00:09.000Z";
+    const calls: ContentInvocation[] = [];
+    const queue = runtime.createContentWriteQueue({
+      nodeId: NODE_ID,
+      nodeType: "text",
+      declares: () => true,
+      read: () => stored,
+      invoke: async (invocation) => {
+        calls.push(invocation);
+        if (calls.length === 1) {
+          throw new Error("VERSION_CONFLICT: the node moved on");
+        }
+        return reply(invocation, "2026-11-01T00:00:10.000Z");
+      },
+      resync: async () => {
+        stored = {
+          ...textNode(),
+          title: "Theirs",
+          updatedAt: latestVersion,
+        } as unknown as NodeData;
+      },
+    });
+
+    const conflicted = await queue.apply("node.setTitle", {
+      title: "Mine",
+    });
+    assert.equal(conflicted.ok, false);
+    await queue.resyncing();
+
+    const later = await queue.apply("node.setAbstract", { abstract: "Later" });
+    assert.equal(later.ok, true);
+    assert.deepEqual(
+      calls.map((call) => call.operationId),
+      ["node.setTitle", "node.setAbstract"],
+    );
+    assert.equal(calls[1]?.expectedVersion, latestVersion);
+    assert.deepEqual(
+      queue.held().map((intent) => intent.operationId),
+      ["node.setTitle"],
     );
   });
 

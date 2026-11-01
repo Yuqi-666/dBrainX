@@ -14,6 +14,10 @@
  * caller performs exactly one `operation.invoke` and reports the outcome. A
  * refused edit drops the draft, so the control shows the value the store still
  * holds. Nothing here builds a whole `content` object.
+ *
+ * A field that declares no `operationId` has no server-side writer, so it is
+ * rendered read-only: the panel shows what the node holds and refuses the edit,
+ * instead of raising an operation the catalog does not define.
  */
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
@@ -69,27 +73,37 @@ interface FieldControlProps {
   field: NodeAttributeField;
   value: unknown;
   onChange: (value: string) => void;
+  /**
+   * The field declares no operation, so nothing on the server can write it.
+   *
+   * The control then shows the stored value and refuses edits instead of raising
+   * an operation the catalog does not have: a media `url` is written by
+   * `*.attachFile`, and the address field is a read-out of that write.
+   */
+  readOnly: boolean;
 }
 
 function textOf(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-function TextControl({ field, value, onChange }: FieldControlProps) {
+function TextControl({ field, value, onChange, readOnly }: FieldControlProps) {
   return (
     <Input
       value={textOf(value)}
       placeholder={field.placeholder}
       aria-label={field.label}
+      readOnly={readOnly}
+      disabled={readOnly}
       onChange={(event) => onChange(event.target.value)}
       className="h-8 text-xs"
     />
   );
 }
 
-function SelectControl({ field, value, onChange }: FieldControlProps) {
+function SelectControl({ field, value, onChange, readOnly }: FieldControlProps) {
   return (
-    <Select value={textOf(value)} onValueChange={onChange}>
+    <Select value={textOf(value)} onValueChange={onChange} disabled={readOnly}>
       <SelectTrigger className="h-8 text-xs" aria-label={field.label}>
         <SelectValue placeholder={field.placeholder ?? field.label} />
       </SelectTrigger>
@@ -198,11 +212,13 @@ export function AttributeFieldsHost({
         const Icon = FIELD_ICONS[field.kind];
         const Control = FIELD_CONTROLS[field.kind];
         const value = drafts[field.field] ?? readAttributeValue(content, field.field);
+        const readOnly = field.operationId === undefined;
         return (
           <div
             key={field.field}
             className="space-y-1.5"
             data-attribute-field={field.field}
+            data-read-only={readOnly ? "" : undefined}
             data-optional={field.optional ? "" : undefined}
           >
             <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -213,11 +229,19 @@ export function AttributeFieldsHost({
                   {t("可选")}
                 </span>
               )}
+              {readOnly && (
+                <span className="text-[10px] text-muted-foreground/70">
+                  {t("只读")}
+                </span>
+              )}
             </span>
             <Control
               field={field}
               value={value}
-              onChange={(next) => changeField(field, next)}
+              readOnly={readOnly}
+              onChange={(next) => {
+                if (!readOnly) changeField(field, next);
+              }}
             />
           </div>
         );

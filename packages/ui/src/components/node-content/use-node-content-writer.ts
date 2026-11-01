@@ -12,6 +12,7 @@ import {
 import { NodeService, type GraphInvokeOptions } from "@workspace/services";
 import { useDataStore } from "@workspace/store";
 import { getNodeContentDescriptor } from "./registry";
+import { emitContentConflict } from "./content-conflict";
 import {
   coalesceIntents,
   intentPreview,
@@ -62,6 +63,23 @@ export interface ContentWriteFailure {
 
 /** The code a write gets when this node type declares no such operation. */
 export const OPERATION_NOT_DECLARED = "OPERATION_NOT_DECLARED";
+
+/** The code the server answers when the node moved on under the write. */
+export const VERSION_CONFLICT = "VERSION_CONFLICT";
+
+/**
+ * A queue stopped by a version conflict.
+ *
+ * The queue refetched the node instead of replaying the invocation, and the
+ * drafts below it are held rather than dropped: nothing in here is sent again
+ * on its own.
+ */
+export interface ContentWriteConflict {
+  readonly operationId: string;
+  readonly code: typeof VERSION_CONFLICT;
+  readonly message: string;
+  readonly held: readonly ContentWriteIntent[];
+}
 
 /** The node operations every node type accepts (`plugins/builtin/server/operations.ts`). */
 const SHARED_NODE_OPERATIONS: ReadonlySet<string> = new Set([
@@ -115,6 +133,9 @@ export interface ContentWriteQueueOptions {
   writeLegacy?: (nodeId: NodeId, patch: Partial<NodeData>) => Promise<void>;
   schedule?: (task: () => void) => void;
   onError?: (failure: ContentWriteFailure) => void;
+  /** Refetch one node; the queue resumes from the version it returns. */
+  resync?: (nodeId: NodeId) => Promise<void>;
+  onConflict?: (conflict: ContentWriteConflict) => void;
 }
 
 /** The serial write queue one node-content host owns (§3.5.4.5). */
@@ -131,6 +152,13 @@ export interface ContentWriteQueue {
   failure(): ContentWriteFailure | null;
   held(): readonly ContentWriteIntent[];
   retryHeld(): Promise<void>;
+  /** The last version conflict, or `null` when no queue stopped on one. */
+  conflict(): ContentWriteConflict | null;
+  /**
+   * The refetch the last conflict started. Always awaitable once a conflict was
+   * reported, so a caller never has to sleep to learn when it finished.
+   */
+  resyncing(): Promise<void> | null;
   pending(): number;
 }
 
@@ -206,10 +234,29 @@ export function createContentWriteQueue(
         `[${nodeType} content] ${failed.operationId} was refused: ${failed.code}`,
         failed.message,
       ));
+  const resync =
+    options.resync ??
+    ((id: NodeId) => NodeService.sync([id]).then(() => undefined));
+  const onConflict =
+    options.onConflict ??
+    ((conflict: ContentWriteConflict) => {
+      console.error(
+        `[${nodeType} content] the node moved on under ${conflict.operationId}; the queue refetched it and kept the draft`,
+        conflict.message,
+      );
+      emitContentConflict({
+        operationId: conflict.operationId,
+        code: VERSION_CONFLICT,
+        message: conflict.message,
+      });
+    });
 
   const queue: QueuedWrite[] = [];
   let heldIntents: ContentWriteIntent[] = [];
   let lastFailure: ContentWriteFailure | null = null;
+  let lastConflict: ContentWriteConflict | null = null;
+  let resyncPromise: Promise<void> | null = null;
+  let resyncPending = false;
   let draining = false;
   let drainScheduled = false;
   let halted = false;
@@ -240,10 +287,51 @@ export function createContentWriteQueue(
   const inputOf = (intent: ContentWriteIntent): Record<string, unknown> =>
     intent.kind === "operation" ? intent.input : {};
 
+  /**
+   * Refetch the node a conflict stopped on, then accept new writes from its
+   * version. The held drafts are never replayed here: only `retryHeld` may send
+   * them, and only the replayable ones.
+   */
+  const requestResync = (): Promise<void> => {
+    if (resyncPromise !== null && resyncPending) return resyncPromise;
+    resyncPending = true;
+    resyncPromise = (async () => {
+      try {
+        await resync(nodeId);
+      } catch (error) {
+        // The refetch failed, so the version the queue holds is unverified:
+        // it stays halted instead of writing against a snapshot it could not
+        // confirm.
+        console.error(
+          `[${nodeType} content] resync after VERSION_CONFLICT failed`,
+          error,
+        );
+        return;
+      }
+      const fresh = read(nodeId)?.updatedAt;
+      if (fresh === undefined) return;
+      version = fresh;
+      halted = false;
+    })().finally(() => {
+      resyncPending = false;
+    });
+    return resyncPromise;
+  };
+
+  const reportConflict = (operationId: string, message: string): void => {
+    lastConflict = {
+      operationId,
+      code: VERSION_CONFLICT,
+      message,
+      held: heldIntents,
+    };
+    onConflict(lastConflict);
+    void requestResync();
+  };
+
   const fail = (write: QueuedWrite, code: string, message: string): void => {
     const operationId = operationIdOf(write.intent);
     lastFailure = { operationId, code, message, input: inputOf(write.intent) };
-    halted = true;
     // The write that failed and everything behind it are held, not dropped:
     // the editor keeps showing the draft, and only a replayable intent may be
     // retried (never an insertion or an attachment).
@@ -252,11 +340,13 @@ export function createContentWriteQueue(
       ...queue.map((queued) => queued.intent),
       ...heldIntents,
     ];
+    halted = true;
     for (const queued of queue.splice(0)) {
       settle(queued, { ok: false, operationId, code, message });
     }
     settle(write, { ok: false, operationId, code, message });
     onError(lastFailure);
+    if (code === VERSION_CONFLICT) reportConflict(operationId, message);
   };
 
   const send = async (write: QueuedWrite): Promise<void> => {
@@ -433,6 +523,8 @@ export function createContentWriteQueue(
     failure: () => lastFailure,
     held: () => heldIntents,
     retryHeld,
+    conflict: () => lastConflict,
+    resyncing: () => resyncPromise,
     pending: () => queue.length,
   };
 }
@@ -482,6 +574,10 @@ export interface NodeContentWriter<C> {
   held(): readonly ContentWriteIntent[];
   /** Replay only the replayable intents of a halted queue. */
   retryHeld(): Promise<void>;
+  /** The last version conflict, or `null` when the queue never stopped on one. */
+  conflict(): ContentWriteConflict | null;
+  /** The refetch a conflict started, awaitable without polling. */
+  resyncing(): Promise<void> | null;
 }
 
 /**
@@ -562,5 +658,7 @@ export function useNodeContentWriter<C>(
     failure: () => queue.failure(),
     held: () => queue.held(),
     retryHeld: () => queue.retryHeld(),
+    conflict: () => queue.conflict(),
+    resyncing: () => queue.resyncing(),
   };
 }

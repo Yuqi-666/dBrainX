@@ -66,9 +66,10 @@ export interface NodeAttributeField {
   /** The choices a `select` field offers. */
   options?: readonly NodeAttributeFieldOption[]
   /**
-   * The operation that writes this field once the panel is wired to
-   * `operation.invoke` (todo 39). Absent when the operation catalog has no
-   * operation for the field yet; the panel then keeps the edit local instead
+   * The operation that writes this field.
+   *
+   * Absent when the operation catalog has no operation for the field: the
+   * panel then renders the control read-only, showing the stored value instead
    * of inventing an operation id.
    */
   operationId?: string

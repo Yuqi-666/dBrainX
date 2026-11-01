@@ -2,13 +2,15 @@
 
 "use client";
 
-import { Component, Suspense } from "react";
+import { Component, Suspense, useEffect } from "react";
 import type { ReactNode } from "react";
 import type { NodeData } from "@workspace/interfaces";
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { toast } from "../ui/toast";
 import { getNodeContentDescriptor } from "../node-content/registry";
+import { subscribeContentConflicts } from "../node-content/content-conflict";
 import { UnknownNodeContent } from "../node-content/unknown-node-content";
 
 /** Which descriptor component the host mounts for a node. */
@@ -77,6 +79,24 @@ export function NodeContentSkeleton({
 }
 
 /**
+ * Shows the one message a stopped write queue cannot show itself: the node
+ * changed under the draft, the queue refetched it, and the edit is still held.
+ */
+function useContentConflictToast(): void {
+  useEffect(
+    () =>
+      subscribeContentConflicts(() => {
+        toast({
+          title: translate("内容已在别处更新"),
+          description: translate("已加载最新版本，你的修改仍保留在编辑器里"),
+          variant: "destructive",
+        });
+      }),
+    [],
+  );
+}
+
+/**
  * Mounts the registered editor (or preview) for a node.
  *
  * The host only reads the registry: it imports no plugin package, so the same
@@ -90,6 +110,7 @@ export function NodeContentHost({
   className,
   slot = "editor",
 }: NodeContentHostProps) {
+  useContentConflictToast();
   const nodeType = (node as { nodeType?: string } | undefined)?.nodeType;
   const descriptor = nodeType ? getNodeContentDescriptor(nodeType) : undefined;
   if (!descriptor) {

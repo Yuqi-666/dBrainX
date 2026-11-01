@@ -22,6 +22,13 @@ export { TRPCReactProvider, trpc } from "./trpc/provider";
 export * from "./trpc/hooks/useGraph";
 export { useOperation, useOperationCatalog } from "./trpc/hooks/useOperation";
 export { useGraphSubscriptions } from "./trpc/subscriptions";
+export { createEventConvergence, dedupeKeyOf } from "./trpc/event-convergence";
+export type {
+  EventConvergence,
+  EventConvergenceOptions,
+  EventDisposition,
+  StreamEvent,
+} from "./trpc/event-convergence";
 export * from "./handler/graph-handler";
 export {
   DIRECT_UPLOAD_MAX_BYTES,

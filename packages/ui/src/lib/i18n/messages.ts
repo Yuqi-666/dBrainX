@@ -421,6 +421,14 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
     "zh-CN": "保存失败，请稍后重试",
     en: "Save failed. Please try again later.",
   },
+  内容已在别处更新: {
+    "zh-CN": "内容已在别处更新",
+    en: "This content changed elsewhere",
+  },
+  "已加载最新版本，你的修改仍保留在编辑器里": {
+    "zh-CN": "已加载最新版本，你的修改仍保留在编辑器里",
+    en: "The latest version was loaded; your edit is still in the editor",
+  },
   编辑过滤: {
     "zh-CN": "编辑过滤",
     en: "Edit filter",

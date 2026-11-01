@@ -76,6 +76,22 @@ registerNodeContent({
   },
 });
 
+const READ_ONLY_TYPE = "panel.image";
+
+registerNodeContent({
+  ...descriptorOf(READ_ONLY_TYPE),
+  attributes: {
+    fields: [
+      {
+        field: "url",
+        label: "Content URL",
+        kind: "url",
+        placeholder: "https://…",
+      },
+    ],
+  },
+});
+
 const valueSetter = Object.getOwnPropertyDescriptor(
   dom.window.HTMLInputElement.prototype,
   "value",
@@ -134,6 +150,44 @@ test("a refused field edit shows the stored value again", async () => {
     "/files/stored.png",
     "the draft was refused, so the control falls back to the store's value",
   );
+
+  await act(async () => root.unmount());
+  container.remove();
+});
+
+test("a field with no declared operation is read-only", async () => {
+  const seen: string[] = [];
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      <AttributeFieldsHost
+        type={READ_ONLY_TYPE}
+        content={{ url: "/api/files/files/rec1/photo.png" }}
+        onFieldChange={(field) => {
+          seen.push(field.field);
+        }}
+      />,
+    );
+  });
+
+  const row = container.querySelector("[data-attribute-field='url']");
+  assert.ok(row);
+  assert.notEqual(row.getAttribute("data-read-only"), null);
+  const input = container.querySelector("input");
+  assert.ok(input);
+  assert.equal(input.value, "/api/files/files/rec1/photo.png");
+  assert.equal(input.disabled, true);
+  assert.equal(input.readOnly, true);
+
+  await act(async () => {
+    typeInto(input, "/api/files/files/rec2/other.png");
+  });
+
+  assert.deepEqual(seen, [], "a read-only field raises no operation");
+  assert.equal(input.value, "/api/files/files/rec1/photo.png");
 
   await act(async () => root.unmount());
   container.remove();

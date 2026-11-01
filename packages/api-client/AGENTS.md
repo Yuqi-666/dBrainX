@@ -48,6 +48,7 @@ This package imports `AppRouter` as a type only. All four imports are `import ty
 Desktop uses the same `wsLink` for procedures and subscriptions. It connects to the local Node backend, which uses the shared router and PocketBase repositories.
 
 `subscriptions.ts` listens on `event.onEvent` and drops an event whose `sourceId` equals this client's own id.
+`event-convergence.ts` holds the dedupe rule: an `eventId` (or the stream `cursor` when the message carries no id) is recorded before the handler runs, so a replayed page cannot apply a node twice, and an own-operation echo is recorded without being applied.
 `graph-handler.ts` then updates the stores through `@workspace/services` and applies a workspace-isolation guard.
 
 `auth/session.ts` owns the cookie name and the seven-day maximum age.
