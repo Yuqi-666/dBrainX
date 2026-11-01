@@ -19,5 +19,36 @@
     "collection",
     "database"
   ],
-  "permissions": []
+  "permissions": [
+    {
+      "capability": "node.create",
+      "scope": ["nodeType=*"],
+      "reason": "node.add creates a node of any type this plugin contributes"
+    },
+    {
+      "capability": "node.write",
+      "scope": ["nodeType=*"],
+      "reason": "the builtin metadata operations write content, state, tags, icon and cover"
+    },
+    {
+      "capability": "node.delete",
+      "scope": ["nodeType=*"],
+      "reason": "node.delete removes a node the user selected"
+    },
+    {
+      "capability": "edge.create",
+      "scope": ["nodeType=*"],
+      "reason": "edge.create connects two nodes the user selected"
+    },
+    {
+      "capability": "edge.delete",
+      "scope": ["nodeType=*"],
+      "reason": "edge.delete removes a connection the user selected"
+    },
+    {
+      "capability": "storage.read",
+      "scope": ["path=*"],
+      "reason": "the attachFile operations read the stored upload they attach"
+    }
+  ]
 }

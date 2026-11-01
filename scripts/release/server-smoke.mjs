@@ -90,6 +90,62 @@ async function upload(token, bytes = "private file", workspaceId = "") {
   return response.json();
 }
 /**
+ * The operator token `plugin_grants` accepts: the table has null rules, so a
+ * user token cannot read it and the authority it holds is not user-readable.
+ */
+async function operatorToken() {
+  const email = operator?.email ?? process.env.DBRAINX_SMOKE_ADMIN_EMAIL;
+  const password =
+    operator?.password ?? process.env.DBRAINX_SMOKE_ADMIN_PASSWORD;
+  assert.ok(
+    email && password,
+    "the smoke needs operator credentials to read plugin_grants",
+  );
+  const response = await fetch(
+    `${pbUrl}/api/collections/_superusers/auth-with-password`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identity: email, password }),
+    },
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+  return (await response.json()).token;
+}
+async function builtinGrantRows(token, workspaceId) {
+  const filter = encodeURIComponent(
+    `workspaceId = "${workspaceId}" && pluginId = "dbrainx.builtin"`,
+  );
+  const response = await fetch(
+    `${pbUrl}/api/collections/plugin_grants/records?perPage=50&filter=${filter}`,
+    { headers: { Authorization: token } },
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+  return (await response.json()).items;
+}
+/** Waits for the rows the server seeds when a workspace is created. */
+async function waitForBuiltinGrants(token, workspaceId, expected) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (children.some((child) => child.exitCode !== null)) throw new Error(logs);
+    const rows = await builtinGrantRows(token, workspaceId);
+    if (rows.length >= expected) return rows;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(
+    `plugin_grants for workspace ${workspaceId} never reached ${expected} rows`,
+  );
+}
+/** Waits for one server log line, so the assertion is on evidence and not a sleep. */
+async function waitForLog(pattern, label) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const match = logs.match(pattern);
+    if (match) return match[0];
+    if (children.some((child) => child.exitCode !== null)) throw new Error(logs);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`${label} never appeared in the server log`);
+}
+/**
  * Buffer for one event subscription: the delivered messages plus a bounded
  * wait for a predicate, so a test never sleeps and hopes.
  */
@@ -1140,6 +1196,59 @@ try {
   console.log(
     "PASS counter fixture end to end through operation.invoke (value 0 -> 2, one event)",
   );
+  if (!process.env.DBRAINX_SMOKE_SERVER_URL) {
+    // Plan item 51: the install materialized the builtin grants from
+    // `plugins/builtin/plugin.json` for each workspace, and the gate the
+    // server composed (not a privileged table) decides a plugin call.
+    const adminToken = await operatorToken();
+    const expectedCapabilities = [
+      "edge.create",
+      "edge.delete",
+      "node.create",
+      "node.delete",
+      "node.write",
+      "storage.read",
+    ].sort();
+    for (const workspace of [wa, wb]) {
+      const rows = await waitForBuiltinGrants(
+        adminToken,
+        workspace.id,
+        expectedCapabilities.length,
+      );
+      assert.deepEqual(
+        rows.map((row) => row.capability).sort(),
+        expectedCapabilities,
+        `builtin grants of workspace ${workspace.id}`,
+      );
+      assert.equal(
+        rows.length,
+        expectedCapabilities.length,
+        "one row per capability: a second install writes no duplicate",
+      );
+      assert.ok(
+        rows.every(
+          (row) =>
+            row.scopeKey ===
+            (row.capability === "storage.read" ? "path=*" : "nodeType=*"),
+        ),
+        "the scope key comes from the manifest entry",
+      );
+    }
+    const probe = await waitForLog(
+      /\[plugin-grants\] workspace [^:]+: dbrainx\.builtin install [a-z-]+ \(seeded \d+, already \d+\); dbrainx\.builtin edge\.create -> allowed; dbrainx\.counter edge\.create -> [A-Z_]+/,
+      "the composed plugin policy probe",
+    );
+    assert.match(probe, /dbrainx\.builtin edge\.create -> allowed/);
+    assert.match(
+      probe,
+      /dbrainx\.counter edge\.create -> CAPABILITY_DENIED/,
+      "an ungranted plugin is refused by the gate",
+    );
+    assert.doesNotMatch(probe, /CAPABILITY_POLICY_UNAVAILABLE/);
+    console.log(
+      "PASS builtin grants seeded from plugin.json; granted plugin call allowed and ungranted refused",
+    );
+  }
   if (!process.env.DBRAINX_SMOKE_SERVER_URL) {
     // A cursor subscription replays what the log holds after that position and
     // then continues live. The log only exists when this run created the

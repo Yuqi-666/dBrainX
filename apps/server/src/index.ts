@@ -10,7 +10,12 @@ import {
 import { verifyToken } from "@workspace/infrastructure";
 import { allowedFileRequest } from "./desktop/security";
 import { createServerNodeTypeRegistry } from "./node-type-registry";
-import { createServerOperationRegistry } from "./operation-registry";
+import {
+  createServerOperationHandlers,
+  createServerOperationRegistry,
+} from "./operation-registry";
+import { createBuiltinPluginPackage } from "./plugin-packages";
+import { startBuiltinGrantSeeding } from "./plugin-runtime";
 import { TRPC_PATH, sameOrigin } from "./origin";
 import {
   handleUploadRequest,
@@ -46,22 +51,30 @@ async function main() {
     if (attempt >= 30) throw new Error("PocketBase did not become ready");
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
+  // Resolved on first invocation: the registry is an argument of the
+  // container that owns the service it writes through.
+  const nodeOperations = () => AppContainer.getInstance().nodeCommandService;
+  const graphOperations = () => ({
+    edges: AppContainer.getInstance().edgeCommandService,
+    views: AppContainer.getInstance().viewCommandService,
+  });
+  const attachments = () => AppContainer.getInstance().storedAttachments;
+  const builtinPackage = createBuiltinPluginPackage(
+    createServerOperationHandlers(nodeOperations, graphOperations, attachments),
+  );
   await AppContainer.initialize(PB_URL, {
     nodeTypeRegistry: createServerNodeTypeRegistry(),
-    // Resolved on first invocation: the registry is an argument of the
-    // container that owns the service it writes through.
     operationRegistry: createServerOperationRegistry(
-      () => AppContainer.getInstance().nodeCommandService,
-      () => ({
-        edges: AppContainer.getInstance().edgeCommandService,
-        views: AppContainer.getInstance().viewCommandService,
-      }),
-      () => AppContainer.getInstance().storedAttachments,
+      nodeOperations,
+      graphOperations,
+      attachments,
     ),
+    ...(builtinPackage === undefined ? {} : { pluginPackages: [builtinPackage] }),
   });
   // Sessions outlive the request that opened them, so something has to collect
   // the abandoned ones.
   startUploadSweeper(() => AppContainer.getInstance().uploadCommandService);
+  startBuiltinGrantSeeding(AppContainer.getInstance());
   const server = createServer((req, res) => {
     if (req.url === "/health" && req.method === "GET") {
       void databaseReady().then((ready) =>

@@ -88,6 +88,7 @@ export const testFiles = [
   "plugins/counter/server/index.test.ts",
 
   // Backend tests. These construct their own fakes; none needs PocketBase.
+  "backend/adapter-front/src/di/plugin-lifecycle.test.ts",
   "backend/adapter-front/src/trpc/router/event.test.ts",
   "backend/adapter-front/src/trpc/router/node.test.ts",
   "backend/adapter-front/src/trpc/router/operation.test.ts",
@@ -100,6 +101,7 @@ export const testFiles = [
   "backend/application/src/commands/operation/operation.service.test.ts",
   "backend/application/src/engine/capability-gateway-grants.test.ts",
   "backend/application/src/engine/capability-gateway.test.ts",
+  "backend/application/src/engine/rate-limiter.test.ts",
   "backend/application/src/events/event-metadata.test.ts",
   "backend/domain/src/contract-compile.test.ts",
   "backend/domain/src/event-bus/envelope.test.ts",

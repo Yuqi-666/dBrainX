@@ -107,13 +107,20 @@ function counterIncrement(port: NodeOperationPort): OperationHandler {
   };
 }
 
-export function createServerOperationRegistry(
+/**
+ * The handlers this process binds, by operation id.
+ *
+ * Split out of the registry so the plugin host can be handed the same bindings
+ * the registry serves — the host's snapshot builder needs one handler per
+ * definition and must not import the application layer to get it.
+ */
+export function createServerOperationHandlers(
   nodes: NodeOperationPortProvider,
   graph?: GraphOperationPortProvider,
   attachments?: AttachmentReaderProvider,
-): IOperationHandlerRegistry {
+): Readonly<Record<string, OperationHandler>> {
   const port = lazyPort(nodes);
-  const handlers: Readonly<Record<string, OperationHandler>> = {
+  return {
     ...createNodeOperationHandlers(
       port,
       attachments === undefined ? undefined : lazyAttachments(attachments),
@@ -134,7 +141,14 @@ export function createServerOperationRegistry(
         })),
     "counter.increment": counterIncrement(port),
   };
+}
 
+export function createServerOperationRegistry(
+  nodes: NodeOperationPortProvider,
+  graph?: GraphOperationPortProvider,
+  attachments?: AttachmentReaderProvider,
+): IOperationHandlerRegistry {
+  const handlers = createServerOperationHandlers(nodes, graph, attachments);
   const registry = createOperationRegistry();
   for (const definition of [
     ...builtinOperations,
