@@ -47,10 +47,11 @@ onFileDownloadRequest((e) => {
 // HLS playlist, its segments, a video poster. They are hidden from the resource
 // library and deleted together with the resource, so the bytes the library
 // frees are the bytes the quota charged. See `pb_hooks/lib/media-derived.js`.
-// Before those rows go, every node that points at the deleted blob loses the
-// link (`pb_hooks/lib/node-references.js`); the artifact deletion then repeats
-// the same cleanup for the artifacts. Both steps are best effort: the source is
-// already gone, so a failure must not abort the request.
+// Before those rows go, every node whose `content` (or shared `cover` / `icon`)
+// points at the deleted blob loses the link (`pb_hooks/lib/node-references.js`);
+// the artifact deletion then repeats the same cleanup for the artifacts. Both
+// steps are best effort: the source is already gone, so a failure must not abort
+// the request.
 onRecordAfterDeleteSuccess((e) => {
   if (e.collection && e.collection.name !== "files") return;
   require(`${__hooks}/lib/node-references.js`).detachNodeReferences(e);

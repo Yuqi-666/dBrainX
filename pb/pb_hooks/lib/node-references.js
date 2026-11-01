@@ -4,16 +4,17 @@
 //
 // Deleting a `files` row deletes the bytes, so every node that points at those
 // bytes has to lose the link in the same request. A node never copies the file;
-// it stores the resource's address, and that address carries the record id as
-// a path segment in every form it is written in:
+// it stores the resource's address inside `content`, the only type payload
+// since `0000000011_dynamic_engine.js`, and that address carries the record id
+// as a path segment in every form it is written in:
 //
 //     /api/files/files/<recordId>/<generated name>
 //     /pb/session/<hash>/api/files/files/<recordId>/<generated name>
 //     https://<host>/api/files/files/<recordId>/<generated name>
 //
-// so the deleted row is found by searching the JSON and plain-text columns for
-// `/<recordId>/`. The id, not the whole address, is the stable part: the host,
-// the prefix and the generated name change between reads.
+// so the deleted row is found by searching `content` (and the shared `cover`
+// and `icon` columns) for `/<recordId>/`. The id, not the whole address, is the
+// stable part: the host, the prefix and the generated name change between reads.
 //
 // The hook repairs the stored record only. An open client applies the same
 // update locally (`packages/utils/src/resource-references.ts`), so the two
@@ -23,13 +24,11 @@
 // that cannot be saved is logged and the remaining nodes, and the
 // derived-artifact cleanup that follows, still run.
 
-// The columns a node can hold a file address in. `content` and `docs` are JSON
-// columns; PocketBase's `~` filter also matches inside a JSON document (a JSON
-// string value is searched as text).
+// The fields a node can hold a file address in. `content`, `cover` and `icon`
+// are JSON columns; PocketBase's `~` filter also matches inside a JSON document
+// (a JSON string value is searched as text).
 var REFERENCE_FILTER =
-  "content ~ {:needle} || docs ~ {:needle} || coverUrl ~ {:needle}" +
-  " || hlsUrl ~ {:needle} || faviconUrl ~ {:needle}" +
-  " || cover ~ {:needle} || icon ~ {:needle}";
+  "content ~ {:needle} || cover ~ {:needle} || icon ~ {:needle}";
 
 /**
  * Normalizes a JSON column value.
@@ -99,10 +98,55 @@ function containsNeedleInValue(value, needle) {
   return false;
 }
 
-/** True when the plain-text field `name` contains `needle`. */
-function textFieldMatches(record, name, needle) {
-  var value = record.getString(name);
+/**
+ * Reads a node's `content` payload.
+ *
+ * The column is JSON, so PocketBase normally returns it decoded. A record
+ * written by a hook that used `getString` holds serialized text, and the goja
+ * runtime can expose a JSON field as its raw bytes; `decodeJson` normalizes all
+ * three. Anything that is not a JSON object is reported as `valid: false` so
+ * the caller can skip the node instead of writing a broken payload back.
+ */
+function readContent(record) {
+  var value = decodeJson(record.get("content"));
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    return { value: value, valid: true };
+  }
+  return { value: null, valid: false };
+}
+
+/** A shallow copy, so a saved payload does not mutate the loaded record. */
+function copyContent(content) {
+  var next = {};
+  for (var key in content) next[key] = content[key];
+  return next;
+}
+
+/** True when `content[key]` is a stored address of the deleted record. */
+function pointsAt(content, key, needle) {
+  var value = content[key];
   return typeof value === "string" && value.indexOf(needle) >= 0;
+}
+
+/** True for the node types whose `content.url` is a stored file address. */
+function isMediaNodeType(nodeType) {
+  return (
+    nodeType === "image" ||
+    nodeType === "pdf" ||
+    nodeType === "video" ||
+    nodeType === "audio" ||
+    nodeType === "webpage"
+  );
+}
+
+/** True for the node types whose payload is read here at all. */
+function readsContent(nodeType) {
+  return (
+    isMediaNodeType(nodeType) ||
+    nodeType === "website" ||
+    nodeType === "rich-text" ||
+    nodeType === "text"
+  );
 }
 
 /**
@@ -177,36 +221,69 @@ function stripDocument(value, needle) {
 }
 
 /**
- * The cleared `content` of a text node.
+ * The `content` of a media node after the deleted address is cleared.
  *
- * A text node stores its document directly in the `content` column, but the
- * wire shape wraps it as `content.docs`; both forms are accepted so the record
- * is fixed no matter which one a build wrote.
+ * The emptied payload keeps the type's own default shape (see
+ * `plugins/builtin/types/single/*.ts`), so the next read still satisfies the
+ * type schema instead of handing the mapper a partial object. Only what belongs
+ * to the deleted file is cleared: a poster or playlist that points at another
+ * live record keeps its address, and the timeline, location, shooting time and
+ * source stay, because they are the user's data rather than the file's.
+ *
+ * Returns `{ value, changed }`; `changed` is false when nothing here pointed at
+ * the deleted record, including a payload that carries no `url` at all.
  */
-function stripTextContent(content, needle) {
-  if (content === null || typeof content !== "object") {
-    return { value: content, changed: false };
+function clearMediaContent(nodeType, content, needle) {
+  var next = copyContent(content);
+  var changed = false;
+  var lostFile = pointsAt(content, "url", needle);
+
+  if (lostFile) {
+    next.url = "";
+    changed = true;
   }
+  if (nodeType === "image" && lostFile) {
+    next.width = 0;
+    next.height = 0;
+    next.fileSize = 0;
+    // The annotation layer is drawn on the removed payload.
+    delete next.annotations;
+  }
+  if (nodeType === "pdf" && lostFile) {
+    next.pageCount = 0;
+    next.fileSize = 0;
+    // The annotation layer is drawn on the removed payload.
+    delete next.annotations;
+  }
+  if ((nodeType === "video" || nodeType === "audio") && lostFile) {
+    next.duration = 0;
+    next.fileSize = 0;
+  }
+  if (nodeType === "webpage" && lostFile) {
+    next.fileSize = 0;
+  }
+  // The poster of a PDF or video and a video playlist are separate rows; a
+  // deleted one clears only its own address. A video keeps `timestamps`: the
+  // timeline is the user's work, not part of the file.
   if (
-    content.docs !== null &&
-    typeof content.docs === "object" &&
-    !Array.isArray(content.docs)
+    (nodeType === "pdf" || nodeType === "video") &&
+    pointsAt(content, "coverUrl", needle)
   ) {
-    var wrapped = stripDocument(content.docs, needle);
-    if (!wrapped.changed) return { value: content, changed: false };
-    var next = {};
-    for (var key in content) next[key] = content[key];
-    next.docs = wrapped.value;
-    return { value: next, changed: true };
+    next.coverUrl = "";
+    changed = true;
   }
-  return stripDocument(content, needle);
+  if (nodeType === "video" && pointsAt(content, "hlsUrl", needle)) {
+    next.hlsUrl = "";
+    changed = true;
+  }
+  return { value: next, changed: changed };
 }
 
 /**
  * Clears the reference from one node and saves it.
  *
  * Only the field that actually contains the deleted record is cleared; a node
- * that points at another live resource in the same column keeps that address.
+ * that points at another live resource in the same payload keeps that address.
  */
 function detachNode(e, record, needle) {
   var changed = false;
@@ -234,64 +311,60 @@ function detachNode(e, record, needle) {
     changed = true;
   }
 
-  if (
-    nodeType === "image" ||
-    nodeType === "pdf" ||
-    nodeType === "video" ||
-    nodeType === "audio" ||
-    nodeType === "webpage"
-  ) {
-    var content = decodeJson(record.get("content"));
-    if (containsNeedleInValue(content, needle)) {
-      record.set("content", "");
-      record.set("fileSize", 0);
-      if (nodeType === "image") {
-        record.set("width", 0);
-        record.set("height", 0);
+  var content = null;
+  if (readsContent(nodeType)) {
+    var stored = readContent(record);
+    content = stored.value;
+    if (!stored.valid) {
+      // A malformed payload is a corrupted record, not a reason to abort the
+      // request: the file is already deleted and the other nodes still need
+      // their addresses cleared.
+      console.warn(
+        "[node-references] skipping node " +
+          record.id +
+          " (" +
+          nodeType +
+          "): content is not a JSON object",
+      );
+    } else if (isMediaNodeType(nodeType)) {
+      if (typeof content.url !== "string") {
+        // The address is the field the cleanup keys on. Without it the payload
+        // is left alone, but a poster or playlist that does point at the
+        // deleted record is still cleared below.
+        console.warn(
+          "[node-references] skipping node " +
+            record.id +
+            " (" +
+            nodeType +
+            "): content has no url",
+        );
       }
-      if (nodeType === "pdf") record.set("pageCount", 0);
-      if (nodeType === "video" || nodeType === "audio")
-        record.set("duration", 0);
-      // The annotation layer is drawn on the removed payload.
-      if (nodeType === "image" || nodeType === "pdf")
-        record.set("annotations", null);
-      changed = true;
-    }
-    // The poster of a PDF or video and a video playlist are separate rows; a
-    // deleted one clears only its own address. A video keeps `timestamps`: the
-    // timeline is the user's work, not part of the file.
-    if (nodeType === "pdf" || nodeType === "video") {
-      if (textFieldMatches(record, "coverUrl", needle)) {
-        record.set("coverUrl", "");
+      var cleared = clearMediaContent(nodeType, content, needle);
+      if (cleared.changed) {
+        record.set("content", cleared.value);
         changed = true;
       }
-    }
-    if (nodeType === "video" && textFieldMatches(record, "hlsUrl", needle)) {
-      record.set("hlsUrl", "");
-      changed = true;
-    }
-  } else if (nodeType === "website") {
-    if (textFieldMatches(record, "faviconUrl", needle)) {
-      record.set("faviconUrl", "");
-      changed = true;
-    }
-  } else if (nodeType === "rich-text") {
-    var docs = decodeJson(record.get("docs"));
-    var stripped = stripDocument(docs, needle);
-    if (stripped.changed) {
-      // `referencedNodes` and every other column stay: they name nodes, not
-      // files.
-      record.set("docs", stripped.value);
-      changed = true;
-    }
-  } else if (nodeType === "text") {
-    var documentContent = stripTextContent(
-      decodeJson(record.get("content")),
-      needle,
-    );
-    if (documentContent.changed) {
-      record.set("content", documentContent.value);
-      changed = true;
+    } else if (nodeType === "website") {
+      if (pointsAt(content, "faviconUrl", needle)) {
+        var nextWebsite = copyContent(content);
+        delete nextWebsite.faviconUrl;
+        record.set("content", nextWebsite);
+        changed = true;
+      }
+    } else {
+      // A rich-text and a text node keep their Tiptap document inside
+      // `content.docs`: rich-text as the block map plus `referencedNodes`,
+      // text as the block map alone. Every other key stays as it was.
+      var docs = content.docs;
+      if (docs !== null && typeof docs === "object") {
+        var stripped = stripDocument(docs, needle);
+        if (stripped.changed) {
+          var nextDocument = copyContent(content);
+          nextDocument.docs = stripped.value;
+          record.set("content", nextDocument);
+          changed = true;
+        }
+      }
     }
   }
 
@@ -349,8 +422,9 @@ module.exports = {
   REFERENCE_FILTER: REFERENCE_FILTER,
   decodeJson: decodeJson,
   containsNeedleInValue: containsNeedleInValue,
+  readContent: readContent,
   stripDocument: stripDocument,
-  stripTextContent: stripTextContent,
+  clearMediaContent: clearMediaContent,
   detachNode: detachNode,
   detachNodeReferences: detachNodeReferences,
 };

@@ -41,6 +41,9 @@ const mapper = read(
   "backend/infrastructure/src/database/mappers/node.mapper.ts",
 );
 const hook = read("pb/pb_hooks/lib/node-references.js");
+const nodeContent = read(
+  "backend/infrastructure/src/database/mappers/node-content.ts",
+);
 
 test("the webpage model is a stored address and a byte length", () => {
   assert.match(model, /url: string;/, "content carries the stored address");
@@ -65,18 +68,27 @@ test("the API and the mapper carry the stored address", () => {
   );
   assert.match(
     mapper,
-    /content: new WebpageContent\(resolveWebpageContent\(record\)\)/,
-    "the mapper builds the content from the record",
+    /const storedContent = parseStoredContent\(record\.content\)/,
+    "the mapper reads the address from the content column",
   );
   assert.match(
     mapper,
-    /return \{ url: record\.content \|\| "" \}/,
-    "the record's content column is read as an address",
+    /content: mergeNodeContent\(stored\.content, stored\.media\)/,
+    "the mapper packs the address and the byte length back into content",
   );
+  const mediaFields = nodeContent.match(
+    /export const MEDIA_CONTENT_FIELDS = \[([\s\S]*?)\] as const;/,
+  );
+  assert.ok(mediaFields, "the lifted media facts are declared once");
   assert.match(
-    mapper,
-    /content: node\.content\.url,\s*\n\s*fileSize: node\.fileSize,/,
-    "the node writes the address and the byte length back",
+    mediaFields[1],
+    /"fileSize"/,
+    "the byte length is a lifted media fact",
+  );
+  assert.doesNotMatch(
+    mediaFields[1],
+    /"url"/,
+    "the address stays inside content instead of becoming a node field",
   );
 });
 
@@ -155,7 +167,22 @@ test("the node view renders the object and edits it back into storage", () => {
 test("deleting the resource clears the stored address", () => {
   assert.match(
     hook,
-    /nodeType === "webpage"[\s\S]*?record\.set\("content", ""\);\s*\n\s*record\.set\("fileSize", 0\);/,
-    "the server hook clears the page address and the byte length",
+    /var REFERENCE_FILTER =\s*"content ~ \{:needle\} \|\| cover ~ \{:needle\} \|\| icon ~ \{:needle\}"/,
+    "the reference search names only the columns the 0011 migration kept",
+  );
+  assert.match(
+    hook,
+    /if \(nodeType === "webpage" && lostFile\) \{\s*\n\s*next\.fileSize = 0;/,
+    "the server hook clears the byte length inside content",
+  );
+  assert.match(
+    hook,
+    /next\.url = "";/,
+    "the server hook clears the page address inside content",
+  );
+  assert.doesNotMatch(
+    hook,
+    /record\.set\("(fileSize|url|width|height|pageCount|duration|annotations)"|getString\("(url|docs|coverUrl|hlsUrl|faviconUrl)"\)/,
+    "the hook reads and writes content, not a retired per-type column",
   );
 });
