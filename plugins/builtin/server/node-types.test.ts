@@ -17,6 +17,10 @@ import { Validator } from "@cfworker/json-schema";
 import type { OutputUnit, Schema } from "@cfworker/json-schema";
 
 import { builtinPluginId, nodeTypes } from "./node-types.ts";
+import {
+  builtinAttributeFields,
+  type BuiltinAttributeTypeId,
+} from "../ui/attribute-fields.ts";
 
 const EXPECTED_TYPE_IDS = [
   "text",
@@ -135,5 +139,83 @@ test("a video draft without its file facts fails with the missing fields named",
     .join("\n");
   for (const field of VIDEO_REQUIRED_FIELDS) {
     assert.match(messages, new RegExp(`required property "${field}"`));
+  }
+});
+
+/**
+ * What the shared attribute panel shows per type, read off the pre-upgrade
+ * panel: the six media types showed a content URL, `website` also showed a
+ * favicon, and `collection` showed its collection type. `video` additionally
+ * declares its cover and timeline, which the acceptance criteria require the
+ * panel to keep exposing.
+ */
+const EXPECTED_ATTRIBUTE_FIELDS: Record<
+  BuiltinAttributeTypeId,
+  readonly { field: string; kind: string; optional: boolean }[]
+> = {
+  text: [],
+  "rich-text": [],
+  image: [{ field: "url", kind: "url", optional: false }],
+  pdf: [{ field: "url", kind: "url", optional: false }],
+  video: [
+    { field: "url", kind: "url", optional: false },
+    { field: "coverUrl", kind: "cover", optional: true },
+    { field: "timestamps", kind: "timeline", optional: true },
+  ],
+  audio: [{ field: "url", kind: "url", optional: false }],
+  webpage: [{ field: "url", kind: "url", optional: false }],
+  website: [
+    { field: "url", kind: "url", optional: false },
+    { field: "faviconUrl", kind: "cover", optional: true },
+  ],
+  collection: [
+    { field: "filterConfig.collectionType", kind: "select", optional: true },
+  ],
+  database: [],
+};
+
+test("every builtin type declares exactly the attribute fields the panel showed", () => {
+  assert.deepEqual(
+    Object.keys(builtinAttributeFields).sort(),
+    [...EXPECTED_TYPE_IDS].sort(),
+  );
+
+  for (const type of EXPECTED_TYPE_IDS) {
+    const declared = builtinAttributeFields[
+      type as BuiltinAttributeTypeId
+    ].map((field) => ({
+      field: field.field,
+      kind: field.kind,
+      optional: field.optional === true,
+    }));
+    assert.deepEqual(declared, EXPECTED_ATTRIBUTE_FIELDS[type as BuiltinAttributeTypeId], type);
+  }
+});
+
+test("a video node keeps its URL, cover and timeline fields", () => {
+  const video = builtinAttributeFields.video;
+
+  assert.deepEqual(
+    video.map((field) => field.field),
+    ["url", "coverUrl", "timestamps"],
+  );
+  assert.equal(video[1]?.kind, "cover");
+  assert.equal(video[2]?.kind, "timeline");
+  assert.equal(video[1]?.optional, true);
+  assert.equal(video[2]?.optional, true);
+});
+
+test("every attribute field is labelled and names a namespaced operation", () => {
+  for (const type of EXPECTED_TYPE_IDS) {
+    for (const field of builtinAttributeFields[type as BuiltinAttributeTypeId]) {
+      const id = `${type}.${field.field}`;
+      assert.notEqual(field.label.trim(), "", id);
+      if (field.operationId !== undefined) {
+        assert.match(field.operationId, /^[a-z][a-z0-9-]*\.[a-zA-Z][A-Za-z0-9.]*$/, id);
+      }
+      if (field.kind === "select") {
+        assert.ok((field.options?.length ?? 0) > 0, `${id} offers no choice`);
+      }
+    }
   }
 });
