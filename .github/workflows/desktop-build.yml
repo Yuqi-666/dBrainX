@@ -80,7 +80,7 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: apps/desktop/.next/cache
-          key: next-v1-${{ runner.os }}-${{ matrix.target }}-desktop-${{ hashFiles('.node-version', 'pnpm-lock.yaml') }}-${{ hashFiles('apps/**/*.ts', 'apps/**/*.tsx', 'apps/**/*.mjs', 'apps/**/*.js', 'apps/**/*.json', 'packages/**/*.ts', 'packages/**/*.tsx', 'packages/**/*.js', 'packages/**/*.mjs', 'packages/**/*.json', 'backend/**/*.ts', 'backend/**/*.json', 'scripts/**/*.mjs', 'apps/**/*.css', 'packages/**/*.css', 'packages/**/*.scss', 'apps/*/public/**', 'packages/*/public/**', '*.json', '*.yaml', '!**/node_modules/**', '!**/.next/**', '!**/dist/**', '!**/target/**', '!**/runtime/**') }}
+          key: next-v1-${{ runner.os }}-${{ matrix.target }}-desktop-${{ hashFiles('.node-version', 'pnpm-lock.yaml') }}-${{ hashFiles('apps/**/*.ts', 'apps/**/*.tsx', 'apps/**/*.mjs', 'apps/**/*.js', 'apps/**/*.json', 'packages/**/*.ts', 'packages/**/*.tsx', 'packages/**/*.js', 'packages/**/*.mjs', 'packages/**/*.json', 'backend/**/*.ts', 'backend/**/*.json', 'plugins/**/*.ts', 'plugins/**/*.tsx', 'plugins/**/*.js', 'plugins/**/*.mjs', 'plugins/**/*.json', 'scripts/**/*.mjs', 'apps/**/*.css', 'packages/**/*.css', 'packages/**/*.scss', 'apps/*/public/**', 'packages/*/public/**', '*.json', '*.yaml', '!**/node_modules/**', '!**/.next/**', '!**/dist/**', '!**/target/**', '!**/runtime/**') }}
           restore-keys: next-v1-${{ runner.os }}-${{ matrix.target }}-desktop-${{ hashFiles('.node-version', 'pnpm-lock.yaml') }}-
       - run: pnpm release:check
       - name: Require updater signing key

@@ -9,6 +9,7 @@ import {
 import { bundleMacLibraries } from "../../../scripts/lib/macos-libraries.mjs";
 import { bundleBackend } from "../../../scripts/lib/bundle-backend.mjs";
 import { prepareModules } from "../../../scripts/lib/runtime-modules.mjs";
+import { preparePlugins } from "../../../scripts/lib/plugin-packages.mjs";
 import { execFileSync } from "node:child_process";
 import {
   chmod,
@@ -68,6 +69,9 @@ try {
     join(destination, "pb_hooks"),
     { recursive: true },
   );
+  // Plugin manifests and server entries ship beside the backend bundle, like
+  // the hooks above; the runtime resolves them relative to its own directory.
+  await preparePlugins(root, destination);
   for (const [name, path] of Object.entries(binaries)) {
     const target = join(destination, exe(name));
     await copyFile(await realpath(path), target);
@@ -87,6 +91,24 @@ try {
     }
   }
   await collect(join(destination, "node_modules"));
+  // MXC keeps its FFI library under bin/<arch> instead of a .node addon. Treat
+  // it as a native file so macOS bundling and the Linux library scan cover it.
+  // Only this platform's library qualifies: macOS bundling runs `otool` on
+  // every entry, which cannot read a Linux ELF.
+  const mxcBin = join(
+    destination,
+    "node_modules/@microsoft/mxc-sdk/bin",
+    process.arch === "arm64" ? "arm64" : "x64",
+  );
+  const mxcLibrary =
+    process.platform === "linux"
+      ? /\.so$/
+      : process.platform === "darwin"
+        ? /\.dylib$/
+        : undefined;
+  if (mxcLibrary)
+    for (const name of await readdir(mxcBin))
+      if (mxcLibrary.test(name)) nativeFiles.push(join(mxcBin, name));
   if (process.platform === "linux") {
     await mkdir(join(destination, "lib"));
     const libraries = new Map();
@@ -105,7 +127,8 @@ try {
       for (const match of output.matchAll(/^\s*(\S+) => (\/\S+)/gm)) {
         const [, name, path] = match;
         // The dynamic loader and glibc must come from the target system together.
-        if (/^(libc|libm|libpthread|libdl|librt)\.so/.test(name)) continue;
+        if (/^(?:libc|libm|libpthread|libdl|librt)\.so|(?:^|\/)ld-linux/.test(name))
+          continue;
         const previous = libraries.get(name);
         const resolved = await realpath(path);
         if (previous && previous !== resolved)
