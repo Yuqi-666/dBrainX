@@ -56,6 +56,7 @@ async function main() {
         edges: AppContainer.getInstance().edgeCommandService,
         views: AppContainer.getInstance().viewCommandService,
       }),
+      () => AppContainer.getInstance().storedAttachments,
     ),
   });
   // Sessions outlive the request that opened them, so something has to collect

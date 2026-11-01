@@ -4,23 +4,24 @@
  * The operation catalogue this host process serves.
  *
  * The definitions come from the plugin packages that ship with the app, exactly
- * as `node-type-registry.ts` seeds the node types; the handlers come from the
- * application layer. Binding happens here because a backend layer may not
- * import a plugin package, and a definition without a handler cannot be
- * registered at all — an unbound operation answers `OPERATION_NOT_FOUND`
- * instead of running nothing.
+ * as `node-type-registry.ts` seeds the node types: the shared metadata
+ * catalogue, the per-type self catalogue, the edge/view catalogue and the
+ * counter fixture. The handlers come from the application layer. Binding
+ * happens here because a backend layer may not import a plugin package, and a
+ * definition without a handler cannot be registered at all — an unbound
+ * operation answers `OPERATION_NOT_FOUND` instead of running nothing.
  *
  * Only the operations this build implements are registered, so `operation.list`
- * never offers an operation that would then fail. The remaining declared
- * operations (icon/cover, permission, tags, delete, the four `*.attachFile`
- * pairs and every per-type self operation) stay unbound until their handlers
- * land; the old endpoints keep serving them in the meantime.
+ * never offers an operation that would then fail. The per-type self operations
+ * (`text.setDocument`, `video.timeline.add`, …) stay unbound until their
+ * handlers land; the old endpoints keep serving them in the meantime.
  */
 import { createNodeOperationHandlers } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
 import type { NodeOperationPort } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
 import { createEdgeViewOperationHandlers } from "../../../backend/application/src/commands/operation/edge-view-operation-handlers.ts";
 import type { EdgeViewOperationPorts } from "../../../backend/application/src/commands/operation/edge-view-operation-handlers.ts";
 import type { OperationContext } from "../../../backend/domain/src/ports/operation-context.ts";
+import type { IStoredAttachmentReader } from "../../../backend/domain/src/ports/stored-attachment.ts";
 import { createOperationRegistry } from "../../../backend/domain/src/ports/operation-handler.ts";
 import type {
   IOperationHandlerRegistry,
@@ -32,6 +33,7 @@ import {
 } from "../../../plugins/counter/server/index.ts";
 import type { CounterContent } from "../../../plugins/counter/server/index.ts";
 import { operations as builtinOperations } from "../../../plugins/builtin/server/operations.ts";
+import { typeOperations } from "../../../plugins/builtin/server/type-operations.ts";
 import { graphOperations } from "../../../plugins/builtin/server/graph-operations.ts";
 
 /**
@@ -48,11 +50,28 @@ export type NodeOperationPortProvider = () => NodeOperationPort;
  */
 export type GraphOperationPortProvider = () => EdgeViewOperationPorts;
 
+/**
+ * The stored upload results the media attach operations read.
+ *
+ * Resolved on first use like the command services: the reader belongs to the
+ * container this registry is an argument of. Without it the four
+ * `*.attachFile` operations stay unbound, because a handler that cannot resolve
+ * its upload would fail on every call.
+ */
+export type AttachmentReaderProvider = () => IStoredAttachmentReader;
+
 function lazyPort(provider: NodeOperationPortProvider): NodeOperationPort {
   return {
     createNode: (command) => provider().createNode(command),
     updateNode: (command) => provider().updateNode(command),
+    deleteNode: (command) => provider().deleteNode(command),
   };
+}
+
+function lazyAttachments(
+  provider: AttachmentReaderProvider,
+): IStoredAttachmentReader {
+  return { find: (attachmentId) => provider().find(attachmentId) };
 }
 
 /**
@@ -90,10 +109,14 @@ function counterIncrement(port: NodeOperationPort): OperationHandler {
 export function createServerOperationRegistry(
   nodes: NodeOperationPortProvider,
   graph?: GraphOperationPortProvider,
+  attachments?: AttachmentReaderProvider,
 ): IOperationHandlerRegistry {
   const port = lazyPort(nodes);
   const handlers: Readonly<Record<string, OperationHandler>> = {
-    ...createNodeOperationHandlers(port),
+    ...createNodeOperationHandlers(
+      port,
+      attachments === undefined ? undefined : lazyAttachments(attachments),
+    ),
     ...(graph === undefined
       ? {}
       : createEdgeViewOperationHandlers({
@@ -112,6 +135,7 @@ export function createServerOperationRegistry(
   const registry = createOperationRegistry();
   for (const definition of [
     ...builtinOperations,
+    ...typeOperations,
     ...graphOperations,
     ...counterOperations,
   ]) {

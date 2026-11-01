@@ -14,10 +14,15 @@ import { test } from "node:test";
 
 import type {
   CreateNodeCommand,
+  DeleteNodeCommand,
   UpdateNodeCommand,
 } from "../../../backend/application/src/commands/node/command.ts";
 import type { NodeOperationPort } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
 import type { NodeDTO } from "../../../backend/application/src/dto/node.dto.ts";
+import type {
+  IStoredAttachmentReader,
+  StoredAttachment,
+} from "../../../backend/domain/src/ports/stored-attachment.ts";
 import { createExecutionScope } from "../../../backend/domain/src/models/plugin/capability.ts";
 import type { OperationContext } from "../../../backend/domain/src/ports/operation-context.ts";
 import { createServerOperationRegistry } from "./operation-registry.ts";
@@ -25,14 +30,16 @@ import { createServerOperationRegistry } from "./operation-registry.ts";
 interface Recorded {
   readonly created: CreateNodeCommand[];
   readonly updated: UpdateNodeCommand[];
+  readonly deleted: DeleteNodeCommand[];
 }
 
 function recorder(): { port: NodeOperationPort; recorded: Recorded } {
   const created: CreateNodeCommand[] = [];
   const updated: UpdateNodeCommand[] = [];
+  const deleted: DeleteNodeCommand[] = [];
   const dto = (id: string) => ({ id }) as unknown as NodeDTO;
   return {
-    recorded: { created, updated },
+    recorded: { created, updated, deleted },
     port: {
       createNode: async (command) => {
         created.push(command);
@@ -41,6 +48,9 @@ function recorder(): { port: NodeOperationPort; recorded: Recorded } {
       updateNode: async (command) => {
         updated.push(command);
         return dto(command.id);
+      },
+      deleteNode: async (command) => {
+        deleted.push(command);
       },
     },
   };
@@ -91,10 +101,35 @@ test("binds every listed operation and refuses the ones this build cannot run", 
       `${definition.id} is listed without a handler`,
     );
   }
-  assert.ok(registry.get("node.add"));
-  assert.ok(registry.get("node.setTitle"));
+  for (const operationId of [
+    "node.add",
+    "node.setTitle",
+    "node.setIcon",
+    "node.clearIcon",
+    "node.setCover",
+    "node.clearCover",
+    "node.setPermission",
+    "node.addTag",
+    "node.removeTag",
+    "node.delete",
+    "video.setCover",
+    "website.setFavicon",
+    "collection.setFilter",
+    "webpage.replaceDocument",
+  ]) {
+    assert.notEqual(registry.get(operationId), undefined, operationId);
+  }
   assert.ok(registry.get("counter.increment"));
-  assert.equal(registry.get("node.setPermission"), undefined);
+  // The four attach operations resolve a stored upload, so they are only bound
+  // when the host composes a reader for them.
+  for (const operationId of [
+    "image.attachFile",
+    "pdf.attachFile",
+    "video.attachFile",
+    "audio.attachFile",
+  ]) {
+    assert.equal(registry.get(operationId), undefined, operationId);
+  }
   assert.throws(
     () => registry.resolve("text.setDocument"),
     (error: unknown) =>
@@ -157,5 +192,97 @@ test("counter.increment applies the fixture rule to the reloaded snapshot", asyn
       userId: "user_alice",
       correlationId: "corr_1",
     },
+  ]);
+});
+
+function attachmentReader(
+  facts: StoredAttachment | null,
+): IStoredAttachmentReader {
+  return { find: async () => facts };
+}
+
+const IMAGE_UPLOAD: StoredAttachment = {
+  id: "rec_upload_1",
+  url: "/api/files/files/rec_upload_1/photo_a1.png",
+  fileName: "photo.png",
+  fileSize: 2048,
+  mimeType: "image/png",
+  pageCount: 0,
+  width: 640,
+  height: 480,
+  duration: 0,
+  coverUrl: "",
+  hlsUrl: "",
+};
+
+test("an attach reads the stored upload instead of the client's address", async () => {
+  const { port, recorded } = recorder();
+  const registry = createServerOperationRegistry(
+    () => port,
+    undefined,
+    () => attachmentReader(IMAGE_UPLOAD),
+  );
+  assert.notEqual(registry.get("image.attachFile"), undefined);
+
+  await registry.resolve("image.attachFile")(
+    { uploadId: "rec_upload_1", url: "/api/files/files/forged/evil.png" },
+    nodeContext({ url: "", width: 0, height: 0, fileSize: 0 }),
+  );
+
+  assert.deepEqual(recorded.updated, [
+    {
+      id: "node_1",
+      content: {
+        url: "/api/files/files/rec_upload_1/photo_a1.png",
+        fileSize: 2048,
+        width: 640,
+        height: 480,
+      },
+      userId: "user_alice",
+      correlationId: "corr_1",
+    },
+  ]);
+});
+
+test("an attach refuses an upload the reader cannot resolve", async () => {
+  const { port, recorded } = recorder();
+  const registry = createServerOperationRegistry(
+    () => port,
+    undefined,
+    () => attachmentReader(null),
+  );
+
+  await assert.rejects(
+    registry.resolve("pdf.attachFile")(
+      { uploadId: "rec_missing" },
+      nodeContext({ url: "", fileSize: 0, pageCount: 0, coverUrl: "" }),
+    ),
+    /not a file the caller may attach/,
+  );
+  assert.deepEqual(recorded.updated, []);
+});
+
+test("a tag write adds and removes one value of the stored list", async () => {
+  const { port, recorded } = recorder();
+  const registry = createServerOperationRegistry(() => port);
+  const context = { ...nodeContext(), node: { ...nodeContext().node!, tags: ["tag_a"] } };
+
+  await registry.resolve("node.addTag")({ tag: "tag_b" }, context);
+  await registry.resolve("node.removeTag")({ tag: "tag_a" }, context);
+  await registry.resolve("node.addTag")({ tag: "tag_a" }, context);
+
+  assert.deepEqual(
+    recorded.updated.map((command) => command.tags),
+    [["tag_a", "tag_b"], []],
+  );
+});
+
+test("node.delete runs the command with the run's correlation id", async () => {
+  const { port, recorded } = recorder();
+  const registry = createServerOperationRegistry(() => port);
+
+  assert.deepEqual(await registry.resolve("node.delete")({}, nodeContext()), {});
+  assert.deepEqual(recorded.deleted, [
+    { id: "node_1", userId: "user_alice", correlationId: "corr_1" },
   ]);
 });

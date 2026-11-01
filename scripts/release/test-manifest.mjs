@@ -68,6 +68,7 @@ export const testFiles = [
   "pb/node-timestamps.test.mjs",
 
   // Shared package tests that need no DOM or browser globals.
+  "packages/api-client/src/trpc/event-convergence.test.ts",
   "packages/hooks/src/graph-gestures.test.mjs",
   "packages/plugin-sdk/src/define-operation.test.ts",
   "packages/ui/src/components/node-content/registry.test.ts",
@@ -133,6 +134,7 @@ export const testFiles = [
   // Server and desktop entry points that run without PocketBase.
   "apps/server/src/desktop/security.test.ts",
   "apps/server/src/desktop/upgrade-backup.test.ts",
+  "apps/server/src/operation-contract.test.ts",
   "apps/server/src/operation-registry.test.ts",
   "apps/server/src/origin.test.ts",
 ];

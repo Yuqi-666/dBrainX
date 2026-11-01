@@ -688,6 +688,145 @@ try {
   console.log(
     "PASS operation.invoke node.add/setTitle/setSemanticId/setStateData/pin and strict input rejection",
   );
+  // The metadata the attribute panel writes, one operation per field: tags are
+  // added and removed by the one value the user toggled, and the icon, cover
+  // and permission writes carry the operation's own input only.
+  const tagged = await aw.operation.invoke.mutate({
+    operationId: "node.addTag",
+    target: { kind: "node", nodeId: node.id },
+    input: { tag: "tag_smoke" },
+  });
+  assert.deepEqual(tagged.node.tags, ["tag_smoke"]);
+  const untagged = await aw.operation.invoke.mutate({
+    operationId: "node.removeTag",
+    target: { kind: "node", nodeId: node.id },
+    input: { tag: "tag_smoke" },
+  });
+  assert.deepEqual(untagged.node.tags, []);
+  const iconed = await aw.operation.invoke.mutate({
+    operationId: "node.setIcon",
+    target: { kind: "node", nodeId: node.id },
+    input: { icon: { kind: "emoji", value: "📄" } },
+  });
+  assert.deepEqual(iconed.node.icon, { kind: "emoji", value: "📄" });
+  const uncovered = await aw.operation.invoke.mutate({
+    operationId: "node.clearIcon",
+    target: { kind: "node", nodeId: node.id },
+    input: {},
+  });
+  assert.equal(uncovered.node.icon ?? null, null);
+  const covered = await aw.operation.invoke.mutate({
+    operationId: "node.setCover",
+    target: { kind: "node", nodeId: node.id },
+    input: { cover: { kind: "image", url: "https://example.com/cover.png" } },
+  });
+  assert.deepEqual(covered.node.cover, {
+    kind: "image",
+    url: "https://example.com/cover.png",
+  });
+  const clearedCover = await aw.operation.invoke.mutate({
+    operationId: "node.clearCover",
+    target: { kind: "node", nodeId: node.id },
+    input: {},
+  });
+  assert.equal(clearedCover.node.cover ?? null, null);
+  const shared = await aw.operation.invoke.mutate({
+    operationId: "node.setPermission",
+    target: { kind: "node", nodeId: node.id },
+    input: { permission: "public" },
+  });
+  assert.equal(shared.node.permission, "public");
+  await aw.operation.invoke.mutate({
+    operationId: "node.setPermission",
+    target: { kind: "node", nodeId: node.id },
+    input: { permission: "private" },
+  });
+  console.log(
+    "PASS operation.invoke node.addTag/removeTag/setIcon/clearIcon/setCover/clearCover/setPermission",
+  );
+  // The per-type fields the attribute panel edits, each on a node of the type
+  // that declares the operation.
+  const videoNode = await aw.operation.invoke
+    .mutate({
+      operationId: "node.add",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: { nodeType: "video" },
+    })
+    .then((result) => result.node);
+  const videoCover = await aw.operation.invoke.mutate({
+    operationId: "video.setCover",
+    target: { kind: "node", nodeId: videoNode.id },
+    input: { coverUrl: "https://example.com/poster.jpg" },
+  });
+  assert.equal(videoCover.node.content.coverUrl, "https://example.com/poster.jpg");
+  const websiteNode = await aw.operation.invoke
+    .mutate({
+      operationId: "node.add",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: { nodeType: "website" },
+    })
+    .then((result) => result.node);
+  const favicon = await aw.operation.invoke.mutate({
+    operationId: "website.setFavicon",
+    target: { kind: "node", nodeId: websiteNode.id },
+    input: { faviconUrl: "https://example.com/favicon.ico" },
+  });
+  assert.equal(favicon.node.content.faviconUrl, "https://example.com/favicon.ico");
+  const collectionNode = await aw.operation.invoke
+    .mutate({
+      operationId: "node.add",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: { nodeType: "collection" },
+    })
+    .then((result) => result.node);
+  const filtered = await aw.operation.invoke.mutate({
+    operationId: "collection.setFilter",
+    target: { kind: "node", nodeId: collectionNode.id },
+    input: { filterConfig: { collectionType: "cards" } },
+  });
+  assert.equal(filtered.node.content.filterConfig.collectionType, "cards");
+  const webpageNode = await aw.operation.invoke
+    .mutate({
+      operationId: "node.add",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: { nodeType: "webpage" },
+    })
+    .then((result) => result.node);
+  const replaced = await aw.operation.invoke.mutate({
+    operationId: "webpage.replaceDocument",
+    target: { kind: "node", nodeId: webpageNode.id },
+    input: { url: "https://example.com/page.html" },
+  });
+  assert.equal(replaced.node.content.url, "https://example.com/page.html");
+  // `*.attachFile` takes the stored upload result and nothing else, so the
+  // answer's address and size come from the record, not from this request.
+  const imageUpload = await upload(alice.token, "image bytes", wa.id);
+  const imageNode = await aw.operation.invoke
+    .mutate({
+      operationId: "node.add",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: { nodeType: "image" },
+    })
+    .then((result) => result.node);
+  const attached = await aw.operation.invoke.mutate({
+    operationId: "image.attachFile",
+    target: { kind: "node", nodeId: imageNode.id },
+    input: { uploadId: imageUpload.id },
+  });
+  assert.equal(
+    attached.node.content.url,
+    `/api/files/${imageUpload.collectionId}/${imageUpload.id}/${imageUpload.file}`,
+  );
+  assert.ok(attached.node.fileSize > 0);
+  await aw.operation.invoke.mutate({
+    operationId: "node.delete",
+    target: { kind: "node", nodeId: videoNode.id },
+    input: {},
+  });
+  assert.equal(await a.node.getById.query({ id: videoNode.id }), null);
+  console.log(
+    "PASS operation.invoke video.setCover/website.setFavicon/collection.setFilter/webpage.replaceDocument/image.attachFile/node.delete",
+  );
   assert.equal(await b.node.getById.query({ id: node.id }), null);
   await assert.rejects(b.node.delete.mutate({ id: node.id }));
   const target = await aw.operation.invoke

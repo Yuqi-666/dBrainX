@@ -143,6 +143,7 @@ async function main() {
         edges: AppContainer.getInstance().edgeCommandService,
         views: AppContainer.getInstance().viewCommandService,
       }),
+      () => AppContainer.getInstance().storedAttachments,
     ),
   });
   // The upload pipeline writes to the local PocketBase from this process with
