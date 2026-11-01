@@ -80,11 +80,19 @@ describe("plugin manifests", () => {
       const source = renderPluginUiModule(manifests);
       assert.match(
         source,
-        /^ {2}\{ pluginId: "example\.first", entry: "@plugin\/a-first\/ui" \},$/m,
+        /^import \* as plugin0 from "@plugin\/a-first\/ui";$/m,
       );
       assert.match(
         source,
-        /^ {2}\{ pluginId: "example\.second", entry: "@plugin\/b-second\/ui" \},$/m,
+        /^import \* as plugin1 from "@plugin\/b-second\/ui";$/m,
+      );
+      assert.match(
+        source,
+        /^ {2}\{ pluginId: "example\.first", entry: "@plugin\/a-first\/ui", module: plugin0 \},$/m,
+      );
+      assert.match(
+        source,
+        /^ {2}\{ pluginId: "example\.second", entry: "@plugin\/b-second\/ui", module: plugin1 \},$/m,
       );
       assert.ok(
         source.indexOf("example.first") < source.indexOf("example.second"),

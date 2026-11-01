@@ -6,6 +6,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { TRPCReactProvider } from "@workspace/api-client";
 import { useGraphSubscriptions } from "@workspace/api-client";
 import { createPocketbaseClient, resolveBackendUrls } from "@workspace/api-client";
+// Side effect on import: every generated plugin descriptor is in the registry
+// before this tree renders (see lib/plugin-ui.bootstrap.ts).
+import "@/lib/plugin-ui.bootstrap";
 
 function GraphSubscriptionProvider(): ReactNode {
   useGraphSubscriptions();

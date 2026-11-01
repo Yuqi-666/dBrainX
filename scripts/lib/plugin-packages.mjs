@@ -243,7 +243,17 @@ export async function readPluginManifests(root) {
   return plugins.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** The generated `apps/web/lib/plugin-ui.generated.ts` source text. */
+/**
+ * The generated `apps/web/lib/plugin-ui.generated.ts` source text.
+ *
+ * Every plugin entry is imported with a **literal** module specifier: webpack
+ * (the web and desktop builds) can only resolve and bundle a static request, so
+ * a string lookup table would leave the browser without the module it names.
+ * The eager import costs one small descriptor module per plugin; the editors
+ * behind each descriptor stay `React.lazy`, so no editor code enters that chunk.
+ * Registration is therefore synchronous at module evaluation, which is what lets
+ * the bootstrap finish before the first render instead of flashing a fallback.
+ */
 export function renderPluginUiModule(plugins) {
   const lines = [
     "// SPDX-License-Identifier: AGPL-3.0-only",
@@ -251,15 +261,39 @@ export function renderPluginUiModule(plugins) {
     "// `plugins/*/plugin.json` manifest. Rerun that command after editing one;",
     "// `node scripts/generate-plugin-ui.mjs --check` is the gate that fails on drift.",
     "//",
-    "// Each descriptor names a plugin and the browser UI module a registry",
-    "// bootstrap imports lazily. `packages/ui` never imports `plugins/*`.",
+    "// Each entry names a plugin, the browser UI module the bundler imports for it,",
+    "// and that module's namespace. The import is a literal specifier so webpack",
+    "// statically resolves it; a registry bootstrap reads `module` and registers",
+    "// every descriptor at module evaluation, i.e. before the first render. The",
+    "// editors behind the descriptors stay `React.lazy`, so this eager import adds",
+    "// descriptor data rather than editor code. `packages/ui` never imports",
+    "// `plugins/*`.",
+    "",
+    'import type { NodeContentDescriptor } from "@workspace/plugin-sdk/ui";',
+    "",
+  ];
+  if (plugins.length > 0) {
+    for (const [index, plugin] of plugins.entries())
+      lines.push(
+        `import * as plugin${index} from ${JSON.stringify(plugin.ui)};`,
+      );
+    lines.push("");
+  }
+  lines.push(
+    "/** What a plugin's browser UI entry must export (§5.4.9). */",
+    "export interface PluginUiEntry {",
+    "  /** The node content descriptors the bootstrap registers. */",
+    "  readonly nodeContentDescriptors: readonly NodeContentDescriptor[];",
+    "}",
     "",
     "export interface PluginUiDescriptor {",
     "  readonly pluginId: string;",
     "  readonly entry: string;",
+    "  /** The imported entry module; the bootstrap registers its descriptors. */",
+    "  readonly module: PluginUiEntry;",
     "}",
     "",
-  ];
+  );
   const declaration =
     "export const pluginUiDescriptors: readonly PluginUiDescriptor[] = ";
   if (plugins.length === 0) {
@@ -267,9 +301,9 @@ export function renderPluginUiModule(plugins) {
     return lines.join("\n");
   }
   lines.push(`${declaration}[`);
-  for (const plugin of plugins)
+  for (const [index, plugin] of plugins.entries())
     lines.push(
-      `  { pluginId: ${JSON.stringify(plugin.id)}, entry: ${JSON.stringify(plugin.ui)} },`,
+      `  { pluginId: ${JSON.stringify(plugin.id)}, entry: ${JSON.stringify(plugin.ui)}, module: plugin${index} },`,
     );
   lines.push("];", "");
   return lines.join("\n");

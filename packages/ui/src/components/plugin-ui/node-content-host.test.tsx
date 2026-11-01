@@ -94,6 +94,24 @@ function rejectingDescriptor(type: string): NodeContentDescriptor {
   };
 }
 
+/**
+ * The specifier travels through a variable on purpose: the point of the case is
+ * a module the build *cannot* resolve, so neither `tsc` nor esbuild may turn it
+ * into a compile error, and the failure must reach React as a rejected chunk.
+ */
+const missingChunk = "./__node-content-chunk-that-does-not-exist__.ts";
+
+function missingChunkDescriptor(type: string): NodeContentDescriptor {
+  return {
+    type,
+    pluginId: "plugin.host",
+    label: type,
+    editor: lazy(() => import(missingChunk)),
+    preview: lazy(() => import(missingChunk)),
+    icon: NullContent,
+  };
+}
+
 async function renderInDom(element: ReactElement): Promise<{
   container: HTMLElement;
   unmount: () => Promise<void>;
@@ -146,6 +164,16 @@ test("an unregistered node type renders the unknown fallback", () => {
   assert.match(html, /host\.unregistered/);
 });
 
+test("an unregistered node type renders the JSON fallback in the browser", async () => {
+  const { container, unmount } = await renderInDom(
+    <NodeContentHost node={makeNode("host.unregistered.browser")} />,
+  );
+
+  assertFallback(container, "host.unregistered.browser");
+
+  await unmount();
+});
+
 test("a registered descriptor renders through the host", async () => {
   registerNodeContent(
     descriptorOf("host.ok", ({ node }) => <p>{`rendered-${node.nodeType}`}</p>),
@@ -164,6 +192,21 @@ test("a lazy import that rejects renders the unknown fallback", async () => {
     <NodeContentHost node={makeNode("host.rejects")} />,
   );
   assertFallback(container, "host.rejects");
+  await unmount();
+});
+
+test("a lazy chunk that does not exist renders that type's fallback, not an error page", async () => {
+  registerNodeContent(missingChunkDescriptor("host.missing-chunk"));
+  const { container, unmount } = await renderInDom(
+    <NodeContentHost node={makeNode("host.missing-chunk")} />,
+  );
+
+  assertFallback(container, "host.missing-chunk");
+  assert.ok(
+    container.isConnected,
+    "the surrounding page is still mounted, so the route did not blank",
+  );
+
   await unmount();
 });
 

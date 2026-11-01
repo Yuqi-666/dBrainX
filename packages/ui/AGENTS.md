@@ -11,7 +11,7 @@ It also contains the application-level composition surface.
 ## Public surface
 
 The package has no `"."` export.
-The available subpaths are `./globals.css`, `./postcss.config`, `./lib/*`, `./components/*`, and `./hooks/*`.
+The available subpaths are `./globals.css`, `./postcss.config`, `./lib/*`, `./components/*`, `./hooks/*`, and `./plugin-kit`.
 `./components/*` maps to `src/components/*.tsx`.
 Consumers therefore import a deep path, for example `@workspace/ui/components/header/graph-header/...`.
 

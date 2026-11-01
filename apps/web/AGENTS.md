@@ -19,7 +19,7 @@ It contains no business logic.
 | `app/(main)/` | The authenticated layout, plus the graph, dashboard, and resources pages |
 | `components/` | Six app-level components, for example `workspace-shell.tsx` and `dynamic-island-host.tsx` |
 | `hooks/` | `use-workspace-initialization.ts` |
-| `lib/` | Empty |
+| `lib/` | The generated plugin UI map and the bootstrap that registers it before the first render |
 | `public/` | Empty |
 
 ## Mechanisms

@@ -13,6 +13,10 @@ import {
   TRPCReactProvider,
   useGraphSubscriptions,
 } from "@workspace/api-client";
+// The web app's bootstrap, through the `@/*` alias the desktop app already uses
+// for `@/components/*`: the static export registers the same generated plugin
+// map the browser build does, before this tree renders.
+import "@/lib/plugin-ui.bootstrap";
 
 function Subscriptions() {
   useI18n();

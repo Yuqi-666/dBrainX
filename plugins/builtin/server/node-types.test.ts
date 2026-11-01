@@ -15,8 +15,13 @@ import test from "node:test";
 
 import { Validator } from "@cfworker/json-schema";
 import type { OutputUnit, Schema } from "@cfworker/json-schema";
+import {
+  listNodeContentDescriptors,
+  registerNodeContent,
+} from "@workspace/ui/components/node-content/registry";
 
 import { builtinPluginId, nodeTypes } from "./node-types.ts";
+import { nodeContentDescriptors } from "../ui/index.ts";
 import {
   builtinAttributeFields,
   type BuiltinAttributeTypeId,
@@ -67,6 +72,32 @@ test("declares exactly the ten builtin type ids, once each", () => {
       .size,
     nodeTypes.length,
   );
+});
+
+test("the UI entry registers each of the ten builtin types under the builtin plugin", () => {
+  for (const descriptor of nodeContentDescriptors)
+    registerNodeContent(descriptor);
+
+  const registered = listNodeContentDescriptors().filter(
+    (descriptor) => descriptor.pluginId === builtinPluginId,
+  );
+
+  for (const type of EXPECTED_TYPE_IDS) {
+    const matches = registered.filter((descriptor) => descriptor.type === type);
+    assert.equal(
+      matches.length,
+      1,
+      `${builtinPluginId}:${type} is registered exactly once`,
+    );
+  }
+
+  const expected = new Set<string>(EXPECTED_TYPE_IDS);
+  for (const descriptor of registered) {
+    assert.ok(
+      expected.has(descriptor.type),
+      `${descriptor.pluginId}:${descriptor.type} is not a builtin node type`,
+    );
+  }
 });
 
 test("every definition belongs to the builtin plugin at version 1", () => {

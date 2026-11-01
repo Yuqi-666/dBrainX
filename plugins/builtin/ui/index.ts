@@ -6,10 +6,11 @@
  * It exports one `NodeContentDescriptor` per builtin node type and nothing else:
  * the types' editors and previews live in `./node-content/` and `./previews/`,
  * and this module is the only place that pairs a type id with a component. The
- * client bootstrap imports it lazily (`apps/web/lib/plugin-ui.generated.ts`) and
- * calls `registerNodeContent` before the first paint; `packages/ui` then resolves
- * every type — builtin or third-party — through that table and never imports a
- * plugin package.
+ * generated plugin map (`apps/web/lib/plugin-ui.generated.ts`) imports this
+ * module for its namespace, and the client bootstrap registers
+ * {@link nodeContentDescriptors} before the first render; `packages/ui` then
+ * resolves every type — builtin or third-party — through that table and never
+ * imports a plugin package.
  *
  * `cover` is not part of `NodeContentDescriptor` yet. The card cover needs to
  * know which field holds a type's picture (`url`, `coverUrl`, `faviconUrl`) and
@@ -49,8 +50,8 @@ import type {
 import type { NodeCoverContribution } from "@workspace/ui/components/preview-block/node-preview-cover";
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 
-import { docText } from "./node-content/doc-normalize";
-import { builtinAttributeFields } from "./attribute-fields";
+import { docText } from "./node-content/doc-normalize.ts";
+import { builtinAttributeFields } from "./attribute-fields.ts";
 
 /** The manifest id this entry registers under (`plugins/builtin/plugin.json`). */
 export const builtinPluginId = "dbrainx.builtin";
@@ -80,7 +81,14 @@ function lazyOf<P extends NodeContentViewProps>(
   });
 }
 
-export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescriptor[] =
+/**
+ * The descriptors this plugin contributes, in picker order.
+ *
+ * The name is the plugin UI entry contract (§5.4.9): the generated map imports
+ * the module and the bootstrap reads `nodeContentDescriptors`, so every plugin —
+ * builtin or third-party — is registered by the same rule.
+ */
+export const nodeContentDescriptors: readonly BuiltinNodeContentDescriptor[] =
   [
     {
       type: "text",

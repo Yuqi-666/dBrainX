@@ -73,6 +73,7 @@
     "./components/*": "./src/components/*.tsx",
     "./components/node-content/registry": "./src/components/node-content/registry.ts",
     "./components/node-content/use-node-content-writer": "./src/components/node-content/use-node-content-writer.ts",
-    "./hooks/*": "./src/hooks/*.ts"
+    "./hooks/*": "./src/hooks/*.ts",
+    "./plugin-kit": "./src/plugin-kit/index.ts"
   }
 }
