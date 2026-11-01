@@ -84,7 +84,11 @@ export const graphOperations: readonly OperationDefinition[] = [
       {
         from: { type: "string", minLength: 1 },
         to: { type: "string", minLength: 1 },
-        semanticId: { type: "string", minLength: 1 },
+        // Empty is allowed: the graph's "add edge" gesture creates an
+        // unlabelled edge and the user names it afterwards (`edge.setLabel` or
+        // `edge.setSemanticId`). Requiring a non-empty id here left the gesture
+        // with no operation to call at all.
+        semanticId: { type: "string" },
         direction: EDGE_DIRECTION,
         stateData: EDGE_STATE_DATA,
       },
@@ -169,6 +173,36 @@ export const graphOperations: readonly OperationDefinition[] = [
     target: "view",
     effect: "update",
     inputSchema: closedObject({ filterConfig: FILTER_CONFIG }),
+    requiredCapabilities: GRAPH_WRITE,
+    idempotent: true,
+  }),
+  defineOperationDefinition({
+    id: "view.setName",
+    pluginId: builtinPluginId,
+    exportName: "viewSetName",
+    target: "view",
+    effect: "update",
+    inputSchema: closedObject({ name: { type: "string", minLength: 1 } }),
+    requiredCapabilities: GRAPH_WRITE,
+    idempotent: true,
+  }),
+  defineOperationDefinition({
+    id: "view.setType",
+    pluginId: builtinPluginId,
+    exportName: "viewSetType",
+    target: "view",
+    effect: "update",
+    inputSchema: closedObject({ viewType: { enum: ["Force", "Flow"] } }),
+    requiredCapabilities: GRAPH_WRITE,
+    idempotent: true,
+  }),
+  defineOperationDefinition({
+    id: "view.setPinned",
+    pluginId: builtinPluginId,
+    exportName: "viewSetPinned",
+    target: "view",
+    effect: "update",
+    inputSchema: closedObject({ isPinned: { type: "boolean" } }),
     requiredCapabilities: GRAPH_WRITE,
     idempotent: true,
   }),

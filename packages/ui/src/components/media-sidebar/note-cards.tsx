@@ -10,7 +10,7 @@ import { useI18n } from "@workspace/ui/lib/i18n";
  *
  * This is the **only writer** of the node's timeline. Add / patch / delete each
  * build a complete next array and hand it to `onTimestampsChange`, which the host
- * persists through `patchContent` — one gesture, one write. Notes and cues are
+ * persists as one `*.setTimeline` operation — one gesture, one write. Notes and cues are
  * **one stored array**, so a write here rewrites the whole timeline and carries
  * the transcript along untouched.
  *
@@ -149,7 +149,7 @@ export function NoteCards({
   /**
    * The draft's write has been sent, but the store has not echoed it back yet.
    *
-   * `patchContent` only *queues* its upsert (`use-node-content-writer.ts`: a
+   * `setTimeline` only *queues* its invocation (`use-node-content-writer.ts`: a
    * microtask drain), and React flushes the click that committed the draft
    * before that microtask runs. Dropping the local copy at commit time would
    * therefore render one frame in which the note exists nowhere — unmounting the

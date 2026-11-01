@@ -16,13 +16,13 @@ import { useI18n } from "@workspace/ui/lib/i18n";
  *    translated on read and the first edit persists the
  *    `{ type:"doc", content:[…] }` shape (`doc-normalize.ts`).
  * 2. **Writes are debounced, but never dropped.** The shared writer serializes
- *    them (`patchContent`), and a trailing debounce keeps one write per pause
+ *    them through `text.setDocument`, and a trailing debounce keeps one write per pause
  *    instead of one per keystroke; the unmount flush is what makes the last
  *    keystrokes survive an immediate `Esc`. The trailing debounce has a second
  *    effect worth keeping: the write lands *after* a click that follows typing,
  *    so a header edit made in that window travels in the same payload instead of
  *    racing an in-flight body write.
- * 3. **Only the `docs` half is written** — `patchContent` merges onto the live
+ * 3. **Only the `docs` half is written** — `text.setDocument` writes the live
  *    content, so nothing else on the node is at risk.
  * 4. **A node switch is a remount.** The dialog is *not* keyed by node id, so the
  *    关系 tab of the attributes sidebar can retarget it in place; the editor is
@@ -84,18 +84,18 @@ export function TextNodeContent({ node, className }: TextNodeContentProps) {
   // node's writer and copy one node's text into another. The captured function is
   // bound to the node that was being typed in.
   const pending = useRef<{
-    patchContent: (patch: Partial<TextContent>) => void;
+    operationId: string;
     docs: TextContent["docs"];
   } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // `patchContent` changes identity whenever the store does (its live-content
-  // reader depends on this render's node), so hold it in a ref instead of
-  // rebuilding the flush callback — the unmount cleanup has to stay stable.
-  const patchRef = useRef(writer.patchContent);
+  // `apply` changes identity whenever the store does (its live-content reader
+  // depends on this render's node), so hold it in a ref instead of rebuilding
+  // the flush callback — the unmount cleanup has to stay stable.
+  const applyRef = useRef(writer.apply);
   useEffect(() => {
-    patchRef.current = writer.patchContent;
-  }, [writer.patchContent]);
+    applyRef.current = writer.apply;
+  }, [writer.apply]);
 
   const flush = useCallback(() => {
     if (timer.current !== null) {
@@ -105,13 +105,13 @@ export function TextNodeContent({ node, className }: TextNodeContentProps) {
     const queued = pending.current;
     if (queued === null) return;
     pending.current = null;
-    queued.patchContent({ docs: queued.docs });
+    void applyRef.current(queued.operationId, { docs: queued.docs });
   }, []);
 
   const handleChange = useCallback(
     (doc: unknown) => {
       pending.current = {
-        patchContent: patchRef.current,
+        operationId: "text.setDocument",
         docs: doc as TextContent["docs"],
       };
       if (timer.current !== null) clearTimeout(timer.current);

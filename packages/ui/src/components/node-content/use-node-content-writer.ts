@@ -18,7 +18,6 @@ import {
   intentPreview,
   isReplayableOperation,
   queuedContent,
-  translateNodePatch,
   type ContentWriteIntent,
   type OperationWriteIntent,
 } from "./node-content-patches";
@@ -116,8 +115,10 @@ const SHARED_NODE_OPERATIONS: ReadonlySet<string> = new Set([
  * a whole-node patch that would look saved.
  */
 function declaresByRegistry(nodeType: string, operationId: string): boolean {
-  if (SHARED_NODE_OPERATIONS.has(operationId)) return true;
+  // An unregistered type has no edit path at all, not even the shared metadata
+  // operations: the client cannot describe a type it does not know.
   if (getNodeContentDescriptor(nodeType) === undefined) return false;
+  if (SHARED_NODE_OPERATIONS.has(operationId)) return true;
   return operationId.startsWith(`${nodeType}.`);
 }
 
@@ -136,10 +137,8 @@ export interface ContentWriteQueueOptions {
   nodeId: NodeId;
   nodeType: string;
   declares?: (operationId: string) => boolean;
-  isRegistered?: () => boolean;
   read?: (nodeId: NodeId) => NodeData | undefined;
   invoke?: (invocation: ContentInvocation) => Promise<OperationResult>;
-  writeLegacy?: (nodeId: NodeId, patch: Partial<NodeData>) => Promise<void>;
   schedule?: (task: () => void) => void;
   onError?: (failure: ContentWriteFailure) => void;
   /** Refetch one node; the queue resumes from the version it returns. */
@@ -224,9 +223,6 @@ export function createContentWriteQueue(
   const declares =
     options.declares ??
     ((operationId: string) => declaresByRegistry(nodeType, operationId));
-  const isRegistered =
-    options.isRegistered ??
-    (() => getNodeContentDescriptor(nodeType) !== undefined);
   const read =
     options.read ?? ((id: NodeId) => useDataStore.getState().nodes.get(id));
   const invoke =
@@ -238,10 +234,6 @@ export function createContentWriteQueue(
         invocation.input,
         invokeOptionsOf(invocation),
       ));
-  const writeLegacy =
-    options.writeLegacy ??
-    ((id: NodeId, patch: Partial<NodeData>) =>
-      NodeService.upsert(id, patch).then(() => undefined));
   const schedule =
     options.schedule ?? ((task: () => void) => queueMicrotask(task));
   const onError =
@@ -299,17 +291,14 @@ export function createContentWriteQueue(
     for (const waiter of write.waiters) waiter.resolve(outcome);
   };
 
-  const operationIdOf = (intent: ContentWriteIntent): string =>
-    intent.kind === "operation" ? intent.operationId : "node.patch";
-
   const inputOf = (intent: ContentWriteIntent): Record<string, unknown> =>
-    intent.kind === "operation" ? intent.input : {};
+    intent.input;
 
   const disposedOutcome = (
     intent: ContentWriteIntent,
   ): ContentWriteOutcome => ({
     ok: false,
-    operationId: operationIdOf(intent),
+    operationId: intent.operationId,
     code: CONTENT_QUEUE_DISPOSED,
     message: "the content surface was closed before the write was sent",
   });
@@ -365,7 +354,7 @@ export function createContentWriteQueue(
   };
 
   const fail = (write: QueuedWrite, code: string, message: string): void => {
-    const operationId = operationIdOf(write.intent);
+    const operationId = write.intent.operationId;
     lastFailure = { operationId, code, message, input: inputOf(write.intent) };
     // The write that failed and everything behind it are held, not dropped:
     // the editor keeps showing the draft, and only a replayable intent may be
@@ -386,39 +375,6 @@ export function createContentWriteQueue(
 
   const send = async (write: QueuedWrite): Promise<void> => {
     const { intent } = write;
-
-    if (intent.kind === "legacy") {
-      if (!isRegistered()) {
-        fail(
-          write,
-          OPERATION_NOT_DECLARED,
-          `node type "${nodeType}" is not registered, so it has no edit path`,
-        );
-        return;
-      }
-      NodeService.cancelPendingUpdate(nodeId);
-      // `NodeService.upsert` replaces `content` whole, so a patch that names one
-      // key has to be merged onto the freshest content or it drops its siblings.
-      const live = read(nodeId);
-      const patch: Partial<NodeData> =
-        intent.patch.content === undefined || live === undefined
-          ? intent.patch
-          : {
-              ...intent.patch,
-              content: {
-                ...(live.content as Record<string, unknown>),
-                ...(intent.patch.content as Record<string, unknown>),
-              } as NodeData["content"],
-            };
-      try {
-        await writeLegacy(nodeId, patch);
-        settle(write, { ok: true, operationId: "node.patch" });
-      } catch (error) {
-        const { code, message } = failureOf(error);
-        fail(write, code, message);
-      }
-      return;
-    }
 
     if (!declares(intent.operationId)) {
       fail(
@@ -498,7 +454,7 @@ export function createContentWriteQueue(
         heldIntents = [...heldIntents, intent];
         resolve({
           ok: false,
-          operationId: operationIdOf(intent),
+          operationId: intent.operationId,
           code: lastFailure?.code ?? OPERATION_NOT_DECLARED,
           message: lastFailure?.message ?? "the write queue is halted",
         });
@@ -511,7 +467,7 @@ export function createContentWriteQueue(
   const write = async (
     intent: ContentWriteIntent,
   ): Promise<ContentWriteOutcome> => {
-    project(intent.kind === "legacy" ? intent.patch : intent.preview);
+    project(intent.preview);
     return enqueue(intent);
   };
 
@@ -596,18 +552,6 @@ export interface NodeContentWriter<C> {
     input: Record<string, unknown>,
     preview?: Partial<NodeData>,
   ): Promise<ContentWriteOutcome>;
-  /**
-   * @deprecated Todo 43 removes the patch-shaped entry points; an editor names
-   * its operation through {@link apply}.
-   *
-   * A metadata key (`title`, `abstract`, `icon`, …) and a document
-   * (`content.docs`) are translated into their operations here. A content key
-   * that has no whole-value operation yet is sent as the old whole-node write —
-   * one at a time, never merged.
-   */
-  patchContent(patch: Partial<C>): void;
-  /** @deprecated See {@link patchContent}. */
-  patchNode(patch: Partial<NodeData>): void;
   /** The last refused write, with its server code and its input. */
   failure(): ContentWriteFailure | null;
   /** Every write still holding a draft after a failure, oldest first. */
@@ -634,6 +578,10 @@ export interface NodeContentWriter<C> {
  *    (typing a title, replacing a document) collapses to the last input; anything
  *    with its own identity (a timeline entry, a cell, an attachment) is sent in
  *    the order it happened.
+ *
+ * There is no patch-shaped entry point: a content host names the operation it
+ * means (`text.setDocument`, `database.setRows`, `node.setTitle`), so a write
+ * cannot carry a field its operation does not own.
  *
  * @param nodeId   the node whose content is being written
  * @param nodeType guards `liveContent` and names the operation domain
@@ -678,27 +626,9 @@ export function useNodeContentWriter<C>(
     [queue],
   );
 
-  const writePatch = useCallback(
-    (patch: Partial<NodeData>) => {
-      for (const intent of translateNodePatch(nodeType, patch)) {
-        void queue.write(intent);
-      }
-    },
-    [queue, nodeType],
-  );
-
-  const patchContent = useCallback(
-    (patch: Partial<C>) => {
-      writePatch({ content: patch } as unknown as Partial<NodeData>);
-    },
-    [writePatch],
-  );
-
   return {
     liveContent,
     apply,
-    patchContent,
-    patchNode: writePatch,
     failure: () => queue.failure(),
     held: () => queue.held(),
     retryHeld: () => queue.retryHeld(),

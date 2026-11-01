@@ -29,7 +29,7 @@ const DIR = fileURLToPath(new URL("./", import.meta.url));
 
 const ENTRY = [
   'export { createContentWriteQueue } from "./use-node-content-writer.ts";',
-  'export { coalesceIntents, translateNodePatch } from "./node-content-patches.ts";',
+  'export { coalesceIntents, intentPreview } from "./node-content-patches.ts";',
   'export { useDataStore } from "@workspace/store";',
 ].join("\n");
 
@@ -74,21 +74,18 @@ interface ContentWriteFailure {
 }
 
 interface ContentWriteIntent {
-  readonly kind: "operation" | "legacy";
-  readonly operationId?: string;
-  readonly input?: Record<string, unknown>;
+  readonly kind: "operation";
+  readonly operationId: string;
+  readonly input: Record<string, unknown>;
   readonly preview?: Partial<NodeData>;
-  readonly patch?: Partial<NodeData>;
 }
 
 interface QueueOptions {
   nodeId: string;
   nodeType: string;
   declares?: (operationId: string) => boolean;
-  isRegistered?: () => boolean;
   read?: (nodeId: string) => NodeData | undefined;
   invoke?: (invocation: ContentInvocation) => Promise<OperationResult>;
-  writeLegacy?: (nodeId: string, patch: Partial<NodeData>) => Promise<void>;
   schedule?: (task: () => void) => void;
   onError?: (failure: ContentWriteFailure) => void;
   resync?: (nodeId: string) => Promise<void>;
@@ -124,10 +121,10 @@ interface RuntimeModule {
   coalesceIntents: (
     intents: readonly ContentWriteIntent[],
   ) => ContentWriteIntent[];
-  translateNodePatch: (
-    nodeType: string,
-    patch: Partial<NodeData>,
-  ) => ContentWriteIntent[];
+  intentPreview: (
+    operationId: string,
+    input: Record<string, unknown>,
+  ) => Partial<NodeData> | undefined;
   useDataStore: {
     getState: () => {
       nodes: Map<string, NodeData>;
@@ -454,42 +451,27 @@ describe("content write queue", () => {
     );
   });
 
-  it("refuses an unregistered type's edit instead of patching the node", async () => {
+  it("refuses an unregistered type's edit instead of writing anything", async () => {
     const calls: ContentInvocation[] = [];
-    const legacyWrites: Partial<NodeData>[] = [];
     const queue = createQueue({
       nodeId: NODE_ID,
       nodeType: "ghost",
       declares: () => false,
-      isRegistered: () => false,
       read: () => ({ ...textNode(), nodeType: "ghost" }) as NodeData,
       invoke: async (invocation) => {
         calls.push(invocation);
         return reply(invocation, VERSION);
       },
-      writeLegacy: async (_nodeId, patch) => {
-        legacyWrites.push(patch);
-      },
     });
 
     const refused = await queue.apply("ghost.setPayload", { payload: 1 });
-    const refusedPatch = await queue.write({
-      kind: "legacy",
-      patch: { content: { payload: 1 } },
-    });
 
     assert.equal(refused.ok, false);
     assert.equal(
       refused.ok === false ? refused.code : "",
       "OPERATION_NOT_DECLARED",
     );
-    assert.equal(refusedPatch.ok, false);
-    assert.equal(
-      refusedPatch.ok === false ? refusedPatch.code : "",
-      "OPERATION_NOT_DECLARED",
-    );
     assert.equal(calls.length, 0);
-    assert.equal(legacyWrites.length, 0);
   });
 
   it("settles the caller of a write the surface closed on, and refuses later ones", async () => {
@@ -541,24 +523,16 @@ describe("content write queue", () => {
 });
 
 describe("content write intents", () => {
-  it("translates a document edit into the type's setDocument operation", () => {
-    const intents = runtime.translateNodePatch("text", {
-      content: { docs: DOC_A },
-    } as Partial<NodeData>);
-
-    assert.equal(intents.length, 1);
-    assert.equal(intents[0]?.kind, "operation");
-    assert.equal(intents[0]?.operationId, "text.setDocument");
-    assert.deepEqual(intents[0]?.input, { docs: DOC_A });
-  });
-
-  it("keeps a content key with no whole-value operation out of the document operation", () => {
-    const intents = runtime.translateNodePatch("video", {
-      content: { timestamps: [{ type: "note", id: "note_1" }] },
-    } as Partial<NodeData>);
-
-    assert.equal(intents.length, 1);
-    assert.equal(intents[0]?.kind, "legacy");
+  it("previews only the payload the named operation owns", () => {
+    assert.deepEqual(
+      runtime.intentPreview("text.setDocument", { docs: DOC_A }),
+      { content: { docs: DOC_A } },
+    );
+    assert.deepEqual(
+      runtime.intentPreview("video.setTimeline", { timestamps: [] }),
+      { content: { timestamps: [] } },
+    );
+    assert.equal(runtime.intentPreview("edge.create", {}), undefined);
   });
 
   it("merges only adjacent inputs of one mergeable operation", () => {

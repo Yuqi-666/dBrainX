@@ -20,6 +20,9 @@ try {
   const workspaceId = workspaces[0].id;
   const semantic = await client.nodeSemantic.add.mutate({ id: temporaryId(), name: "本地笔记", workspaceId });
   for (const title of ["完整本地后端", "离线存储已接入"]) {
-    await client.node.add.mutate({ id: temporaryId(), title, nodeType: "text", semanticId: semantic.id, content: { docs: {} }, workspaceId });
+    const created = await client.operation.invoke.mutate({ operationId: "node.add", target: { kind: "workspace", workspaceId }, input: { nodeType: "text" } });
+    const target = { kind: "node", nodeId: created.node.id };
+    await client.operation.invoke.mutate({ operationId: "node.setTitle", target, input: { title } });
+    await client.operation.invoke.mutate({ operationId: "node.setSemanticId", target, input: { semanticId: semantic.id } });
   }
 } finally { ws.close(); }

@@ -3,11 +3,9 @@
 /**
  * The write intents the node-content queue carries (§3.5.4.5, todo 40).
  *
- * The queue used to hold `Partial<NodeData>` patches and send one whole-node
- * upsert per debounce window. A whole node is not a write unit any more: an edit
- * is one operation with one input, and only the fields that operation owns may
- * change. This module keeps the two facts the queue needs — what an intent is,
- * and which intents a drain may merge — so both are testable without React.
+ * An edit is one operation with one input, and only the fields that operation
+ * owns may change. This module keeps the facts the queue needs — what an intent
+ * is, and which intents a drain may merge — so both are testable without React.
  *
  * Two rules come straight from the plan:
  *
@@ -19,18 +17,11 @@
  *    timeline insertion or a file attachment is an event with its own identity;
  *    dropping one of them loses the user's work, so those are always sent in
  *    order.
- *
- * The `legacy` intent is the one transitional shape left. A content key whose
- * node type declares no whole-value operation yet (`content.timestamps`,
- * `content.rows`, `content.annotations`, …) still has to be persisted, and the
- * editor that raises it lives in `plugins/builtin/ui`, outside this task's
- * files. It is sent as the old whole-node write, one at a time, and is removed
- * with the rest of the whole-node surface in todo 43.
  */
 import type { NodeData } from "@workspace/interfaces";
 
 /** One write the queue will send as `operation.invoke`. */
-export interface OperationWriteIntent {
+export interface ContentWriteIntent {
   readonly kind: "operation";
   /** The id the server resolves; `text.setDocument`, `node.setTitle`, … */
   readonly operationId: string;
@@ -43,17 +34,8 @@ export interface OperationWriteIntent {
   readonly preview?: Partial<NodeData>;
 }
 
-/**
- * A whole-node write for a content key that has no whole-value operation yet.
- *
- * @deprecated Remove in todo 43 together with the whole-node write surface.
- */
-export interface LegacyWriteIntent {
-  readonly kind: "legacy";
-  readonly patch: Partial<NodeData>;
-}
-
-export type ContentWriteIntent = OperationWriteIntent | LegacyWriteIntent;
+/** Alias kept for the queue's public shape: one intent is one operation. */
+export type OperationWriteIntent = ContentWriteIntent;
 
 /**
  * Operations whose input replaces the whole value they name.
@@ -75,6 +57,14 @@ const MERGEABLE_OPERATION_IDS: ReadonlySet<string> = new Set([
   "node.unpin",
   "text.setDocument",
   "rich-text.setDocument",
+  "image.setAnnotations",
+  "pdf.setAnnotations",
+  "video.setTimeline",
+  "audio.setTimeline",
+  "database.setRows",
+  "database.setFields",
+  "collection.setViews",
+  "database.setViews",
 ]);
 
 /** True when a drain may replace an earlier input of the same operation. */
@@ -109,9 +99,9 @@ function mergePreview(
 }
 
 function mergeIntents(
-  previous: OperationWriteIntent,
-  next: OperationWriteIntent,
-): OperationWriteIntent {
+  previous: ContentWriteIntent,
+  next: ContentWriteIntent,
+): ContentWriteIntent {
   return {
     kind: "operation",
     operationId: previous.operationId,
@@ -127,10 +117,8 @@ function mergeIntents(
 function canMerge(
   previous: ContentWriteIntent,
   next: ContentWriteIntent,
-): previous is OperationWriteIntent {
+): boolean {
   return (
-    previous.kind === "operation" &&
-    next.kind === "operation" &&
     previous.operationId === next.operationId &&
     isMergeableOperation(previous.operationId)
   );
@@ -149,11 +137,7 @@ export function coalesceIntents(
   const writes: ContentWriteIntent[] = [];
   for (const intent of intents) {
     const previous = writes[writes.length - 1];
-    if (
-      previous !== undefined &&
-      intent.kind === "operation" &&
-      canMerge(previous, intent)
-    ) {
+    if (previous !== undefined && canMerge(previous, intent)) {
       writes[writes.length - 1] = mergeIntents(previous, intent);
       continue;
     }
@@ -168,29 +152,13 @@ export function queuedContent<C>(
   intents: readonly ContentWriteIntent[],
 ): C {
   const overlays = intents
-    .map((intent) =>
-      intent.kind === "legacy" ? intent.patch.content : intent.preview?.content,
-    )
+    .map((intent) => intent.preview?.content)
     .filter(
       (overlay): overlay is NonNullable<typeof overlay> => overlay != null,
     );
   if (overlays.length === 0) return content;
   return Object.assign({}, content, ...overlays) as C;
 }
-
-/** The node keys a metadata operation writes, one operation per field. */
-const NODE_PATCH_OPERATIONS: Readonly<Record<string, string>> = {
-  title: "node.setTitle",
-  abstract: "node.setAbstract",
-  semanticId: "node.setSemanticId",
-  stateData: "node.setStateData",
-};
-
-/** The operation that replaces a type's document, when the type declares one. */
-const DOCUMENT_OPERATIONS: Readonly<Record<string, string>> = {
-  text: "text.setDocument",
-  "rich-text": "rich-text.setDocument",
-};
 
 /**
  * The local projection of an operation's input, or `undefined` when the
@@ -229,80 +197,37 @@ export function intentPreview(
       return {
         content: { docs: input.docs } as unknown as NodeData["content"],
       };
+    case "image.setAnnotations":
+    case "pdf.setAnnotations":
+      return {
+        content: {
+          annotations: input.annotations,
+        } as unknown as NodeData["content"],
+      };
+    case "video.setTimeline":
+    case "audio.setTimeline":
+      return {
+        content: {
+          timestamps: input.timestamps,
+        } as unknown as NodeData["content"],
+      };
+    case "database.setRows":
+      return {
+        content: { rows: input.rows } as unknown as NodeData["content"],
+      };
+    case "database.setFields":
+      return {
+        content: {
+          fields: input.fields,
+          rows: input.rows,
+        } as unknown as NodeData["content"],
+      };
+    case "database.setViews":
+    case "collection.setViews":
+      return {
+        content: { views: input.views } as unknown as NodeData["content"],
+      };
     default:
       return undefined;
   }
-}
-
-/**
- * Translate the writer's compatibility patch into write intents.
- *
- * This is what keeps the editors that still call `patchContent` / `patchNode`
- * on the operation path: a metadata key becomes its `node.*` operation and a
- * document becomes `text.setDocument` / `rich-text.setDocument`. Everything
- * this module cannot name as an operation stays a `legacy` intent, pinned to
- * todo 43.
- */
-export function translateNodePatch(
-  nodeType: string,
-  patch: Partial<NodeData>,
-): ContentWriteIntent[] {
-  const intents: ContentWriteIntent[] = [];
-  const legacy: Record<string, unknown> = {};
-
-  const pushOperation = (
-    operationId: string,
-    input: Record<string, unknown>,
-  ): void => {
-    const preview = intentPreview(operationId, input);
-    intents.push({
-      kind: "operation",
-      operationId,
-      input,
-      ...(preview === undefined ? {} : { preview }),
-    });
-  };
-
-  for (const [key, value] of Object.entries(patch)) {
-    if (key === "content") {
-      const rest: Record<string, unknown> = {};
-      for (const [contentKey, contentValue] of Object.entries(
-        (value ?? {}) as Record<string, unknown>,
-      )) {
-        const documentOperation = DOCUMENT_OPERATIONS[nodeType];
-        if (contentKey === "docs" && documentOperation !== undefined) {
-          pushOperation(documentOperation, { docs: contentValue });
-          continue;
-        }
-        rest[contentKey] = contentValue;
-      }
-      if (Object.keys(rest).length > 0) {
-        legacy.content = rest as NodeData["content"];
-      }
-      continue;
-    }
-
-    if (key === "icon") {
-      if (value === null) pushOperation("node.clearIcon", {});
-      else pushOperation("node.setIcon", { icon: value });
-      continue;
-    }
-    if (key === "cover") {
-      if (value === null) pushOperation("node.clearCover", {});
-      else pushOperation("node.setCover", { cover: value });
-      continue;
-    }
-
-    const operationId = NODE_PATCH_OPERATIONS[key];
-    if (operationId !== undefined) {
-      pushOperation(operationId, { [key]: value });
-      continue;
-    }
-    legacy[key] = value;
-  }
-
-  if (Object.keys(legacy).length > 0) {
-    intents.push({ kind: "legacy", patch: legacy as Partial<NodeData> });
-  }
-  return intents;
 }

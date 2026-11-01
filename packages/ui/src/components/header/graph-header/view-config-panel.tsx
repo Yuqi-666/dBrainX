@@ -106,18 +106,12 @@ export function ViewConfigPanel({ className }: ViewConfigPanelProps) {
 
   const handleUpdateVisualConfig = (updates: Partial<VisualConfig>) => {
     if (!currentViewId) return;
-    void ViewService.upsert(
-      currentViewId,
-      {
-        visualConfig: { ...visualConfig, ...updates },
-      },
-      { debounce: true },
-    );
+    void ViewService.setLayout(currentViewId, { ...visualConfig, ...updates });
   };
 
   const handleUpdateViewType = (viewType: ViewType) => {
     if (!currentViewId) return;
-    void ViewService.upsert(currentViewId, { viewType }, { debounce: true });
+    void ViewService.setType(currentViewId, viewType);
   };
 
   const handleThemeSyncChange = (checked: boolean) => {

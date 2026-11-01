@@ -40,6 +40,8 @@ export const NODE_OPERATIONS = {
   setStateData: "node.setStateData",
   pin: "node.pin",
   unpin: "node.unpin",
+  clearContent: "node.clearContent",
+  delete: "node.delete",
 } as const;
 
 export const EDGE_OPERATIONS = {
@@ -54,6 +56,9 @@ export const VIEW_OPERATIONS = {
   create: "view.create",
   setLayout: "view.setLayout",
   setFilter: "view.setFilter",
+  setName: "view.setName",
+  setType: "view.setType",
+  setPinned: "view.setPinned",
   delete: "view.delete",
 } as const;
 
@@ -104,6 +109,16 @@ export const GRAPH_OPERATIONS = {
     effect: "update",
     resource: "node",
   },
+  [NODE_OPERATIONS.clearContent]: {
+    target: "node",
+    effect: "update",
+    resource: "node",
+  },
+  [NODE_OPERATIONS.delete]: {
+    target: "node",
+    effect: "delete",
+    resource: "node",
+  },
   [EDGE_OPERATIONS.create]: {
     target: "workspace",
     effect: "create",
@@ -144,6 +159,21 @@ export const GRAPH_OPERATIONS = {
     effect: "update",
     resource: "view",
   },
+  [VIEW_OPERATIONS.setName]: {
+    target: "view",
+    effect: "update",
+    resource: "view",
+  },
+  [VIEW_OPERATIONS.setType]: {
+    target: "view",
+    effect: "update",
+    resource: "view",
+  },
+  [VIEW_OPERATIONS.setPinned]: {
+    target: "view",
+    effect: "update",
+    resource: "view",
+  },
   [VIEW_OPERATIONS.delete]: {
     target: "view",
     effect: "delete",
@@ -162,6 +192,8 @@ export interface NodeOperationInput {
   "node.setStateData": { stateData: NodeStateData };
   "node.pin": Record<string, never>;
   "node.unpin": Record<string, never>;
+  "node.clearContent": Record<string, never>;
+  "node.delete": Record<string, never>;
 }
 
 interface EdgeCreateInput {
@@ -194,6 +226,9 @@ export interface ViewOperationInput {
   "view.create": ViewCreateInput;
   "view.setLayout": { visualConfig: VisualConfig };
   "view.setFilter": { filterConfig: FilterConfig };
+  "view.setName": { name: string };
+  "view.setType": { viewType: ViewType };
+  "view.setPinned": { isPinned: boolean };
   "view.delete": Record<string, never>;
 }
 

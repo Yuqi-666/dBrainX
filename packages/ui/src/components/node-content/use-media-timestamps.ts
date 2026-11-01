@@ -32,7 +32,6 @@ import * as React from "react";
 import type {
   NodeData,
   NodeId,
-  RichTextNodeData,
   TimestampData,
   TimestampNoteData,
   TimestampSubtitleData,
@@ -121,11 +120,7 @@ export function useMediaTimestamps<C extends MediaTimestampHalves>(
   node: MediaTimestampNode,
   content: C,
 ): MediaTimestampLayer {
-  const { patchContent } = useNodeContentWriter<C>(
-    node.id,
-    node.nodeType,
-    content,
-  );
+  const { apply } = useNodeContentWriter<C>(node.id, node.nodeType, content);
 
   const [controller, setController] = React.useState<MediaController | null>(
     null,
@@ -156,9 +151,9 @@ export function useMediaTimestamps<C extends MediaTimestampHalves>(
 
   const onTimestampsChange = React.useCallback(
     (next: TimestampData[]) => {
-      patchContent({ timestamps: next } as Partial<C>);
+      void apply(`${node.nodeType}.setTimeline`, { timestamps: next });
     },
-    [patchContent],
+    [apply, node.nodeType],
   );
 
   const onAddNoteRequest = React.useCallback((timeMs: number) => {
@@ -200,23 +195,24 @@ export function useMediaTimestamps<C extends MediaTimestampHalves>(
    */
   const onCreateNodeFromNote = React.useCallback(
     async (note: TimestampNoteData): Promise<NodeId | null> => {
-      const now = new Date().toISOString();
-      const draft: RichTextNodeData = {
-        // The backend mints the real id; the placeholder is the same one
-        // `useGraph`'s create path sends.
-        id: "tmp_",
-        title: noteTitle(note),
-        nodeType: "rich-text",
-        permission: "private",
-        semanticId: node.semanticId,
-        createdAt: now,
-        updatedAt: now,
-        content: { referencedNodes: [], docs: note.content },
-      };
-
       try {
-        const created = (await NodeService.upsert(draft)) as NodeData | void;
-        return created?.id ?? null;
+        const created = await NodeService.add("rich-text");
+        const createdNode = created.node;
+        if (createdNode === undefined) {
+          throw new Error("node.add returned no node");
+        }
+        // The three writes the old draft carried, in the order the server
+        // accepts them: create, then the fields the type owns.
+        await NodeService.setTitle(createdNode.id, noteTitle(note));
+        if (node.semanticId !== "") {
+          await NodeService.setSemanticId(createdNode.id, node.semanticId);
+        }
+        await NodeService.invokeTypeOperation(
+          "rich-text.setDocument",
+          createdNode.id,
+          { referencedNodes: [], docs: note.content },
+        );
+        return createdNode.id;
       } catch (error) {
         console.error("[media] 转化为节点失败:", error);
         return null;

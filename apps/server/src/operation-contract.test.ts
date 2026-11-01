@@ -54,13 +54,6 @@ interface AttributeRequest {
   readonly input: Record<string, unknown>;
 }
 
-interface Intent {
-  readonly kind: "operation" | "legacy";
-  readonly operationId?: string;
-  readonly input?: Record<string, unknown>;
-  readonly patch?: Record<string, unknown>;
-}
-
 interface PanelModule {
   attributeFieldRequest(
     nodeId: string,
@@ -68,10 +61,10 @@ interface PanelModule {
     value: string,
   ): AttributeRequest;
   tagRequest(nodeId: string, tagId: string, applied: boolean): AttributeRequest;
-  translateNodePatch(
-    nodeType: string,
-    patch: Record<string, unknown>,
-  ): readonly Intent[];
+  intentPreview(
+    operationId: string,
+    input: Record<string, unknown>,
+  ): Record<string, unknown> | undefined;
   readonly MEDIA_ATTACH_OPERATIONS: Readonly<Record<string, string>>;
 }
 
@@ -86,7 +79,7 @@ before(async () => {
       contents: [
         'export { attributeFieldRequest, tagRequest } from "./attribute-operations.ts";',
         'export { MEDIA_ATTACH_OPERATIONS } from "./media-attach.ts";',
-        'export { translateNodePatch } from "../components/node-content/node-content-patches.ts";',
+        'export { intentPreview } from "../components/node-content/node-content-patches.ts";',
       ].join("\n"),
       resolveDir: uiLib,
       loader: "ts",
@@ -222,35 +215,34 @@ test("the tag pair takes the one tag the panel toggles", () => {
   assertAccepts("node.removeTag", removed.input);
 });
 
-test("the metadata queue's icon and cover writes validate", () => {
-  const set = panel.translateNodePatch("image", {
-    icon: { kind: "emoji", value: "📄" },
-    cover: { kind: "image", url: "https://example.com/cover.png" },
-    title: "contract",
-  });
-  const operationsOnly = set.filter(
-    (intent) => intent.kind === "operation" && intent.operationId !== undefined,
-  );
-  assert.deepEqual(
-    operationsOnly.map((intent) => intent.operationId),
-    ["node.setIcon", "node.setCover", "node.setTitle"],
-  );
-  for (const intent of operationsOnly) {
-    assertAccepts(intent.operationId!, intent.input);
-  }
+test("each header field write is one operation that owns only its field", () => {
+  const writes = [
+    {
+      operationId: "node.setTitle",
+      input: { title: "contract" },
+      preview: { title: "contract" },
+    },
+    {
+      operationId: "node.setIcon",
+      input: { icon: { kind: "emoji", value: "📄" } },
+      preview: { icon: { kind: "emoji", value: "📄" } },
+    },
+    {
+      operationId: "node.setCover",
+      input: { cover: { kind: "image", url: "https://example.com/cover.png" } },
+      preview: { cover: { kind: "image", url: "https://example.com/cover.png" } },
+    },
+    { operationId: "node.clearIcon", input: {}, preview: { icon: null } },
+    { operationId: "node.clearCover", input: {}, preview: { cover: null } },
+  ];
 
-  const cleared = panel
-    .translateNodePatch("image", { icon: null, cover: null })
-    .filter((intent) => intent.kind === "operation");
-  assert.deepEqual(
-    cleared.map((intent) => [intent.operationId, intent.input]),
-    [
-      ["node.clearIcon", {}],
-      ["node.clearCover", {}],
-    ],
-  );
-  for (const intent of cleared) {
-    assertAccepts(intent.operationId!, intent.input);
+  for (const write of writes) {
+    assertAccepts(write.operationId, write.input);
+    assert.deepEqual(
+      panel.intentPreview(write.operationId, write.input),
+      write.preview,
+      `${write.operationId} previews only its own field`,
+    );
   }
 });
 

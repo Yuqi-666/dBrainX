@@ -164,7 +164,7 @@ try {
   console.log("STEP workspace models");
   const views = await client.view.listByWorkspace.query({ workspaceId });
   assert.equal(views.length, 1);
-  await client.view.update.mutate({ id: views[0].id, updates: { visualConfig: { showMinimap: false } } });
+  await client.operation.invoke.mutate({ operationId: "view.setLayout", target: { kind: "view", viewId: views[0].id }, input: { visualConfig: { showMinimap: false } } });
   const semantic = await client.nodeSemantic.add.mutate({ id: tmpId(), name: "离线笔记", workspaceId });
   const tag = await client.nodeTag.add.mutate({ id: tmpId(), name: "本地", workspaceId });
   const edgeSemantic = await client.edgeSemantic.add.mutate({ id: tmpId(), name: "关联", category: "association", workspaceId });
@@ -182,14 +182,22 @@ try {
   ];
   console.log("STEP ten node types");
   const nodes = [];
-  for (const input of inputs) nodes.push(await client.node.add.mutate({ ...input, id: tmpId(), title: input.nodeType, semanticId: semantic.id, tags: [tag.id], workspaceId }));
+  for (const input of inputs) {
+    const created = await client.operation.invoke.mutate({ operationId: "node.add", target: { kind: "workspace", workspaceId }, input: { nodeType: input.nodeType } });
+    const target = { kind: "node", nodeId: created.node.id };
+    await client.operation.invoke.mutate({ operationId: "node.setTitle", target, input: { title: input.nodeType } });
+    await client.operation.invoke.mutate({ operationId: "node.setSemanticId", target, input: { semanticId: semantic.id } });
+    await client.operation.invoke.mutate({ operationId: "node.addTag", target, input: { tag: tag.id } });
+    nodes.push(created.node);
+  }
   assert.equal((await client.node.listByWorkspace.query({ workspaceId })).length, 10);
-  const edge = await client.edge.add.mutate({ id: tmpId(), from: nodes[0].id, to: nodes[1].id, direction: "forward", semanticId: edgeSemantic.id, workspaceId });
+  const edgeResult = await client.operation.invoke.mutate({ operationId: "edge.create", target: { kind: "workspace", workspaceId }, input: { from: nodes[0].id, to: nodes[1].id, direction: "forward", semanticId: edgeSemantic.id } });
+  const edge = edgeResult.edge;
   console.log("STEP subscription");
   const event = new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error("Subscription timed out")), 5000);
     const subscription = client.event.onEvent.subscribe(undefined, {
-      onStarted() { void client.node.update.mutate({ id: nodes[0].id, updates: { title: "重启后保留" } }).catch(reject); },
+      onStarted() { void client.operation.invoke.mutate({ operationId: "node.setTitle", target: { kind: "node", nodeId: nodes[0].id }, input: { title: "重启后保留" } }).catch(reject); },
       onData(data) { if (data.eventType === "NodeUpdated") { clearTimeout(timeout); subscription.unsubscribe(); resolve(data); } }, onError: reject,
     });
   });
@@ -239,8 +247,8 @@ try {
   const newSegmentUrl = firstSegmentUrl(newPlaylist, `${descriptor.pocketbase}${transcode.hlsUrl}`, descriptor.pocketbase);
   assert.notEqual(newSegmentUrl.href, segmentUrl.href);
   assert.equal((await fetch(newSegmentUrl)).status, 200);
-  await client.edge.delete.mutate({ id: edge.id });
-  await client.node.delete.mutate({ id: nodes[0].id });
+  await client.operation.invoke.mutate({ operationId: "edge.delete", target: { kind: "edge", edgeId: edge.id }, input: {} });
+  await client.operation.invoke.mutate({ operationId: "node.delete", target: { kind: "node", nodeId: nodes[0].id }, input: {} });
   console.log("PASS clean shutdown, same local identity, restart persistence and portable file/HLS paths");
 } catch (error) {
   console.error(logs); throw error;

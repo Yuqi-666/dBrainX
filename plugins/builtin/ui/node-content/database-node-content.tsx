@@ -32,8 +32,9 @@ interface DatabaseNodeContentProps {
  *
  * The node owns its table (`content.fields` / `content.rows`); this component
  * only adapts it into a `DataViewSource` and persists what the data views
- * report back. Every write goes through `NodeService.upsert`, i.e. the same
- * optimistic path the rest of the app uses — data views never touch the store.
+ * report back. Every write is one `database.*` operation through the shared
+ * writer, i.e. the same path the rest of the app uses — data views never touch
+ * the store.
  *
  * It also renders the **record editing page** (`<RecordEditor>`), which the data
  * views ask for through `DataViewRoot`'s `onOpenRecord`: the page needs this
@@ -56,7 +57,7 @@ export function DatabaseNodeContent({
     [content, node.id, node.title],
   );
 
-  const { liveContent, patchContent } = useNodeContentWriter<DatabaseContent>(
+  const { liveContent, apply } = useNodeContentWriter<DatabaseContent>(
     node.id,
     "database",
     node.content,
@@ -64,9 +65,9 @@ export function DatabaseNodeContent({
 
   const handleViewsChange = useCallback(
     (views: DataView[]) => {
-      patchContent({ views });
+      void apply("database.setViews", { views });
     },
-    [patchContent],
+    [apply],
   );
 
   const handleCellChange = useCallback(
@@ -76,9 +77,9 @@ export function DatabaseNodeContent({
           ? { ...row, cells: { ...row.cells, [fieldId]: cell } }
           : row,
       );
-      patchContent({ rows });
+      void apply("database.setRows", { rows });
     },
-    [liveContent, patchContent],
+    [apply, liveContent],
   );
 
   const handleOpenNode = useCallback((nodeId: string) => {
@@ -109,20 +110,20 @@ export function DatabaseNodeContent({
 
   const handleRowInsert = useCallback(
     (row: DataRow) => {
-      patchContent({ rows: [...liveContent().rows, row] });
+      void apply("database.setRows", { rows: [...liveContent().rows, row] });
     },
-    [liveContent, patchContent],
+    [apply, liveContent],
   );
 
   const handleRowDelete = useCallback(
     (rowIds: readonly string[]) => {
       if (rowIds.length === 0) return;
       const removed = new Set(rowIds);
-      patchContent({
+      void apply("database.setRows", {
         rows: liveContent().rows.filter((row) => !removed.has(row.id)),
       });
     },
-    [liveContent, patchContent],
+    [apply, liveContent],
   );
 
   const handleRowReorder = useCallback(
@@ -135,9 +136,9 @@ export function DatabaseNodeContent({
         .filter((row): row is DataRow => row !== undefined);
       const listed = new Set(rowIds);
       const rest = rows.filter((row) => !listed.has(row.id));
-      patchContent({ rows: [...ordered, ...rest] });
+      void apply("database.setRows", { rows: [...ordered, ...rest] });
     },
-    [liveContent, patchContent],
+    [apply, liveContent],
   );
 
   /**
@@ -145,13 +146,16 @@ export function DatabaseNodeContent({
    *
    * The data view reports the whole next field list plus, when it also had to
    * rewrite cells (a deleted field's cells, a retyped or default-valued one),
-   * the matching row set. Both halves land in one `NodeService.upsert`.
+   * the matching row set. Both halves land in one `database.setFields`.
    */
   const handleFieldsChange = useCallback(
     (fields: DatabaseField[], rows?: DataRow[]) => {
-      patchContent({ fields, rows: rows ?? liveContent().rows });
+      void apply("database.setFields", {
+        fields,
+        rows: rows ?? liveContent().rows,
+      });
     },
-    [liveContent, patchContent],
+    [apply, liveContent],
   );
 
   /**

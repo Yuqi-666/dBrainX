@@ -18,7 +18,7 @@ import { Input } from "@workspace/ui/components/ui/input";
 import { Label } from "@workspace/ui/components/ui/label";
 import { FilterQueryBuilder } from "@workspace/ui/components/filter/filter";
 import { NodeSelectionList } from "./node-selection-list";
-import { useDataStore, useUIStore, useWorkspaceStore } from "@workspace/store";
+import { useDataStore, useUIStore } from "@workspace/store";
 import { ViewService } from "@workspace/services";
 import {
   type FilterConfig,
@@ -45,7 +45,7 @@ const EMPTY_RULE_GROUP: RuleGroupType = { combinator: "and", rules: [] };
  * 调用 `openViewCreateDialog()` 打开新建，调用 `openViewEditDialog(view)` 打开编辑。
  *
  * 两种模式共用同一套表单（名称、节点选择、筛选条件），只是初始值不同：编辑时用
- * `editingView` 回填，提交走 `ViewService.upsert(id, patch)`，因此 `viewType` /
+ * `editingView` 回填，提交走 `view.setName` + `view.setFilter`，因此 `viewType` /
  * `visualConfig` / `isPinned` 等本表单不涉及的字段会被保留。
  *
  * 表单包含三部分：名称、节点选择（写入 `filterConfig.selectedNodes`）、
@@ -64,29 +64,24 @@ export function ViewDialog() {
   const handleSubmit = useCallback(
     async (input: ViewDialogInput) => {
       if (editingView) {
-        // 局部更新：service 会与 store 中的当前视图合并，未提交的字段保持不变。
-        await ViewService.upsert(editingView.id, {
-          name: input.name.trim(),
-          filterConfig: input.filterConfig,
-        });
+        // Each field has its own operation: the name is `view.setName` and the
+        // filter is `view.setFilter`; nothing else about the view is written.
+        const name = input.name.trim();
+        if (name !== editingView.name) {
+          await ViewService.setName(editingView.id, name);
+        }
+        await ViewService.setFilter(editingView.id, input.filterConfig);
         closeDialog();
         return;
       }
 
-      const workspaceId =
-        useWorkspaceStore.getState().currentWorkspaceId ?? undefined;
-
-      const view: View = {
-        id: `tmp_${crypto.randomUUID()}`,
+      const result = await ViewService.create({
         name: input.name.trim(),
         viewType: DEFAULT_VIEW_TYPE,
-        visualConfig: {},
         filterConfig: input.filterConfig,
-        workspaceId,
-      };
-
-      const created = await ViewService.upsert(view);
-      const createdView = (created ?? view) as View;
+      });
+      const createdView = result.view as View | undefined;
+      if (!createdView) throw new Error("view.create returned no view");
       // 新视图立即可用：切到它，Graph 会按它的 filterConfig 重新过滤。
       setCurrentViewId(createdView.id);
       closeDialog();

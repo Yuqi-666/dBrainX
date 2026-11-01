@@ -85,13 +85,12 @@ export function WebsiteNodeContent({
       const url = toEmbeddableUrl(raw) || raw;
       setCommitted(url);
       setDraft(url);
-      // The store is updated immediately either way; only the mutation is
-      // debounced, so a burst of typing does not fire one request per pause.
-      void NodeService.upsert(
-        node.id,
-        { content: { url, faviconUrl: faviconUrlFor(url) } },
-        { debounce: true },
-      );
+      // The address and its derived favicon are two fields of one gesture, so
+      // they are two operations the writer queues in that order.
+      void NodeService.invokeTypeOperation("website.setUrl", node.id, { url });
+      void NodeService.invokeTypeOperation("website.setFavicon", node.id, {
+        faviconUrl: faviconUrlFor(url),
+      });
     },
     [node.id],
   );

@@ -42,6 +42,7 @@ export const testFiles = [
   "scripts/release/database-date-time.test.mjs",
   "scripts/release/edge-hook.test.mjs",
   "scripts/release/editor-select-and-copy.test.mjs",
+  "scripts/release/legacy-write-surface.test.mjs",
   "scripts/release/lint-gate.test.mjs",
   "scripts/release/macos-libraries.test.mjs",
   "scripts/release/markdown-paste.test.mjs",
@@ -129,6 +130,7 @@ export const testFiles = [
   "backend/infrastructure/src/storage/multipart-envelope.test.ts",
   "backend/infrastructure/src/storage/pocketbase-media-analysis.test.ts",
   "backend/infrastructure/src/transcoders/ffmpeg-audio-transcoder.test.ts",
+  "backend/plugin-host/src/plugin-host.test.ts",
   "backend/plugin-host/src/registry.test.ts",
 
   // Server and desktop entry points that run without PocketBase.

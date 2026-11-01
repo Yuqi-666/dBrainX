@@ -107,6 +107,22 @@ function defineShared(
 
 const NODE_WRITE = ["node.write"] as const;
 
+/**
+ * Input of every `*.attachFile` operation.
+ *
+ * `uploadId` is the id of the stored upload result (a `files` record). The two
+ * optional fields name provenance only — the file's size, duration, page count
+ * and renditions are always read from the record, never sent.
+ */
+const ATTACH_FILE_INPUT: JsonSchema = closedObject(
+  {
+    uploadId: { type: "string", minLength: 1 },
+    source: { enum: ["local", "online"] },
+    sourceUrl: { type: "string" },
+  },
+  ["uploadId"],
+);
+
 export const operations: readonly OperationDefinition[] = [
   defineShared({
     id: "node.add",
@@ -238,13 +254,19 @@ export const operations: readonly OperationDefinition[] = [
   }),
 
   // Media attachment: one id per media type, used by the file drop zone.
+  //
+  // A file reaches a node through exactly one operation family: a stored file's
+  // id, never a client-measured address. A file the server already stores (a
+  // library resource the user references, a site import, a webpage document)
+  // sends the same `uploadId`, and the handler reads the facts off the record.
+  // `source` / `sourceUrl` only record where the file came from.
   defineShared({
     id: "image.attachFile",
     exportName: "imageAttachFile",
     target: "node",
     appliesTo: { nodeTypes: ["image"] },
     effect: "update",
-    inputSchema: closedObject({ uploadId: { type: "string", minLength: 1 } }),
+    inputSchema: ATTACH_FILE_INPUT,
     // The host reads the stored upload result to backfill size and dimensions.
     requiredCapabilities: ["node.write", "storage.read"],
     idempotent: false,
@@ -255,7 +277,7 @@ export const operations: readonly OperationDefinition[] = [
     target: "node",
     appliesTo: { nodeTypes: ["pdf"] },
     effect: "update",
-    inputSchema: closedObject({ uploadId: { type: "string", minLength: 1 } }),
+    inputSchema: ATTACH_FILE_INPUT,
     requiredCapabilities: ["node.write", "storage.read"],
     idempotent: false,
   }),
@@ -265,7 +287,7 @@ export const operations: readonly OperationDefinition[] = [
     target: "node",
     appliesTo: { nodeTypes: ["video"] },
     effect: "update",
-    inputSchema: closedObject({ uploadId: { type: "string", minLength: 1 } }),
+    inputSchema: ATTACH_FILE_INPUT,
     // Duration and dimensions come from probing the stored file.
     requiredCapabilities: ["node.write", "storage.read"],
     idempotent: false,
@@ -276,9 +298,47 @@ export const operations: readonly OperationDefinition[] = [
     target: "node",
     appliesTo: { nodeTypes: ["audio"] },
     effect: "update",
-    inputSchema: closedObject({ uploadId: { type: "string", minLength: 1 } }),
+    inputSchema: ATTACH_FILE_INPUT,
     requiredCapabilities: ["node.write", "storage.read"],
     idempotent: false,
+  }),
+  defineShared({
+    id: "webpage.attachFile",
+    exportName: "webpageAttachFile",
+    target: "node",
+    appliesTo: { nodeTypes: ["webpage"] },
+    effect: "update",
+    inputSchema: ATTACH_FILE_INPUT,
+    // The document's address and byte length are read off the stored record;
+    // the client no longer assembles either (`webpage.replaceDocument` stays for
+    // a pasted address that has no upload behind it).
+    requiredCapabilities: ["node.write", "storage.read"],
+    idempotent: false,
+  }),
+
+  // Emptying a payload the type owns. The rule table lives in `@workspace/utils`
+  // and the handler applies it to the server snapshot, so "what clearing means"
+  // is stated once instead of the client sending the emptied content back.
+  defineShared({
+    id: "node.clearContent",
+    exportName: "nodeClearContent",
+    target: "node",
+    appliesTo: {
+      nodeTypes: [
+        "text",
+        "rich-text",
+        "webpage",
+        "website",
+        "image",
+        "pdf",
+        "video",
+        "audio",
+      ],
+    },
+    effect: "update",
+    inputSchema: closedObject({}),
+    requiredCapabilities: NODE_WRITE,
+    idempotent: true,
   }),
 
   // Lifecycle. Soft delete only; physical removal is an admin cleanup job.

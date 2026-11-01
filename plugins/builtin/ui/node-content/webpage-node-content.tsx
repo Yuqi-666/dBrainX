@@ -205,9 +205,8 @@ export function WebpageNodeContent({
       skipNextFetch.current = attachment.url;
       setSource({ text: draft, error: null, loading: false });
 
-      await NodeService.upsert(node.id, {
-        content: { url: attachment.url },
-        fileSize: attachment.fileSize,
+      await NodeService.invokeTypeOperation("webpage.attachFile", node.id, {
+        uploadId: attachment.id,
       });
 
       // The node now has a document: leave the initialization surface on the

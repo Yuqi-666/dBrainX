@@ -39,9 +39,7 @@ const dropZone = read(
 );
 const model = read("packages/interfaces/src/models/node/nodes/single/webpage.ts");
 const router = read("backend/adapter-front/src/trpc/router/node.ts");
-const createInput = read(
-  "backend/adapter-front/src/trpc/router/node-add.ts",
-);
+const createInput = read("plugins/builtin/server/operations.ts");
 const webpageType = read("plugins/builtin/types/single/webpage.ts");
 const mapper = read(
   "backend/infrastructure/src/database/mappers/node.mapper.ts",
@@ -64,8 +62,8 @@ test("the webpage model is a stored address and a byte length", () => {
 test("the API and the mapper carry the stored address", () => {
   assert.match(
     createInput,
-    /export const addSchema = z\.object\(\{\s*nodeType: z\.string\(\),?\s*\}\)/,
-    "the create schema accepts a node type and nothing else",
+    /id: "node\.add",[\s\S]*?inputSchema: closedObject\(\{ nodeType: \{ type: "string", minLength: 1 \} \}\)/,
+    "the create operation accepts a node type and nothing else",
   );
   assert.doesNotMatch(
     router,
@@ -116,13 +114,13 @@ test("the empty state uploads or references a stored object", () => {
   );
   assert.match(
     dropZone,
-    /await writeDocument\(url, file\.size\)/,
-    "the upload writes the stored address and the size",
+    /const attachment = await uploadAttachment\(file, onProgress, signal\);\s*\n\s*await writeDocument\(attachment\.id\);/,
+    "the upload attaches the stored file through webpage.attachFile",
   );
   assert.match(
     dropZone,
-    /await writeDocument\(resource\.storedUrl, resource\.fileSize\)/,
-    "a library resource is referenced by its stored address",
+    /await writeDocument\(resource\.id\)/,
+    "a library resource is attached by its record id",
   );
   // The reference path must not download the resource to copy its text.
   assert.doesNotMatch(dropZone, /response\.text\(\)|file\.text\(\)/);
@@ -173,8 +171,8 @@ test("the node view renders the object and edits it back into storage", () => {
   );
   assert.match(
     webpage,
-    /content: \{ url: attachment\.url \},\s*\n\s*fileSize: attachment\.fileSize,/,
-    "the save points the node at the stored object",
+    /await NodeService\.invokeTypeOperation\("webpage\.attachFile", node\.id, \{\s*\n\s*uploadId: attachment\.id,/,
+    "the save points the node at the stored object through the attach operation",
   );
   assert.match(webpage, /正在加载网页/, "a read has its own loading state");
   assert.match(webpage, /加载网页失败/, "a failed read is reported");

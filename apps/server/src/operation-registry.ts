@@ -13,8 +13,9 @@
  *
  * Only the operations this build implements are registered, so `operation.list`
  * never offers an operation that would then fail. The per-type self operations
- * (`text.setDocument`, `video.timeline.add`, …) stay unbound until their
- * handlers land; the old endpoints keep serving them in the meantime.
+ * this build's editors write through are bound below; the granular ones the UI
+ * does not call yet (`video.timeline.add`, `database.updateCell`, …) stay
+ * unbound until their handlers land.
  */
 import { createNodeOperationHandlers } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
 import type { NodeOperationPort } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
@@ -122,10 +123,12 @@ export function createServerOperationRegistry(
       : createEdgeViewOperationHandlers({
           edges: {
             createEdge: (command) => graph().edges.createEdge(command),
+            updateEdge: (command) => graph().edges.updateEdge(command),
             deleteEdge: (command) => graph().edges.deleteEdge(command),
           },
           views: {
             createView: (command) => graph().views.createView(command),
+            updateView: (command) => graph().views.updateView(command),
             deleteView: (command) => graph().views.deleteView(command),
           },
         })),

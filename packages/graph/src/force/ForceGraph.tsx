@@ -554,10 +554,9 @@ export const ForceGraph = forwardRef<ForceGraphHandle, ForceGraphProps>(
             const node = snapshot.nodes.find((n) => n.id === pos.id);
             if (!node) continue;
             const updated = setPosition(node, viewId, pos.x, pos.y, "force");
-            NodeService.upsert(
+            NodeService.setStateData(
               pos.id,
-              { stateData: updated.stateData ?? { client: {}, server: {} } },
-              { debounce: 200 },
+              updated.stateData ?? { client: {}, server: {} },
             ).catch((err: unknown) => {
               console.error("[ForceGraph] position persist failed:", err);
             });
@@ -774,7 +773,7 @@ export const ForceGraph = forwardRef<ForceGraphHandle, ForceGraphProps>(
     // Background / grid changes must reach the worker without a full
     // re-init (which would restart the simulation and reset positions).
     // `visualConfig` is a fresh object reference whenever the view is
-    // replaced by ViewService.upsert, so this fires exactly on edit.
+    // replaced by view.setLayout, so this fires exactly on edit.
     useEffect(() => {
       const api = apiRef.current;
       if (!api) return;

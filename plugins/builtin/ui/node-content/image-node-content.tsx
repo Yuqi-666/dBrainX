@@ -3,13 +3,12 @@
 "use client";
 
 /** Image-node persistence; ImageViewer owns navigation and the shared ink surface. */
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import type {
   Annotation,
   ImageContent,
   ImageNodeData,
 } from "@workspace/interfaces";
-import { NodeService } from "@workspace/services";
 import { useUIStore } from "@workspace/store";
 import { resolveFileUrl } from "@workspace/api-client";
 import { ImageViewer } from "@workspace/ui/components/image-viewer/image-viewer";
@@ -26,7 +25,7 @@ export function ImageNodeContent({ node, className }: ImageNodeContentProps) {
   const url = resolveFileUrl(node.content?.url);
   const hasUrl = !!url;
 
-  const { patchContent } = useNodeContentWriter<ImageContent>(
+  const { apply } = useNodeContentWriter<ImageContent>(
     node.id,
     "image",
     node.content,
@@ -40,36 +39,16 @@ export function ImageNodeContent({ node, className }: ImageNodeContentProps) {
   const compact = useUIStore((state) => state.mainViewType !== "editor");
 
   /**
-   * One gesture → one write. `patchContent` merges this half onto the **live**
-   * node, so the `url` written by an upload can never be rolled back by an
-   * annotation (and vice versa, which is what M2's half-merge bought us).
+   * One gesture → one write. `image.setAnnotations` replaces the annotation
+   * payload and nothing else, so the `url` an upload wrote is never touched by
+   * an annotation edit (and vice versa).
    */
   const handleItemsChange = useCallback(
     (items: Annotation[]) => {
-      patchContent({ annotations: { version: 1, items } });
+      void apply("image.setAnnotations", { annotations: { version: 1, items } });
     },
-    [patchContent],
+    [apply],
   );
-
-  /**
-   * The two "leave now" moments (plan §M5.1 item 8). With the shared writer a
-   * finished gesture is already a queued write, so this is about the *last*
-   * microtask: a flush here cannot lose a stroke that the user drew a millisecond
-   * before closing the dialog.
-   */
-  useEffect(() => {
-    const flush = () => {
-      void NodeService.flushPendingUpdate(node.id);
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") flush();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-      flush();
-    };
-  }, [node.id]);
 
   if (!hasUrl) {
     return (

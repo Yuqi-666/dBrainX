@@ -6,9 +6,9 @@
  *
  * A node type's editor lives in its plugin package, but the stable pieces it
  * needs are shared — the drop zone that turns a dropped file into a stored
- * resource, the writer every editor persists through, the patch merge rules
- * behind that writer, and the media vocabulary the players and the timeline
- * agree on. They are re-exported here instead of reaching into
+ * resource, the writer every editor persists through, the merge rules behind
+ * that writer, and the media vocabulary the players and the timeline agree on.
+ * They are re-exported here instead of reaching into
  * `components/node-content/*`, so a third-party plugin depends on one documented
  * subpath (`@workspace/ui/plugin-kit`) and the internals stay free to move.
  *
@@ -34,7 +34,6 @@ export {
   isMergeableOperation,
   isReplayableOperation,
   queuedContent,
-  translateNodePatch,
   type ContentWriteIntent,
   type OperationWriteIntent,
 } from "../components/node-content/node-content-patches";

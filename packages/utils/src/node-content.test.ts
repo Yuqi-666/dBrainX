@@ -70,11 +70,11 @@ test("clears the media link and the measurements that belong to it", () => {
       nodeType: "audio",
       content: { url: "u" },
     }),
-    { content: { url: "", timestamps: undefined }, duration: 0, fileSize: 0 },
+    { content: { url: "", coverUrl: "", timestamps: undefined }, duration: 0, fileSize: 0 },
   );
-  // An imported audio node carries the music site's cover. Clearing the node
-  // replaces `content` whole, so the now-orphaned cover address is dropped
-  // with the other media fields while the measurements reset like video.
+  // An imported audio node carries the music site's cover. The server merges
+  // this patch into `content`, so the cover is stated empty — a key left out
+  // would survive a clear — while the measurements reset like video.
   assert.deepEqual(
     clearedNodeUpdates({
       nodeType: "audio",
@@ -84,7 +84,7 @@ test("clears the media link and the measurements that belong to it", () => {
         timestamps: [],
       },
     }),
-    { content: { url: "", timestamps: undefined }, duration: 0, fileSize: 0 },
+    { content: { url: "", coverUrl: "", timestamps: undefined }, duration: 0, fileSize: 0 },
   );
 });
 
@@ -113,7 +113,7 @@ test("keeps the user's timeline when the media link is cleared", () => {
         timestamps,
       },
     }),
-    { content: { url: "", timestamps }, duration: 0, fileSize: 0 },
+    { content: { url: "", coverUrl: "", timestamps }, duration: 0, fileSize: 0 },
   );
 });
 

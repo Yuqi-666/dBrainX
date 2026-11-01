@@ -25,7 +25,7 @@ It exports:
 | `src/trpc/client.ts` | The WebSocket tRPC client |
 | `src/trpc/provider.tsx` | The React provider and the `trpc` object |
 | `src/trpc/subscriptions.ts` | The server event subscription |
-| `src/trpc/hooks/useGraph.ts` | The graph data hook |
+| `src/trpc/hooks/useGraph.ts` | The management-face mutation hooks (tags and the two semantic dictionaries) |
 | `src/handler/graph-handler.ts` | Applies a server event to the stores |
 | `src/auth/session.ts` | The `pb_token` cookie helpers |
 | `src/pocketbase-client.ts` | The PocketBase singleton |

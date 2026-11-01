@@ -43,7 +43,7 @@ import { AlertTriangleIcon } from "lucide-react";
  * 打开时的 `mode` 决定，与文件选择互不影响：
  *
  * - `mode === "delete"`：`NodeService.delete`；
- * - `mode === "clear"`：`NodeService.upsert(clearedNodeUpdates(node))`。
+ * - `mode === "clear"`：`node.clearContent`（空内容由服务端规则表决定）。
  *
  * 打开时按 `fileRecordIdsInNode(node)` 从资源库取回这些文件（`listResourcesByIds`，
  * 派生文件不列出——它们随源文件一起消失，单独删会重复删同一批字节），再逐个问

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type {
+  NodeCover,
   NodeData,
+  NodeIcon,
   NodeId,
   NodeStateData,
   WorkspaceId,
@@ -14,12 +16,7 @@ import {
   type OperationResult,
   type OperationTarget,
 } from "@workspace/api-client";
-import { useDataStore, useUIStore, useWorkspaceStore } from "@workspace/store";
-import {
-  DebounceScheduler,
-  resolveDebounceMs,
-  shouldDebounce,
-} from "@workspace/utils";
+import { useDataStore, useUIStore } from "@workspace/store";
 import { nodeWithoutFileReferences } from "@workspace/utils/resource-references";
 import {
   NODE_OPERATIONS,
@@ -33,25 +30,6 @@ import {
   syncViewEnumerationOnCreate,
   syncViewEnumerationOnDelete,
 } from "./view-enum-sync";
-
-const DEFAULT_NODE_UPDATE_DEBOUNCE_MS = 500;
-const nodeUpdateScheduler = new DebounceScheduler<NodeData, void>(
-  DEFAULT_NODE_UPDATE_DEBOUNCE_MS,
-);
-
-export interface NodeUpsertOptions {
-  /**
-   * Debounce the API call (tRPC mutation) while keeping the local store
-   * update immediate.
-   *
-   * - `undefined` / `false` (default): call API synchronously, no debounce.
-   * - `true`: debounce with the default delay (500ms).
-   * - `number`: debounce with the provided delay in milliseconds.
-   *
-   * Local state is always updated synchronously regardless of this flag.
-   */
-  debounce?: boolean | number;
-}
 
 export const NodeService = {
   /**
@@ -75,7 +53,7 @@ export const NodeService = {
    * One `operation.invoke` for an operation a node type declares.
    *
    * A type is runtime data after the plugin upgrade (§4.3.4), so its operations
-   * (`text.setDocument`, `rich-text.setDocument`, `video.timeline.add`, a third
+   * (`text.setDocument`, `rich-text.setDocument`, `video.setTimeline`, a third
    * party's `aws.monitor.poll`) are not in the client's compile-time catalogue.
    * The server is authoritative on which ids exist and answers
    * `OPERATION_NOT_FOUND` for one it does not register; the reply's canonical
@@ -161,6 +139,48 @@ export const NodeService = {
     );
   },
 
+  /** `node.setIcon`. */
+  setIcon(
+    id: NodeId,
+    icon: NodeIcon,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      "node.setIcon",
+      nodeTarget(id),
+      { icon },
+      options,
+    );
+  },
+
+  /** `node.setCover`. */
+  setCover(
+    id: NodeId,
+    cover: NodeCover,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      "node.setCover",
+      nodeTarget(id),
+      { cover },
+      options,
+    );
+  },
+
+  /** `node.pin` / `node.unpin`, one operation per state. */
+  setPinned(
+    id: NodeId,
+    isPinned: boolean,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      isPinned ? NODE_OPERATIONS.pin : NODE_OPERATIONS.unpin,
+      nodeTarget(id),
+      {},
+      options,
+    );
+  },
+
   /** `node.pin`. */
   pin(id: NodeId, options?: GraphInvokeOptions): Promise<OperationResult> {
     return invokeGraphOperation(
@@ -182,95 +202,42 @@ export const NodeService = {
   },
 
   /**
-   * @deprecated The whole-node write is going away in todo 43/44. Use `add`,
-   * `setTitle`, `setAbstract`, `setSemanticId`, `setStateData`, `pin` or
-   * `unpin`; each one is one `operation.invoke`.
+   * `node.clearContent`: the server empties the payload this type owns and the
+   * reply replaces the stored node.
+   *
+   * The rule table is the server's (`@workspace/utils/node-content`), so the
+   * client no longer sends the emptied content back or guesses what "empty"
+   * means for a type.
    */
-  async upsert(
-    idOrNode: NodeId | NodeData,
-    updates?: Partial<NodeData>,
-    options?: NodeUpsertOptions,
-  ): Promise<NodeData | void> {
-    const store = useDataStore.getState();
-
-    if (typeof idOrNode === "string") {
-      const id = idOrNode;
-      if (!updates)
-        throw new Error("Updates are required for update operation");
-      const oldNode = store.nodes.get(id);
-      if (!oldNode) throw new Error("Node not found");
-      const merged = { ...oldNode, ...updates } as NodeData;
-
-      // 1. Immediately apply to local store for snappy UX.
-      store.upsertNode(merged);
-
-      // 2. Choose the API path.
-      if (!shouldDebounce(options?.debounce)) {
-        try {
-          await trpcClient.node.update.mutate({ id, updates: merged });
-        } catch (error) {
-          store.upsertNode(oldNode);
-          throw error;
-        }
-        return;
-      }
-
-      // 3. Debounced path — schedule (or merge into) the pending tRPC call.
-      const delayMs = resolveDebounceMs(
-        options?.debounce,
-        DEFAULT_NODE_UPDATE_DEBOUNCE_MS,
-      );
-
-      return nodeUpdateScheduler.schedule(
-        id,
-        merged,
-        async (payload) => {
-          await trpcClient.node.update.mutate({ id, updates: payload });
-        },
-        (error, originalPayload) => {
-          // Roll back to the snapshot captured before the first change in
-          // this debounce window.
-          store.upsertNode(originalPayload);
-          console.error(
-            `[NodeService] Debounced update failed for ${id}, rolled back.`,
-            error,
-          );
-        },
-        { delay: delayMs },
-      );
-    }
-
-    // Create flow — never debounced (we need the backend-generated id).
-    // Stamp the current workspace id so every created node is scoped to the
-    // active workspace, regardless of which UI code triggered the create.
-    const node = idOrNode;
-    const workspaceId =
-      node.workspaceId ??
-      useWorkspaceStore.getState().currentWorkspaceId ??
-      undefined;
-    const scopedNode = workspaceId ? { ...node, workspaceId } : node;
-    const result = await trpcClient.node.add.mutate(scopedNode);
-    store.upsertNode(result);
-    syncViewEnumerationOnCreate(result.id);
-    return result;
+  clearContent(
+    id: NodeId,
+    options?: GraphInvokeOptions,
+  ): Promise<OperationResult> {
+    return invokeGraphOperation(
+      NODE_OPERATIONS.clearContent,
+      nodeTarget(id),
+      {},
+      options,
+    );
   },
 
   /**
-   * @deprecated The `node.delete` operation has no bound handler yet (todo 43;
-   * endpoint removal in todo 44). Until then this stays the working delete.
+   * `node.delete`; the store drops the node from the reply's effect.
+   *
+   * The old shape (delete locally, call the endpoint, restore on failure) is
+   * gone: the operation is the one write, and its refusal leaves the store
+   * untouched.
    */
-  async delete(id: NodeId): Promise<void> {
-    const store = useDataStore.getState();
-    const oldNode = store.nodes.get(id);
-    if (!oldNode) throw new Error("Node not found");
-    store.deleteNode(id);
+  async delete(id: NodeId, options?: GraphInvokeOptions): Promise<void> {
+    const node = useDataStore.getState().nodes.get(id);
+    if (!node) throw new Error("Node not found");
+    await invokeGraphOperation(
+      NODE_OPERATIONS.delete,
+      nodeTarget(id),
+      {},
+      options,
+    );
     syncViewEnumerationOnDelete(id);
-    try {
-      await trpcClient.node.delete.mutate({ id });
-    } catch (error) {
-      store.upsertNode(oldNode);
-      throw error;
-    }
   },
 
   /**
@@ -311,41 +278,34 @@ export const NodeService = {
   /**
    * Clears deleted files from the nodes in the open store.
    *
-   * Runs after the resource delete, so the server hook has already fixed the
-   * stored records on the web stack. The store is fixed here as well: without
-   * it the graph keeps the stale address until a reload, and in the desktop
-   * local mode the nodes are not in PocketBase at all, so no server hook will
-   * ever see them.
+   * Runs after the resource delete. The stored records are already correct: the
+   * file hook detaches every node that pointed at the blob
+   * (`pb/pb_hooks/lib/node-references.js`) on both the web and the desktop
+   * stack, so this is a read-back, not a write. The open store is corrected
+   * first so the surface the user is looking at never shows a dead link, then
+   * reconciled with the server's canonical snapshot; a refetch that fails keeps
+   * the open copy rather than leaving the stale address.
    *
    * Only the open store is touched on purpose. The resource dialog also lists
    * nodes in other workspaces; inserting those into the store to fix them would
-   * leak another workspace's nodes into the graph of the current one. Their
-   * stored records were cleared by the server hook and they load cleared when
-   * their workspace is opened; on the desktop they keep the address until that
-   * workspace is opened and saved, which the desktop's local store cannot see
-   * from here.
+   * leak another workspace's nodes into the graph of the current one.
    */
   async detachFileReferences(recordIds: readonly string[]): Promise<void> {
     const deleted = new Set(recordIds.filter(Boolean));
     if (deleted.size === 0) return;
-    const store = useDataStore.getState();
 
-    for (const node of [...store.nodes.values()]) {
+    for (const node of [...useDataStore.getState().nodes.values()]) {
       const updates = nodeWithoutFileReferences(node, deleted);
       if (!updates) continue;
+
+      useDataStore
+        .getState()
+        .upsertNode({ ...node, ...updates } as unknown as NodeData);
       try {
-        await NodeService.upsert(node.id, updates as Partial<NodeData>);
+        await NodeService.sync([node.id]);
       } catch (error) {
-        // The record is already deleted, and on the web stack the server hook
-        // has already fixed the stored node; an update the user may not write
-        // (a viewer of a shared workspace) must not leave the open surface
-        // showing a dead link until a reload. The local copy is corrected here;
-        // the next load reads the server's cleared record.
-        useDataStore
-          .getState()
-          .upsertNode({ ...node, ...updates } as unknown as NodeData);
         console.error(
-          `[NodeService] Could not clear deleted files from ${node.id}; corrected the open copy only.`,
+          `[NodeService] Could not reload ${node.id} after a file delete; kept the open copy.`,
           error,
         );
       }
@@ -384,18 +344,5 @@ export const NodeService = {
       workspaceId,
     });
     store.loadWorkspaceData({ nodes: results });
-  },
-
-  /**
-   * Flush any pending debounced node update immediately. Useful for tests
-   * or for ensuring persistence before unmount.
-   */
-  flushPendingUpdate(id: NodeId): Promise<void> | null {
-    return nodeUpdateScheduler.flush(id);
-  },
-
-  /** Cancel a pending debounced update for `id` without persisting. */
-  cancelPendingUpdate(id: NodeId): void {
-    nodeUpdateScheduler.cancel(id);
   },
 };

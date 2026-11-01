@@ -13,10 +13,9 @@
  * 2. **A node with a stored file opens the disposition dialog** and lets the
  *    user choose what happens to the file (`nodeDispositionDialog` in
  *    `useUIStore`).
- * 3. **Clearing a type without one payload is a no-op.** `clearedNodeUpdates`
- *    answers `null` for `collection` / `database`; emptying a table silently is
- *    not the same gesture as emptying a text block. The type's descriptor says
- *    the same thing with `clearable`, and the entry point hides the action on it.
+ * 3. **Clearing a type without one payload is a no-op.** The type's descriptor
+ *    owns the capability (`clearable`), and `node.clearContent` refuses a type
+ *    the catalogue does not bind; the entry point hides the action on it.
  *
  * The dialog itself lives next to the semantic dialogs
  * (`components/dialog/node-disposition-dialog.tsx`). This module holds the
@@ -30,7 +29,6 @@ import {
 } from "@workspace/api-client";
 import { NodeService } from "@workspace/services";
 import { useDataStore, useUIStore, type UIStore } from "@workspace/store";
-import { clearedNodeUpdates } from "@workspace/utils/node-content";
 import { getNodeContentDescriptor } from "@workspace/ui/components/node-content/registry";
 import {
   fileRecordIdsInNode,
@@ -90,8 +88,7 @@ export async function requestNodeClear(nodeId: string): Promise<void> {
   const node = nodeForDisposition(nodeId);
   if (!node) return;
 
-  const updates = clearedNodeUpdates(node);
-  if (!updates) return;
+  if (!isClearable(node.nodeType)) return;
 
   if (nodeReferencesAnyFile(node)) {
     useUIStore.getState().openNodeDispositionDialog(nodeId, "clear");
@@ -99,10 +96,15 @@ export async function requestNodeClear(nodeId: string): Promise<void> {
   }
 
   try {
-    await applyNodeClear(node, updates);
+    await applyNodeClear(node);
   } catch (error) {
     console.error(`[node-disposition] Could not clear node ${nodeId}.`, error);
   }
+}
+
+/** The type's descriptor owns the capability: no single payload, no clear. */
+function isClearable(nodeType: string): boolean {
+  return getNodeContentDescriptor(nodeType)?.clearable === true;
 }
 
 /**
@@ -120,23 +122,23 @@ export async function applyNodeDelete(nodeId: string): Promise<void> {
 }
 
 /**
- * Apply a clear's updates and remount the uncontrolled editor, if there is one.
+ * Apply a clear through `node.clearContent` and remount the uncontrolled
+ * editor, if there is one.
  *
- * An uncontrolled editor seeds itself once per mount, so after the store content
- * is replaced the open editor has to be remounted; the type's own descriptor
- * says so (`uncontrolledEditors`, today `text` and `rich-text`), and every other
- * type renders from the store on each render and needs no signal.
+ * What "empty" means for a type is the server's rule table
+ * (`@workspace/utils/node-content`), so the client sends no content: it invokes
+ * the operation and keeps the node snapshot that comes back. An uncontrolled
+ * editor seeds itself once per mount, so after the reply the open editor has to
+ * be remounted; the descriptor says which types those are (`uncontrolledEditors`,
+ * today `text` and `rich-text`), and every other type renders from the store on
+ * each render and needs no signal.
  *
- * Returns `false` when the node type is not clearable. Throws when the service
- * fails.
+ * Returns `false` when the node type declares no clearable payload. Throws when
+ * the operation is refused.
  */
-export async function applyNodeClear(
-  node: NodeData,
-  updates?: Record<string, unknown>,
-): Promise<boolean> {
-  const resolved = updates ?? clearedNodeUpdates(node);
-  if (!resolved) return false;
-  await NodeService.upsert(node.id, resolved as Partial<NodeData>);
+export async function applyNodeClear(node: NodeData): Promise<boolean> {
+  if (!isClearable(node.nodeType)) return false;
+  await NodeService.clearContent(node.id);
   if (getNodeContentDescriptor(node.nodeType)?.uncontrolledEditors) {
     useUIStore.getState().resetNodeContent(node.id);
   }

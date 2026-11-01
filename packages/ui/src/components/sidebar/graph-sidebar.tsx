@@ -409,7 +409,7 @@ function ViewsList({
   const { t } = useI18n();
 
   const handleTogglePin = async (id: string, isPinned: boolean) => {
-    await ViewService.upsert(id, { isPinned });
+    await ViewService.setPinned(id, isPinned);
   };
 
   const setCurrentViewId = useUIStore((state) => state.setCurrentViewId);
@@ -567,7 +567,7 @@ function NodesList({
   );
 
   const handleTogglePin = async (id: string, isPinned: boolean) => {
-    await NodeService.upsert(id, { isPinned });
+    await NodeService.setPinned(id, isPinned);
   };
 
   const handleSelectNode = (id: string) => {

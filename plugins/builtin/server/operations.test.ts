@@ -27,6 +27,7 @@ const EXPECTED_OPERATION_IDS = [
   "image.attachFile",
   "node.add",
   "node.addTag",
+  "node.clearContent",
   "node.clearCover",
   "node.clearIcon",
   "node.delete",
@@ -42,6 +43,7 @@ const EXPECTED_OPERATION_IDS = [
   "node.unpin",
   "pdf.attachFile",
   "video.attachFile",
+  "webpage.attachFile",
 ];
 
 const MEDIA_ATTACH_OPERATIONS = new Map([
@@ -69,6 +71,24 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
         { nodeType: "text", id: "node-1" },
         { nodeType: "text", workspaceId: "workspace-1" },
       ],
+    },
+  ],
+  [
+    "node.clearContent",
+    { valid: {}, invalid: [{ content: {} }, { nodeId: "n1" }] },
+  ],
+  [
+    "webpage.attachFile",
+    {
+      valid: { uploadId: "file-1" },
+      invalid: [{}, { uploadId: "" }, { uploadId: "file-1", fileSize: 12 }],
+    },
+  ],
+  [
+    "video.attachFile#provenance",
+    {
+      valid: { uploadId: "file-1", source: "online", sourceUrl: "https://x/y" },
+      invalid: [{ uploadId: "file-1", source: "network" }],
     },
   ],
   [
@@ -169,8 +189,8 @@ test("declares exactly the shared catalogue, once each", () => {
   assert.deepEqual([...ids].sort(), EXPECTED_OPERATION_IDS);
   assert.equal(new Set(ids).size, ids.length);
   assert.deepEqual(
-    [...INPUT_CASES.keys()].sort(),
-    EXPECTED_OPERATION_IDS,
+    [...new Set([...INPUT_CASES.keys()].map((key) => key.replace(/#.*$/, "")))].sort(),
+    [...EXPECTED_OPERATION_IDS].sort(),
     "every operation is exercised and no exercise is orphaned",
   );
 });
@@ -194,7 +214,7 @@ test("ids follow <domain>.<verb> and handler references stay inside the plugin",
   }
 });
 
-test("node.add is the only create, and only the media operations narrow appliesTo", () => {
+test("node.add is the only create, and only an attach or a clear narrows appliesTo", () => {
   for (const definition of operations) {
     if (definition.id === "node.add") {
       assert.equal(definition.target, "workspace");
@@ -205,15 +225,37 @@ test("node.add is the only create, and only the media operations narrow appliesT
 
     assert.equal(definition.target, "node", definition.id);
     const mediaType = MEDIA_ATTACH_OPERATIONS.get(definition.id);
-    if (mediaType === undefined) {
-      assert.equal(
-        definition.appliesTo,
-        undefined,
-        `${definition.id} must stay shared by every node type`,
-      );
-    } else {
+    if (mediaType !== undefined) {
       assert.deepEqual(definition.appliesTo, { nodeTypes: [mediaType] });
+      continue;
     }
+    // The two shared operations that name the types they apply to: a web page
+    // document can only be attached to a web page node, and only a type with
+    // one payload can be cleared.
+    if (definition.id === "webpage.attachFile") {
+      assert.deepEqual(definition.appliesTo, { nodeTypes: ["webpage"] });
+      continue;
+    }
+    if (definition.id === "node.clearContent") {
+      assert.deepEqual(definition.appliesTo, {
+        nodeTypes: [
+          "text",
+          "rich-text",
+          "webpage",
+          "website",
+          "image",
+          "pdf",
+          "video",
+          "audio",
+        ],
+      });
+      continue;
+    }
+    assert.equal(
+      definition.appliesTo,
+      undefined,
+      `${definition.id} must stay shared by every node type`,
+    );
   }
 
   assert.equal(

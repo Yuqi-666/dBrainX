@@ -11,19 +11,17 @@
  *
  * Two writes cannot be an invocation from here, and both live in this file:
  *
- * - `node.delete` has no entry in the client operation catalogue
- *   (`packages/services/src/graph/operations.ts`), so the gesture calls
- *   `NodeService.delete`, which is the documented stop-gap until that entry
- *   exists.
- * - `edge.create` requires a non-empty `semanticId` (see
- *   `plugins/builtin/server/graph-operations.ts`), while the graph's "add
- *   edge" gesture has no semantic to give. `createUnlabelledEdge` is that write.
+ * - `node.delete` keeps a helper of its own (`NodeService.delete`), because the
+ *   view enumeration has to drop the id as well; the helper itself is one
+ *   `node.delete` invocation.
+ * - `edge.create` requires a `semanticId` field, and the graph's "add edge"
+ *   gesture has no semantic to give: an unlabelled edge is created with the
+ *   empty string and named afterwards. `createUnlabelledEdge` is that write.
  */
 
 import type {
   EdgeData,
   EdgeDirection,
-  EdgeId,
   NodeId,
 } from "@workspace/interfaces";
 import type { OperationResult } from "@workspace/api-client";
@@ -94,26 +92,23 @@ export const serviceOperationInvoker: GraphOperationInvoker = async (
 /**
  * Creates an edge that carries no semantic — the graph's default gesture.
  *
- * `edge.create` declares `semanticId` as required with `minLength: 1`, and the
- * "add edge" gesture has none to send, so this stays on the deprecated
- * whole-record service write until the operation schema admits an unlabelled
- * edge or the gesture asks for a semantic.
+ * `edge.create` accepts the empty string for `semanticId`, so the gesture is the
+ * same operation every other edge write uses; the user names the edge afterwards
+ * (`edge.setSemanticId`).
  */
 export async function createUnlabelledEdge(input: {
   readonly from: NodeId;
   readonly to: NodeId;
   readonly direction: EdgeDirection;
 }): Promise<EdgeData> {
-  const now = new Date().toISOString();
-  const created = await EdgeService.upsert({
-    id: "tmp_" as EdgeId,
+  const result = await EdgeService.create({
     from: input.from,
     to: input.to,
     direction: input.direction,
     semanticId: "",
-    createdAt: now,
-    updatedAt: now,
   });
-  if (created === undefined) throw new Error("edge.create returned no edge");
-  return created;
+  if (result.edge === undefined) {
+    throw new Error("edge.create returned no edge");
+  }
+  return result.edge as EdgeData;
 }

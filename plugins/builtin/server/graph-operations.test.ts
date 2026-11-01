@@ -30,6 +30,9 @@ const EXPECTED_IDS = [
   "view.delete",
   "view.setFilter",
   "view.setLayout",
+  "view.setName",
+  "view.setPinned",
+  "view.setType",
 ];
 
 interface InputCase {
@@ -79,6 +82,18 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
       ],
     },
   ],
+  [
+    "edge.create#unlabelled",
+    {
+      valid: {
+        from: "node-a",
+        to: "node-b",
+        semanticId: "",
+        direction: "forward",
+      },
+      invalid: [{ from: "node-a", to: "node-b", direction: "forward" }],
+    },
+  ],
   ["edge.setLabel", { valid: { label: "" }, invalid: [{ label: 42 }, {}] }],
   [
     "edge.setSemanticId",
@@ -122,6 +137,18 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
       invalid: [{ filterConfig: { selectedNodes: "node-a" } }, {}],
     },
   ],
+  [
+    "view.setName",
+    { valid: { name: "Renamed" }, invalid: [{ name: "" }, {}] },
+  ],
+  [
+    "view.setType",
+    { valid: { viewType: "Flow" }, invalid: [{ viewType: "flow" }, {}] },
+  ],
+  [
+    "view.setPinned",
+    { valid: { isPinned: true }, invalid: [{ isPinned: "yes" }, {}] },
+  ],
   ["view.delete", { valid: {}, invalid: [{ id: "view-1" }] }],
 ]);
 
@@ -145,8 +172,8 @@ test("declares exactly the edge and view catalogue, once each", () => {
   assert.deepEqual([...ids].sort(), EXPECTED_IDS);
   assert.equal(new Set(ids).size, ids.length);
   assert.deepEqual(
-    [...INPUT_CASES.keys()].sort(),
-    EXPECTED_IDS,
+    [...new Set([...INPUT_CASES.keys()].map((key) => key.replace(/#.*$/, "")))].sort(),
+    [...EXPECTED_IDS].sort(),
     "every operation is exercised and no exercise is orphaned",
   );
 });

@@ -14,7 +14,7 @@
  *    resized). Nothing here imports the image node content, the store or the route.
  * 2. **It never persists.** A finished gesture becomes a new `items` array, which is
  *    handed to `onItemsChange`; the host decides what that means (for an image node:
- *    `patchContent({ annotations })` through the shared M1 writer).
+ *    `image.setAnnotations` through the shared writer).
  * 3. **It registers no global keyboard.** The one `onKeyDown` lives on its own
  *    root element, so it only fires while a gesture or a toolbar button has focus
  *    (the ink canvas is `tabIndex={0}`, which is also what makes ⌘Z work right

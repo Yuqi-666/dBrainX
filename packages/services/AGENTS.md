@@ -34,9 +34,6 @@ It is the single owner of that sequence.
 
 ## Mechanisms
 
-The legacy whole-record methods (kept until todo 43/44) write the store first.
-Then the service calls `trpcClient`, and on an error it restores the previous store value.
-
 A create calls the server first, because the server supplies the record id.
 The service then writes the result into the store and updates the view enumeration.
 
@@ -44,7 +41,7 @@ The service then writes the result into the store and updates the view enumerati
 The store update stays synchronous. The default delay is 500 milliseconds.
 The scheduler also rolls back to the snapshot from before the debounce window.
 
-The current write path is `invokeGraphOperation`: one `operation.invoke`, then the canonical `node` / `edge` / `view` snapshot the server reloaded is written to the store. A refusal throws `OperationInvokeError` with the server's code and writes nothing. `NodeService`, `EdgeService`, and `ViewService` expose typed helpers over it. The whole-record `upsert` methods stay only until todo 43/44 and are marked deprecated.
+The current write path is `invokeGraphOperation`: one `operation.invoke`, then the canonical `node` / `edge` / `view` snapshot the server reloaded is written to the store. A refusal throws `OperationInvokeError` with the server's code and writes nothing. `NodeService`, `EdgeService`, and `ViewService` expose typed helpers over it. There is no whole-record write left: the routers serve reads only, and a write names its operation.
 
 A service can read as well as write.
 `sync` and `syncByWorkspace` call a query and load the result into the store.
@@ -61,8 +58,8 @@ That import and `graph-handler.ts` form the known `api-client` and `services` cy
 
 ## Rules
 
-1. For the legacy whole-record methods, keep the order: store first, then network, then restore on an error.
-2. Keep the store update synchronous. Debounce the network call only.
+1. Name the operation. A service helper wraps one operation id; do not add a field-shaped write that merges arbitrary keys.
+2. Keep the store update synchronous.
 3. Add a service for a new aggregate and export it from `src/graph/index.ts`.
 4. Call `syncViewEnumerationOnCreate` or `syncViewEnumerationOnDelete` after a node create or delete.
 5. Do not import `@workspace/api-client` from a new module without a check on the known cycle.

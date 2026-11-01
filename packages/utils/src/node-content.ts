@@ -44,11 +44,13 @@ export function isHtmlDocument(storedUrl: string): boolean {
  * The node updates that clear the node's content, or `null` when the type is
  * not clearable.
  *
- * The merge is a shallow `NodeService.upsert`, so the whole `content` object is
- * replaced. Measurements that belong to the removed payload (size, page count,
- * duration, pixel size) are reset with it; the title, icon, cover, tags, state
- * and edges keep their values, because clearing the content is not deleting the
- * node.
+ * This is now the rule table of `node.clearContent`: the handler applies it to
+ * the snapshot the executor loaded, so the client never sends the emptied
+ * content back. The patch is merged into the stored `content`, so a key that
+ * must go is stated as its empty value rather than left out. Measurements that
+ * belong to the removed payload (size, page count, duration, pixel size) are
+ * reset with it; the title, icon, cover, tags, state and edges keep their
+ * values, because clearing the content is not deleting the node.
  */
 export function clearedNodeUpdates(node: {
   nodeType?: string;
@@ -89,13 +91,14 @@ export function clearedNodeUpdates(node: {
         fileSize: 0,
       };
     case "audio":
-      // The content object is replaced whole, so the imported `coverUrl` (and
-      // any other field the import added) is dropped with the payload: a cover
-      // of a deleted audio file must not survive. The timeline stays, like the
-      // video branch above, because it is the user's own work.
+      // The cover is stated empty rather than dropped: the server merges the
+      // patch into `content`, so a key left out would survive a clear, and an
+      // imported cover of a deleted audio file must not survive. The timeline
+      // stays, like the video branch above, because it is the user's own work.
       return {
         content: {
           url: "",
+          coverUrl: "",
           timestamps:
             Array.isArray(content.timestamps) && content.timestamps.length > 0
               ? content.timestamps

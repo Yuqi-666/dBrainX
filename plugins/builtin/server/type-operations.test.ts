@@ -30,25 +30,38 @@ const EXPECTED_SELF_OPERATIONS: Readonly<Record<BuiltinTypeId, readonly string[]
       "rich-text.updateBlock",
       "rich-text.removeBlock",
     ],
-    image: ["image.addAnnotation", "image.removeAnnotation", "image.setMetadata"],
-    pdf: ["pdf.addAnnotation", "pdf.removeAnnotation", "pdf.moveAnnotation"],
+    image: [
+      "image.addAnnotation",
+      "image.removeAnnotation",
+      "image.setMetadata",
+      "image.setAnnotations",
+    ],
+    pdf: [
+      "pdf.addAnnotation",
+      "pdf.removeAnnotation",
+      "pdf.moveAnnotation",
+      "pdf.setAnnotations",
+    ],
     video: [
       "video.timeline.add",
       "video.timeline.update",
       "video.timeline.remove",
+      "video.setTimeline",
       "video.setCover",
     ],
     audio: [
       "audio.timeline.add",
       "audio.timeline.update",
       "audio.timeline.remove",
+      "audio.setTimeline",
     ],
     webpage: ["webpage.replaceDocument"],
-    website: ["website.setFavicon"],
+    website: ["website.setUrl", "website.setFavicon"],
     collection: [
       "collection.setFilter",
       "collection.setView",
       "collection.removeView",
+      "collection.setViews",
     ],
     database: [
       "database.addField",
@@ -57,6 +70,9 @@ const EXPECTED_SELF_OPERATIONS: Readonly<Record<BuiltinTypeId, readonly string[]
       "database.updateCell",
       "database.deleteRow",
       "database.setView",
+      "database.setRows",
+      "database.setFields",
+      "database.setViews",
     ],
   };
 
@@ -168,6 +184,13 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
     },
   ],
   [
+    "image.setAnnotations",
+    {
+      valid: { annotations: { version: 1, items: [] } },
+      invalid: [{}, { annotations: [] }],
+    },
+  ],
+  [
     "pdf.addAnnotation",
     { valid: { annotation: { id: "a1" } }, invalid: [{}, { annotation: "a" }] },
   ],
@@ -180,6 +203,13 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
     {
       valid: { annotationId: "a1", page: 0 },
       invalid: [{ annotationId: "a1", page: -1 }, { annotationId: "a1" }],
+    },
+  ],
+  [
+    "pdf.setAnnotations",
+    {
+      valid: { annotations: { version: 1, items: [] } },
+      invalid: [{}, { annotations: "none" }],
     },
   ],
   [
@@ -206,6 +236,10 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
   ],
   ["video.setCover", { valid: { coverUrl: "" }, invalid: [{}, { coverUrl: null }] }],
   [
+    "video.setTimeline",
+    { valid: { timestamps: [] }, invalid: [{}, { timestamps: {} }] },
+  ],
+  [
     "audio.timeline.add",
     {
       valid: { item: { type: "subtitle", timeMs: 0, content: "hi" } },
@@ -224,11 +258,19 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
     { valid: { itemId: "note_1" }, invalid: [{ itemId: 1 }] },
   ],
   [
+    "audio.setTimeline",
+    { valid: { timestamps: [] }, invalid: [{}, { timestamps: "none" }] },
+  ],
+  [
     "webpage.replaceDocument",
     {
       valid: { url: "/api/files/files/rec1/page.html" },
       invalid: [{}, { url: "" }, { url: "/api/files/x", uploadId: "u" }],
     },
+  ],
+  [
+    "website.setUrl",
+    { valid: { url: "" }, invalid: [{}, { url: 1 }] },
   ],
   [
     "website.setFavicon",
@@ -247,6 +289,10 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
     { valid: { viewId: "v1" }, invalid: [{}, { viewId: "" }] },
   ],
   [
+    "collection.setViews",
+    { valid: { views: [] }, invalid: [{}, { views: {} }] },
+  ],
+  [
     "database.addField",
     {
       valid: { field: { id: "f1", name: "Name", type: "text" } },
@@ -262,6 +308,18 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
     { valid: { fieldId: "f1" }, invalid: [{}, { fieldId: "" }] },
   ],
   ["database.addRow", { valid: { cells: {} }, invalid: [{}, { cells: [] }] }],
+  [
+    "database.setRows",
+    { valid: { rows: [] }, invalid: [{}, { rows: {} }] },
+  ],
+  [
+    "database.setFields",
+    { valid: { fields: [], rows: [] }, invalid: [{ fields: [] }, {}] },
+  ],
+  [
+    "database.setViews",
+    { valid: { views: [] }, invalid: [{}, { views: 1 }] },
+  ],
   [
     "database.updateCell",
     {
@@ -305,7 +363,7 @@ test("declares exactly the self catalogue, per type", () => {
   const ids = typeOperations.map((definition) => definition.id);
   const expected = Object.values(EXPECTED_SELF_OPERATIONS).flat();
   assert.deepEqual([...ids].sort(), [...expected].sort());
-  assert.equal(ids.length, 31);
+  assert.equal(ids.length, 40);
 });
 
 test("ids are globally unique and never repeat a shared metadata operation", () => {

@@ -31,13 +31,9 @@ export function syncViewEnumerationOnCreate(nodeId: NodeId): void {
     return;
   }
   const selectedNodes = [...(fc.selectedNodes ?? []), nodeId];
-  const updatedView: View = { ...view, filterConfig: { ...fc, selectedNodes } };
-  // Optimistic store update + debounced persist so the enum array stays in sync.
-  void ViewService.upsert(
-    view.id,
-    { filterConfig: updatedView.filterConfig },
-    { debounce: true },
-  );
+  // The enumeration is the view's stored filter, so the write is `view.setFilter`
+  // and the reply's view snapshot is what the store keeps.
+  void ViewService.setFilter(view.id, { ...fc, selectedNodes });
 }
 
 /** When a node is deleted, REMOVE its id from every (non-global) view's selectedNodes. */
@@ -51,11 +47,7 @@ export function syncViewEnumerationOnDelete(nodeId: NodeId): void {
     result.push({ ...view, filterConfig: { ...fc, selectedNodes } });
   }
   for (const v of result) {
-    void ViewService.upsert(
-      v.id,
-      { filterConfig: v.filterConfig },
-      { debounce: true },
-    );
+    void ViewService.setFilter(v.id, v.filterConfig);
   }
 }
 

@@ -182,7 +182,7 @@ function resolveInitialState(
  * and owns nothing but view-level UI state. Each renderer renders its own
  * toolbar (config on the left, functions on the right); there is no side config
  * panel (docs/propmt/dataview-table-1.md). Persisting a view change is the
- * host's job (`onViewsChange` → `NodeService.upsert`), and writing data is
+ * host's job (`onViewsChange` → the node type's view operation), and writing data is
  * reported upward through `onCellChange`; renderers never touch the store.
  */
 export function DataViewRoot({

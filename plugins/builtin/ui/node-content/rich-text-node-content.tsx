@@ -45,8 +45,8 @@ export function RichTextNodeContent({
   const { t } = useI18n();
 
   // The host renders the live node: the header's inputs are one-way (`node.title`
-  // in, `patchNode` out) and `NodeService.upsert` updates the store synchronously,
-  // so this subscription is what makes typing echo back.
+  // in, `patchNode` out) and the queue's local projection updates the store
+  // synchronously, so this subscription is what makes typing echo back.
   const liveNode = useDataStore((state) => state.getNode(node.id)) ?? node;
   // Bumped only when the store content is replaced from outside (清空节点, a
   // deleted file stripping an embedded image). It joins the editor key below,
@@ -67,18 +67,18 @@ export function RichTextNodeContent({
   // node switch safe: a debounce armed for the old node cannot fire through the
   // new node's writer and copy one node's body into another.
   const pending = useRef<{
-    patchContent: (patch: Partial<RichTextContent>) => void;
+    operationId: string;
     docs: RichTextContent["docs"];
   } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // `patchContent` changes identity whenever the store does (its live-content
-  // reader depends on this render's node), so hold it in a ref instead of
-  // rebuilding the flush callback — the unmount cleanup has to stay stable.
-  const patchRef = useRef(writer.patchContent);
+  // `apply` changes identity whenever the store does (its live-content reader
+  // depends on this render's node), so hold it in a ref instead of rebuilding
+  // the flush callback — the unmount cleanup has to stay stable.
+  const applyRef = useRef(writer.apply);
   useEffect(() => {
-    patchRef.current = writer.patchContent;
-  }, [writer.patchContent]);
+    applyRef.current = writer.apply;
+  }, [writer.apply]);
 
   const flush = useCallback(() => {
     if (timer.current !== null) {
@@ -88,13 +88,13 @@ export function RichTextNodeContent({
     const queued = pending.current;
     if (queued === null) return;
     pending.current = null;
-    queued.patchContent({ docs: queued.docs });
+    void applyRef.current(queued.operationId, { docs: queued.docs });
   }, []);
 
   const handleBodyChange = useCallback(
     (docs: unknown) => {
       pending.current = {
-        patchContent: patchRef.current,
+        operationId: "rich-text.setDocument",
         docs: docs as RichTextContent["docs"],
       };
       if (timer.current !== null) clearTimeout(timer.current);
@@ -102,6 +102,34 @@ export function RichTextNodeContent({
     },
     [flush],
   );
+
+  /**
+   * The header's one-way field writes, one operation per field.
+   *
+   * The header reports a `Partial<NodeData>`; a field is written by the
+   * operation that owns it, so a title edit can never carry an icon, a tag or a
+   * content payload along with it.
+   */
+  const patchNode = useCallback((patch: Partial<NodeData>) => {
+    const write = (operationId: string, input: Record<string, unknown>) => {
+      void applyRef.current(operationId, input);
+    };
+    if (patch.title !== undefined) write("node.setTitle", { title: patch.title });
+    if (patch.abstract !== undefined) {
+      write("node.setAbstract", { abstract: patch.abstract });
+    }
+    if (patch.semanticId !== undefined) {
+      write("node.setSemanticId", { semanticId: patch.semanticId });
+    }
+    if ("icon" in patch) {
+      if (patch.icon == null) write("node.clearIcon", {});
+      else write("node.setIcon", { icon: patch.icon });
+    }
+    if ("cover" in patch) {
+      if (patch.cover == null) write("node.clearCover", {});
+      else write("node.setCover", { cover: patch.cover });
+    }
+  }, []);
 
   // Unmount (closing the dialog, switching the node) persists whatever the
   // debounce still holds, so the last keystrokes survive an immediate close.
@@ -141,7 +169,7 @@ export function RichTextNodeContent({
           so the host must not wrap it in one. */}
       <NodeContentHeader
         node={liveNode}
-        patchNode={writer.patchNode}
+        patchNode={patchNode}
         renderIconSelector={({ node: target, onPick }) => (
           <IconSelectorPopover
             nodeId={target.id}

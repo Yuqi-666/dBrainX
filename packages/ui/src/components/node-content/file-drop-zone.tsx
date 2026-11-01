@@ -29,19 +29,16 @@ import { Progress } from "@workspace/ui/components/ui/progress";
 import { toast } from "@workspace/ui/components/ui/toast";
 import {
   MAX_UPLOAD_BYTES,
-  PDF_ANALYZE_MAX_BYTES,
-  cacheResourceMeasurements,
   matchesAccept,
   useFileUpload,
   useStorageLimits,
   uploadAttachment,
   uploadFile,
-  analyzePdf,
   cancelMediaImport,
   confirmMediaImport,
   importMedia,
   mediaImportJob,
-  transcodeVideo,
+  resourceIdFromStoredUrl,
 } from "@workspace/api-client";
 import type { ImportedMedia, MediaImportJob } from "@workspace/api-client";
 import { maxFileBytesFor } from "@workspace/utils/storage-limits";
@@ -49,14 +46,9 @@ import type { ResourceRecord } from "@workspace/api-client";
 import { NodeService } from "@workspace/services";
 import { useDataStore } from "@workspace/store";
 import type {
-  AudioContent,
-  ImageContent,
   MediaImportProgress,
   MediaKind,
-  NodeData,
-  PdfContent,
   TimestampData,
-  VideoContent,
 } from "@workspace/interfaces";
 import { notesOf } from "../media-player/types";
 import { MediaImportProgressView } from "./media-import-progress-view";
@@ -94,17 +86,12 @@ type Variant = UploadVariant | "webpage" | DisplayVariant;
  * through the `image` branch would replace the node's content with the new
  * picture — the one way this component can corrupt data (sel §6.1).
  *
- * Shapes frozen by the main agent (`docs/plan/node-content-ui.md` §0-2);
- * **W1-B owns the branches** in `buildNodeUpdates`.
+ * Shapes frozen by the main agent (`docs/plan/node-content-ui.md` §0-2).
  */
 type DisplayVariant = "icon" | "cover";
 
-/**
- * Variants whose metadata is read in the browser. PDFs and videos are excluded:
- * both are measured by the backend, which is the only side that can parse a PDF
- * or decode a codec the browser cannot play.
- */
-type LocalVariant = Exclude<UploadVariant, "pdf" | "video">;
+/** Base for the shared writer when the store has no live node to read. */
+const NO_LIVE_CONTENT: Record<string, unknown> = {};
 
 interface FileDropZoneProps {
   nodeId: string;
@@ -191,149 +178,6 @@ const VARIANT_CONFIG = {
   },
 } as const satisfies Record<Variant, VariantConfig>;
 
-/** Metadata read off the picked file. */
-interface FilePreview {
-  duration?: number;
-  width?: number;
-  height?: number;
-}
-
-/**
- * Intrinsic size of the image at `src`.
- *
- * No `crossOrigin` is set: only the natural width / height are read here (never
- * the pixels through a canvas), and demanding CORS would make a perfectly
- * displayable stored image fail to measure on a deployment that does not send
- * the headers.
- */
-function readImageSize(src: string): Promise<FilePreview> {
-  return new Promise<FilePreview>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () =>
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => reject(new Error("Image load failed"));
-    img.src = src;
-  });
-}
-
-/** Duration of the audio at `src`, read from metadata only. */
-function readAudioDuration(src: string): Promise<FilePreview> {
-  return new Promise<FilePreview>((resolve, reject) => {
-    const audio = document.createElement("audio");
-    audio.preload = "metadata";
-    audio.src = src;
-    audio.onloadedmetadata = () =>
-      resolve({
-        duration: Number.isFinite(audio.duration) ? audio.duration : 0,
-      });
-    audio.onerror = () => reject(new Error("Audio load failed"));
-  });
-}
-
-/**
- * Best-effort metadata extraction from an address. Never rejects: a missing
- * preview only means the node falls back to its placeholder rendering.
- *
- * Shared by the upload path (an object URL of the picked file) and the
- * reference path (the resource's stored URL): both end up as a `src` the browser
- * can measure directly.
- *
- * Video is absent on purpose. Its cover used to be grabbed here from a canvas,
- * which only works for a codec the browser can decode — precisely what an upload
- * cannot be relied on to be. The backend now measures the video and renders its
- * cover while packaging it (`FileCommandService.transcodeVideo`).
- */
-async function generatePreviewFromUrl(
-  src: string,
-  variant: LocalVariant,
-): Promise<FilePreview> {
-  try {
-    switch (variant) {
-      case "audio":
-        return await readAudioDuration(src);
-      case "image":
-        return await readImageSize(src);
-    }
-  } catch (error) {
-    console.warn(
-      `[FileDropZone] preview generation failed (${variant})`,
-      error,
-    );
-    return {};
-  }
-}
-
-/**
- * One upload's contribution to its node: the **half** of `content` the variant
- * owns, plus the top-level fields written beside it.
- *
- * `content` here is the client's DTO object (`NodeData.content`), never the
- * PocketBase `nodes.content` column: the same column holds a `docs` object for
- * a text node but a bare url **string** for image / pdf / video / audio
- * (`backend/infrastructure/src/database/mappers/node.mapper.ts`), so a
- * column-shaped patch would stuff an object into a string column
- * (`docs/plan/node-content-ui.md` §M2.2-6).
- */
-interface ContentPatch<C extends object> {
-  contentHalf: Partial<C>;
-  meta: Partial<NodeData>;
-}
-
-/** Base for the shared writer when the store has no live node to read. */
-const NO_LIVE_CONTENT: Record<string, unknown> = {};
-
-/**
- * Merges one upload's content half onto the node's **live** content and writes
- * it together with its sibling top-level fields.
- *
- * `NodeService.upsert` merges top-level keys only — `content` is replaced
- * wholesale — so the base must be read back from the store at write time
- * instead of taken from this render: a snapshot captured before another
- * writer's patch would silently drop the half that writer owns (PDF / image
- * `annotations`, a video's `timestamps`; plan §M2.2-6).
- */
-async function writeContentPatch<C extends object>(
-  nodeId: string,
-  live: Record<string, unknown>,
-  { contentHalf, meta }: ContentPatch<C>,
-): Promise<void> {
-  await NodeService.upsert(nodeId, {
-    ...meta,
-    content: { ...live, ...contentHalf },
-  } as unknown as Partial<NodeData>);
-}
-
-/**
- * Maps the stored file onto the node fields the matching node type expects.
- *
- * `source` only carries the byte length: an upload passes its `File`, a resource
- * passes `{ size: resource.fileSize }`, and neither path has to know the other's
- * shape.
- */
-function buildNodeUpdates(
-  variant: LocalVariant,
-  url: string,
-  source: { size: number },
-  preview: FilePreview,
-): ContentPatch<ImageContent | AudioContent> {
-  switch (variant) {
-    case "image":
-      return {
-        contentHalf: { url },
-        meta: {
-          fileSize: source.size,
-          width: preview.width ?? 0,
-          height: preview.height ?? 0,
-        },
-      };
-    case "audio":
-      return {
-        contentHalf: { url },
-        meta: { fileSize: source.size, duration: preview.duration ?? 0 },
-      };
-  }
-}
-
 /**
  * Tells the user the blob and the node write both succeeded.
  *
@@ -407,101 +251,6 @@ function progressFromJob(
     speedBytesPerSecond: 0,
     etaSeconds: 0,
   };
-}
-
-/**
- * Parses an uploaded (or referenced) PDF on the backend and returns the content
- * half the node should end up with.
- *
- * Best-effort on purpose: the blob is already stored, so a document the backend
- * cannot parse (password protected, corrupt) must still leave the node pointing
- * at its file — it just keeps `pageCount: 0` and no cover, which is what the
- * node renders before any metadata arrives.
- *
- * A reference only reaches this fallback when the resource record carries no
- * cached analysis: `pageCount` / `storedCoverUrl` are written to the node
- * straight from the record otherwise. A record that was never parsed still
- * needs this call, and the backend caches the answer on the record, so only the
- * first reference pays for the parse.
- *
- * A document past the analysis cap is skipped without asking: the server would
- * have to stream the whole file to disk only to refuse it, and the node is
- * perfectly usable with the blob alone.
- */
-async function analyzePdfUpload(
-  url: string,
-  source: { size: number },
-): Promise<ContentPatch<PdfContent>> {
-  let coverUrl = "";
-  let pageCount = 0;
-  let fileSize = source.size;
-
-  if (source.size > PDF_ANALYZE_MAX_BYTES) {
-    console.warn(
-      "[FileDropZone] PDF is larger than the analysis cap; keeping the file without parsing it",
-      source.size,
-    );
-  } else {
-    try {
-      const analysis = await analyzePdf(url);
-      coverUrl = analysis.coverUrl;
-      pageCount = analysis.pageCount;
-      fileSize = analysis.fileSize;
-    } catch (error) {
-      console.warn("[FileDropZone] PDF analysis failed", error);
-    }
-  }
-
-  return {
-    contentHalf: { url, coverUrl },
-    meta: { fileSize, pageCount },
-  };
-}
-
-/**
- * Packages an uploaded (or referenced) video as HLS and returns the content half
- * the node should end up with.
- *
- * A reference only reaches this fallback when the resource has no cached
- * playlist (`storedHlsUrl === ""`): a packaged record is written to the node
- * directly. The backend caches a freshly built package on the record, so only
- * the first reference pays for the transcode.
- *
- * A transcode that fails must not lose the upload: the node then simply keeps
- * the original blob as its only representation — what every upload did before
- * the backend packaged videos — and the player reports the codec it cannot
- * decode instead of pretending to play it.
- */
-async function packageVideoUpload(
-  url: string,
-  source: { size: number },
-): Promise<ContentPatch<VideoContent>> {
-  try {
-    const transcoded = await transcodeVideo(url);
-
-    return {
-      contentHalf: {
-        url,
-        coverUrl: transcoded.coverUrl,
-        hlsUrl: transcoded.hlsUrl,
-      },
-      meta: {
-        fileSize: source.size,
-        duration: transcoded.duration,
-        source: "local",
-      },
-    };
-  } catch (error) {
-    console.warn(
-      "[FileDropZone] HLS packaging failed, keeping the original upload",
-      error,
-    );
-
-    return {
-      contentHalf: { url, coverUrl: "", hlsUrl: "" },
-      meta: { fileSize: source.size, duration: 0, source: "local" },
-    };
-  }
 }
 
 /**
@@ -777,8 +526,6 @@ function UploadDropZone({
   const [actionError, setActionError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputId = useId();
-  /** Set while the backend is packaging an uploaded video as HLS. */
-  const [packaging, setPackaging] = useState(false);
   /** Name of the library resource being referenced, shown while it is applied. */
   const [referencing, setReferencing] = useState<string | null>(null);
   /** Set while the 「从资源库选择」 dialog is open. */
@@ -828,15 +575,11 @@ function UploadDropZone({
   const Icon = config.icon;
 
   /**
-   * The node's freshest `content`, read when a write is built.
+   * The node's freshest `content`.
    *
-   * The upload path no longer reads it — a completed upload attaches through
-   * `*.attachFile`, which the server answers with the canonical node — so this
-   * is only for the paths that still build a content half here: a referenced
-   * library resource and a site import. Those stay an awaited
-   * `NodeService.upsert` (not the writer's `patchContent`) because they report
-   * `onUploaded` / drop their `packaging` note only once the node is really
-   * written, and because a failed write has to reach `onUploadError`.
+   * Every write of this zone is an operation now, so this is read for one
+   * thing: the base the import's subtitle cues merge onto
+   * ({@link timestampsAfterImport}).
    */
   const { liveContent } = useNodeContentWriter<Record<string, unknown>>(
     nodeId,
@@ -847,41 +590,42 @@ function UploadDropZone({
   /**
    * Writes one finished import onto the node.
    *
-   * The result carries everything an upload would have produced — stored
-   * address, cover, HLS playlist for a video, subtitle / lyric cues — plus the
-   * page it came from. The cues are merged after the user's existing notes
-   * ({@link timestampsAfterImport}), and the content half merges over the live
-   * content, so a concurrent writer's half survives exactly as in the upload
-   * path. `source: "online"` is what tells the player and the resource panel
-   * that this is not a local file; `sourceUrl` is the canonical page.
+   * The import has already stored the file, so the write is the same
+   * `*.attachFile` an upload uses: the server reads the address, cover, HLS
+   * playlist and measurements off the stored record, and the client names only
+   * the file and the page it came from. `source: "online"` is what tells the
+   * player and the resource panel that this is not a local file; `sourceUrl` is
+   * the canonical page.
+   *
+   * The subtitle / lyric cues the import carries are merged after the user's own
+   * notes ({@link timestampsAfterImport}) and written as the timeline operation.
    *
    * The title is a fallback, never a replacement: it is adopted with a second
-   * top-level write only when the node has no title yet, because the user's own
-   * title always wins.
+   * write only when the node has no title yet, because the user's own title
+   * always wins.
    */
   const writeImportedMedia = async (imported: ImportedMedia) => {
-    const kind = importKind ?? "video";
-    await writeContentPatch(nodeId, liveContent(), {
-      contentHalf: {
-        url: imported.url,
-        coverUrl: imported.coverUrl,
-        timestamps: timestampsAfterImport(liveContent(), imported.subtitle),
-        // Only a video has an HLS rendition; writing `hlsUrl` onto an audio node
-        // would add a field its content type does not declare.
-        ...(kind === "video" ? { hlsUrl: imported.hlsUrl } : {}),
-      },
-      meta: {
-        fileSize: imported.fileSize,
-        duration: imported.duration,
-        source: "online",
-        sourceUrl: imported.sourceUrl,
-      },
+    const uploadId = resourceIdFromStoredUrl(imported.url);
+    if (uploadId === "") {
+      throw new Error(t("导入结果没有已存储的文件"));
+    }
+    // The server reads the stored file's address, cover, rendition and
+    // measurements; the client names the file and the page it came from.
+    await NodeService.invokeTypeOperation(`${variant}.attachFile`, nodeId, {
+      uploadId,
+      source: "online",
+      sourceUrl: imported.sourceUrl,
+    });
+    // The subtitle / lyric track is node content the import result carries, so
+    // it lands as the timeline operation after the file is attached.
+    await NodeService.invokeTypeOperation(`${variant}.setTimeline`, nodeId, {
+      timestamps: timestampsAfterImport(liveContent(), imported.subtitle),
     });
 
     const liveTitle = useDataStore.getState().nodes.get(nodeId)?.title ?? "";
     const title = (imported.title || imported.fileName).trim();
     if (title !== "" && liveTitle.trim() === "") {
-      await NodeService.upsert(nodeId, { title });
+      await NodeService.setTitle(nodeId, title);
     }
 
     // Report first, then drop the progress view: `onUploaded` may swap the
@@ -1105,97 +849,23 @@ function UploadDropZone({
   /**
    * Writes a referenced library resource onto this node, variant by variant.
    *
-   * It must leave the node in exactly the state an upload would, but it reuses
-   * the analysis cached on the resource record instead of deriving it again: a
-   * PDF record with a page count or cover, a video with an HLS playlist, and an
-   * image or audio file with its measurements are written straight from the
-   * record. Only a record that carries none falls back to parsing, packaging or
-   * measuring, and what the browser measures is written back (best effort) so
-   * the next reference is cheap. The node stores the resource's `storedUrl`,
-   * never its bytes. `liveContent()` is read at write time so a concurrent
-   * writer's content half survives, exactly as in the upload path.
+   * It is the same write as an upload: `*.attachFile` with the resource's record
+   * id, and the server writes the address, cover, HLS playlist and measurements
+   * it reads off the record. The node stores the resource's address, never its
+   * bytes.
    */
   const handleResourceSelected = async (resource: ResourceRecord) => {
     onUploadStart?.();
     setReferencing(resource.name);
 
     try {
-      if (variant === "pdf") {
-        if (resource.pageCount > 0 || resource.storedCoverUrl !== "") {
-          // The record already carries what a parse would return, so the node
-          // is written from it without asking the backend to open the file.
-          await writeContentPatch(nodeId, liveContent(), {
-            contentHalf: {
-              url: resource.storedUrl,
-              coverUrl: resource.storedCoverUrl,
-            },
-            meta: {
-              fileSize: resource.fileSize,
-              pageCount: resource.pageCount,
-            },
-          });
-        } else {
-          // Parsing happens on the server (PDF parser + rasterizer): hand the
-          // stored address over and keep whatever comes back.
-          const patch = await analyzePdfUpload(resource.storedUrl, {
-            size: resource.fileSize,
-          });
-          await writeContentPatch(nodeId, liveContent(), patch);
-        }
-      } else if (variant === "video") {
-        if (resource.storedHlsUrl !== "") {
-          // A packaged resource plays as stored: the playlist and cover are
-          // what a transcode would have returned.
-          await writeContentPatch(nodeId, liveContent(), {
-            contentHalf: {
-              url: resource.storedUrl,
-              coverUrl: resource.storedCoverUrl,
-              hlsUrl: resource.storedHlsUrl,
-            },
-            meta: {
-              fileSize: resource.fileSize,
-              duration: resource.duration,
-              source: "local",
-            },
-          });
-        } else {
-          // Same as the upload path: the drop zone stays up with a packaging
-          // note until the backend has built the playlist and cover.
-          setPackaging(true);
-          try {
-            const patch = await packageVideoUpload(resource.storedUrl, {
-              size: resource.fileSize,
-            });
-            await writeContentPatch(nodeId, liveContent(), patch);
-          } finally {
-            setPackaging(false);
-          }
-        }
-      } else {
-        // Image / audio: reuse the measurements the record carries; measure
-        // only a record that has none. The resource address is already what
-        // `<img>` / `<audio>` needs, so no object URL is involved.
-        let preview: FilePreview;
-        if (variant === "image" && resource.width > 0 && resource.height > 0) {
-          preview = { width: resource.width, height: resource.height };
-        } else if (variant === "audio" && resource.duration > 0) {
-          preview = { duration: resource.duration };
-        } else {
-          preview = await generatePreviewFromUrl(resource.url, variant);
-          // Best effort: the resource may belong to a teammate, and the node
-          // already has these numbers; caching only spares the next reference
-          // the measurement.
-          await cacheResourceMeasurements(resource.storedUrl, preview);
-        }
-
-        const patch = buildNodeUpdates(
-          variant,
-          resource.storedUrl,
-          { size: resource.fileSize },
-          preview,
-        );
-        await writeContentPatch(nodeId, liveContent(), patch);
-      }
+      if (resource.storedUrl === "") throw new Error(t("无法读取资源内容"));
+      // A library resource is a stored file, exactly like an upload: the
+      // attach operation reads its address, cover, rendition and measurements
+      // off the record, so the client sends the record id and nothing else.
+      await NodeService.invokeTypeOperation(`${variant}.attachFile`, nodeId, {
+        uploadId: resource.id,
+      });
 
       onUploaded?.();
       showUploadSuccessToast(resource);
@@ -1369,7 +1039,7 @@ function UploadDropZone({
               {referencing}
             </span>
             <span className="text-xs text-muted-foreground">
-              {packaging ? t("正在转码为 HLS…") : t("正在应用资源…")}
+              {t("正在应用资源…")}
             </span>
           </div>
         ) : (
@@ -1492,7 +1162,7 @@ function UploadDropZone({
               <X className="size-4" />
             </button>
           </div>
-          <Progress value={packaging ? 100 : item.progress} />
+          <Progress value={item.progress} />
           <span
             className="text-xs text-muted-foreground break-words"
             title={item.status === "error" ? item.error : undefined}
@@ -1501,9 +1171,7 @@ function UploadDropZone({
               ? translate("上传失败：{value1}", {
                   value1: item.error ?? t("未知原因"),
                 })
-              : packaging
-                ? t("正在转码为 HLS…")
-                : `${item.progress}%`}
+              : `${item.progress}%`}
           </span>
         </div>
       ))}
@@ -1550,27 +1218,20 @@ function WebpageDropZone({
   const config = VARIANT_CONFIG.webpage;
   const Icon = config.icon;
 
-  /**
-   * The node's freshest `content`, read when a write is built. The address and
-   * the byte length are two halves of one write, so the update is awaited and
-   * its failure reaches `onUploadError`.
-   */
-  const { liveContent } = useNodeContentWriter<Record<string, unknown>>(
-    nodeId,
-    "webpage",
-    NO_LIVE_CONTENT,
-  );
-
   const reportImportError = (message: string) => {
     setActionError(message);
     onUploadError?.(new Error(message));
   };
 
-  /** Writes the stored address and the byte length onto the node. */
-  const writeDocument = async (url: string, fileSize: number) => {
-    await writeContentPatch(nodeId, liveContent(), {
-      contentHalf: { url },
-      meta: { fileSize },
+  /**
+   * Attaches a stored web page document through `webpage.attachFile`.
+   *
+   * The operation takes the id of the stored upload result and the server reads
+   * the address and the byte length off it, so neither is assembled here.
+   */
+  const writeDocument = async (uploadId: string) => {
+    await NodeService.invokeTypeOperation("webpage.attachFile", nodeId, {
+      uploadId,
     });
   };
 
@@ -1583,10 +1244,13 @@ function WebpageDropZone({
     // Outlives this dialog: the key lets a reopened zone subscribe to the
     // upload that started before it unmounted.
     key: `${nodeId}:webpage`,
-    upload: uploadFile,
-    onSuccess: async (url, file) => {
+    upload: async (file, onProgress, signal) => {
+      const attachment = await uploadAttachment(file, onProgress, signal);
+      await writeDocument(attachment.id);
+      return attachment.url;
+    },
+    onSuccess: async (_url, file) => {
       try {
-        await writeDocument(url, file.size);
         onUploaded?.();
         showUploadSuccessToast(file);
       } catch (cause) {
@@ -1658,7 +1322,7 @@ function WebpageDropZone({
 
     try {
       if (!resource.storedUrl) throw new Error(t("无法读取资源内容"));
-      await writeDocument(resource.storedUrl, resource.fileSize);
+      await writeDocument(resource.id);
       onUploaded?.();
       showUploadSuccessToast(resource);
     } catch (error) {
@@ -1807,10 +1471,9 @@ export function FileDropZone(props: FileDropZoneProps) {
  * — never `content`, and never `width` / `height` / `fileSize`.
  *
  * A branch of its own rather than a widening of {@link UploadDropZone} (plan
- * §M2.2-7): that component's `LocalVariant` constrains `buildNodeUpdates` to
- * the variants whose upload *is* the node's content, and reusing it would write
- * the picture into `content.url` — the one way this component can corrupt data
- * (sel §6.1).
+ * §M2.2-7): that component attaches every upload as the node's content, and
+ * routing a display field through it would write the picture into
+ * `content.url` — the one way this component can corrupt data (sel §6.1).
  */
 function DisplayFieldDropZone({
   nodeId,
@@ -1855,12 +1518,15 @@ function DisplayFieldDropZone({
         // `{kind:"image"}` variant carries no field beyond `url`, and spreading a
         // `{kind:"node"}` cover into it would produce an invalid union member.
         const liveIcon = useDataStore.getState().getNode(nodeId)?.icon;
-        const updates: Partial<NodeData> =
-          variant === "cover"
-            ? { cover: { kind: "image", url } }
-            : { icon: { ...liveIcon, kind: "image", value: url } };
-
-        await NodeService.upsert(nodeId, updates);
+        if (variant === "cover") {
+          await NodeService.setCover(nodeId, { kind: "image", url });
+        } else {
+          await NodeService.setIcon(nodeId, {
+            ...liveIcon,
+            kind: "image",
+            value: url,
+          });
+        }
         onUploaded?.();
         showUploadSuccessToast(file);
       } catch (error) {
@@ -1922,14 +1588,18 @@ function DisplayFieldDropZone({
 
     try {
       const liveIcon = useDataStore.getState().getNode(nodeId)?.icon;
-      const updates: Partial<NodeData> =
-        variant === "cover"
-          ? { cover: { kind: "image", url: resource.storedUrl } }
-          : {
-              icon: { ...liveIcon, kind: "image", value: resource.storedUrl },
-            };
-
-      await NodeService.upsert(nodeId, updates);
+      if (variant === "cover") {
+        await NodeService.setCover(nodeId, {
+          kind: "image",
+          url: resource.storedUrl,
+        });
+      } else {
+        await NodeService.setIcon(nodeId, {
+          ...liveIcon,
+          kind: "image",
+          value: resource.storedUrl,
+        });
+      }
       onUploaded?.();
       showUploadSuccessToast(resource);
     } catch (error) {

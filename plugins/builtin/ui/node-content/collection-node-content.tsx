@@ -68,13 +68,13 @@ export function CollectionNodeContent({
   /**
    * Content writes go through the shared writer
    * (`./use-node-content-writer`), which carries the two rules this host used to
-   * document inline: patch the freshest content read back from the store, never
-   * this render's `node.content`; and serialize the writes, because PocketBase's
-   * SDK aborts a pending request when another one for the same record starts.
-   * The collection's two writers (view management and the filter editor) are
-   * exactly why a stale snapshot here starts dropping the other one's change.
+   * document inline: read the freshest content back from the store, never this
+   * render's `node.content`; and serialize the writes, because PocketBase's SDK
+   * aborts a pending request when another one for the same record starts. The
+   * collection's two writers (view management and the filter editor) are exactly
+   * why a stale snapshot here starts dropping the other one's change.
    */
-  const { patchContent } = useNodeContentWriter<CollectionContent>(
+  const { apply } = useNodeContentWriter<CollectionContent>(
     node.id,
     "collection",
     node.content,
@@ -82,16 +82,16 @@ export function CollectionNodeContent({
 
   const handleViewsChange = useCallback(
     (views: DataView[]) => {
-      patchContent({ views });
+      void apply("collection.setViews", { views });
     },
-    [patchContent],
+    [apply],
   );
 
   const handleFilterSubmit = useCallback(
     (filterConfig: FilterConfig) => {
-      patchContent({ filterConfig });
+      void apply("collection.setFilter", { filterConfig });
     },
-    [patchContent],
+    [apply],
   );
 
   const handleOpenNode = useCallback((nodeId: string) => {

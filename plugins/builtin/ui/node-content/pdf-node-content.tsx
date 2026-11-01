@@ -36,7 +36,6 @@ import type {
   PdfContent,
   PdfNodeData,
 } from "@workspace/interfaces";
-import { NodeService } from "@workspace/services";
 import { useAuthStore, useUIStore } from "@workspace/store";
 import { resolveFileUrl } from "@workspace/api-client";
 import { PdfViewer } from "@workspace/ui/components/pdf-viewer/pdf-viewer";
@@ -63,7 +62,7 @@ export function PdfNodeContent({ node, className }: PdfNodeContentProps) {
   const coverUrl = resolveFileUrl(node.content?.coverUrl);
   const [failure, setFailure] = useState<PdfLoadFailure | null>(null);
 
-  const { patchContent } = useNodeContentWriter<PdfContent>(
+  const { apply } = useNodeContentWriter<PdfContent>(
     node.id,
     "pdf",
     node.content,
@@ -96,30 +95,10 @@ export function PdfNodeContent({ node, className }: PdfNodeContentProps) {
 
   const handleAnnotationsChange = useCallback(
     (items: Annotation[]) => {
-      patchContent({ annotations: { version: 1, items } });
+      void apply("pdf.setAnnotations", { annotations: { version: 1, items } });
     },
-    [patchContent],
+    [apply],
   );
-
-  /**
-   * The two "leave now" moments (plan §M5.1 item 8). With the shared writer a
-   * finished gesture is already a queued write, so this is about the *last*
-   * microtask: a flush here cannot lose a stroke that the user drew a millisecond
-   * before closing the dialog.
-   */
-  useEffect(() => {
-    const flush = () => {
-      void NodeService.flushPendingUpdate(node.id);
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") flush();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-      flush();
-    };
-  }, [node.id]);
 
   if (!hasUrl) {
     return (

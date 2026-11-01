@@ -277,14 +277,33 @@ try {
   // client and neither instance can be deleted (renaming stays possible).
   assert.equal(wa.isDefault, true);
   assert.equal(wb.isDefault, true);
+  // Every write is `operation.invoke`, which takes the workspace from the
+  // connection: one client per user, bound to that user's workspace.
+  const aw = client(alice.token, wa.id),
+    bw = client(bob.token, wb.id);
   const [defaultView] = await a.view.listByWorkspace.query({
     workspaceId: wa.id,
   });
   assert.equal(defaultView.isDefault, true);
+  // The default instance is refused. The executor hides a handler's own text
+  // (`OPERATION_FAILED` reaches the client as "operation \"view.delete\"
+  // failed"), so the guarantee is pinned by the refusal code plus the record
+  // that is still there — a delete that silently succeeded would fail both.
   await assert.rejects(
-    a.view.delete.mutate({ id: defaultView.id }),
-    /The default view cannot be deleted/,
+    aw.operation.invoke.mutate({
+      operationId: "view.delete",
+      target: { kind: "view", viewId: defaultView.id },
+      input: {},
+    }),
+    (error) => {
+      assert.equal(error.data?.code, "INTERNAL_SERVER_ERROR");
+      assert.match(error.message, /OPERATION_FAILED: operation "view\.delete" failed/);
+      return true;
+    },
   );
+  const survivedDefaultView = await aw.view.getById.query({ id: defaultView.id });
+  assert.equal(survivedDefaultView.id, defaultView.id);
+  assert.equal(survivedDefaultView.isDefault, true);
   // Renaming a default instance stays allowed and keeps the flag (the update
   // rule pins only `isDefault`, not the name).
   const renamedWorkspace = await a.workspace.update.mutate({
@@ -293,12 +312,13 @@ try {
   });
   assert.equal(renamedWorkspace.name, "改名后的工作区");
   assert.equal(renamedWorkspace.isDefault, true);
-  const renamedView = await a.view.update.mutate({
-    id: defaultView.id,
-    updates: { name: "改名后的视图" },
+  const renamedView = await aw.operation.invoke.mutate({
+    operationId: "view.setName",
+    target: { kind: "view", viewId: defaultView.id },
+    input: { name: "改名后的视图" },
   });
-  assert.equal(renamedView.name, "改名后的视图");
-  assert.equal(renamedView.isDefault, true);
+  assert.equal(renamedView.view.name, "改名后的视图");
+  assert.equal(renamedView.view.isDefault, true);
   // The picker icon is owner-editable, round-trips through the JSON column, and
   // `null` clears it. It never touches the protection flag.
   const iconWorkspace = await a.workspace.update.mutate({
@@ -596,8 +616,6 @@ try {
     name: "private",
     workspaceId: wa.id,
   });
-  const aw = client(alice.token, wa.id),
-    bw = client(bob.token, wb.id);
   // `operation.invoke` is the write entry: the target names what the operation
   // acts on, and the body carries nothing about identity or workspace.
   const addCorrelation = `smoke-node-add-${Date.now()}`;
@@ -828,7 +846,13 @@ try {
     "PASS operation.invoke video.setCover/website.setFavicon/collection.setFilter/webpage.replaceDocument/image.attachFile/node.delete",
   );
   assert.equal(await b.node.getById.query({ id: node.id }), null);
-  await assert.rejects(b.node.delete.mutate({ id: node.id }));
+  await assert.rejects(
+    bw.operation.invoke.mutate({
+      operationId: "node.delete",
+      target: { kind: "node", nodeId: node.id },
+      input: {},
+    }),
+  );
   const target = await aw.operation.invoke
     .mutate({
       operationId: "node.add",
@@ -836,29 +860,58 @@ try {
       input: { nodeType: "text" },
     })
     .then((result) => result.node);
-  // Edges still go through the old endpoint: `edge.create` is registered by
-  // plan todo 35, which is not in this change, so switching here would make the
-  // smoke red for a reason outside todo 36. The old endpoint stays callable
-  // until todo 44 removes it.
-  const edge = await a.edge.add.mutate({
-    id: "tmp_edge", from: node.id, to: target.id,
-    direction: "forward", semanticId: "", workspaceId: wa.id,
-  });
+  // An unlabelled edge is an `edge.create` with the empty semantic the graph's
+  // add-edge gesture sends.
+  const edge = await aw.operation.invoke
+    .mutate({
+      operationId: "edge.create",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: {
+        from: node.id,
+        to: target.id,
+        direction: "forward",
+        semanticId: "",
+      },
+    })
+    .then((result) => result.edge);
   assert.equal(edge.semanticId, "");
   assert.equal((await a.edge.getById.query({ id: edge.id })).to, target.id);
   assert.equal(await b.edge.getById.query({ id: edge.id }), null);
-  await assert.rejects(b.edge.update.mutate({ id: edge.id, updates: { semanticId: "" } }));
   const edgeSemantic = await a.edgeSemantic.add.mutate({
     id: "tmp_edge_semantic", name: "relates to", category: "association", workspaceId: wa.id,
   });
-  await a.edge.update.mutate({ id: edge.id, updates: { semanticId: edgeSemantic.id } });
+  await aw.operation.invoke.mutate({
+    operationId: "edge.setSemanticId",
+    target: { kind: "edge", edgeId: edge.id },
+    input: { semanticId: edgeSemantic.id },
+  });
   assert.equal((await a.edge.getById.query({ id: edge.id })).semanticId, edgeSemantic.id);
-  await a.edge.update.mutate({ id: edge.id, updates: { semanticId: "" } });
-  const foreignTarget = await bw.node.add.mutate({ nodeType: "text" });
-  await assert.rejects(a.edge.add.mutate({
-    id: "tmp_cross_workspace", from: node.id, to: foreignTarget.id,
-    direction: "forward", semanticId: "", workspaceId: wa.id,
-  }));
+  await assert.rejects(
+    bw.operation.invoke.mutate({
+      operationId: "edge.setSemanticId",
+      target: { kind: "edge", edgeId: edge.id },
+      input: { semanticId: edgeSemantic.id },
+    }),
+  );
+  const foreignTarget = await bw.operation.invoke
+    .mutate({
+      operationId: "node.add",
+      target: { kind: "workspace", workspaceId: wb.id },
+      input: { nodeType: "text" },
+    })
+    .then((result) => result.node);
+  await assert.rejects(
+    aw.operation.invoke.mutate({
+      operationId: "edge.create",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: {
+        from: node.id,
+        to: foreignTarget.id,
+        direction: "forward",
+        semanticId: "",
+      },
+    }),
+  );
   console.log("PASS untyped edge creation, semantic selection/clearing and workspace isolation");
   // The composed app resolves an edge or a view target through the container's
   // access policies and writes through the command services the host bound, so
@@ -991,8 +1044,18 @@ try {
     ).status,
     400,
   );
-  await assert.rejects(b.node.delete.mutate({ id: node.id }));
-  await a.node.update.mutate({ id: node.id, updates: { title: "shared" } });
+  await assert.rejects(
+    bw.operation.invoke.mutate({
+      operationId: "node.delete",
+      target: { kind: "node", nodeId: node.id },
+      input: {},
+    }),
+  );
+  await aw.operation.invoke.mutate({
+    operationId: "node.setTitle",
+    target: { kind: "node", nodeId: node.id },
+    input: { title: "shared" },
+  });
   await new Promise((resolve) => setTimeout(resolve, 400));
   assert.ok(eventsB.some((e) => e.eventType === "NodeUpdated"));
   await a.workspace.removeMember.mutate({
@@ -1002,9 +1065,10 @@ try {
   });
   await new Promise((resolve) => setTimeout(resolve, 400));
   const count = eventsB.length;
-  await a.node.update.mutate({
-    id: node.id,
-    updates: { title: "private again" },
+  await aw.operation.invoke.mutate({
+    operationId: "node.setTitle",
+    target: { kind: "node", nodeId: node.id },
+    input: { title: "private again" },
   });
   await new Promise((resolve) => setTimeout(resolve, 400));
   assert.equal(eventsB.length, count);

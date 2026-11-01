@@ -21,10 +21,13 @@
  * through the host. The host binds the ones this build implements by id
  * (`apps/server/src/operation-registry.ts`).
  *
- * Bound today: `video.setCover`, `website.setFavicon`, `collection.setFilter`
- * and `webpage.replaceDocument`, each of which writes one field of the node's
- * content, plus the four `*.attachFile` operations from `operations.ts`, which
- * resolve the stored upload result before they write.
+ * Bound today: the payload operations the editors write through
+ * (`text.setDocument`, `rich-text.setDocument`, `image|pdf.setAnnotations`,
+ * `video|audio.setTimeline`, `collection.setFilter|setViews`,
+ * `database.setRows|setFields|setViews`, `website.setUrl|setFavicon`,
+ * `webpage.replaceDocument`, `video.setCover`), plus the five `*.attachFile`
+ * operations from `operations.ts`, which resolve the stored upload result
+ * before they write.
  *
  * The rest stay unbound: the document, timeline, annotation, view and database
  * operations in the table below. The plugin host refuses to enable a plugin
@@ -171,6 +174,22 @@ const DATABASE_CELL: JsonSchema = {
   },
 };
 
+/**
+ * The payload operations: one operation for the array a type's editor owns.
+ *
+ * The data view and the annotation layer hand their host the whole next list
+ * (a table's rows, a view list, an annotation set, a timeline), not one item at
+ * a time, so the operation granularity is the payload. Each one is still a
+ * single named, schema-checked, versioned write of `content` and nothing else;
+ * what it replaces is the old whole-node merge, which could also change the
+ * title, the tags and every other field in the same call.
+ */
+const ANNOTATIONS: JsonSchema = { type: "object" };
+const ROWS: JsonSchema = { type: "array", items: { type: "object" } };
+const FIELDS: JsonSchema = { type: "array", items: DATABASE_FIELD };
+const VIEWS: JsonSchema = { type: "array", items: VIEW };
+const TIMELINE: JsonSchema = { type: "array", items: TIMELINE_ITEM };
+
 export const typeOperations: readonly OperationDefinition[] = [
   // text: the body is a block map, so editing is per block, never a blob.
   defineTypeOperation("text", {
@@ -258,6 +277,13 @@ export const typeOperations: readonly OperationDefinition[] = [
     idempotent: true,
   }),
 
+  defineTypeOperation("image", {
+    id: "image.setAnnotations",
+    exportName: "imageSetAnnotations",
+    inputSchema: closedObject({ annotations: ANNOTATIONS }),
+    idempotent: true,
+  }),
+
   defineTypeOperation("pdf", {
     id: "pdf.addAnnotation",
     exportName: "pdfAddAnnotation",
@@ -280,6 +306,13 @@ export const typeOperations: readonly OperationDefinition[] = [
     idempotent: true,
   }),
 
+  defineTypeOperation("pdf", {
+    id: "pdf.setAnnotations",
+    exportName: "pdfSetAnnotations",
+    inputSchema: closedObject({ annotations: ANNOTATIONS }),
+    idempotent: true,
+  }),
+
   defineTypeOperation("video", {
     id: "video.timeline.add",
     exportName: "videoTimelineAdd",
@@ -299,6 +332,12 @@ export const typeOperations: readonly OperationDefinition[] = [
     id: "video.timeline.remove",
     exportName: "videoTimelineRemove",
     inputSchema: closedObject({ itemId: { type: "string", minLength: 1 } }),
+    idempotent: true,
+  }),
+  defineTypeOperation("video", {
+    id: "video.setTimeline",
+    exportName: "videoSetTimeline",
+    inputSchema: closedObject({ timestamps: TIMELINE }),
     idempotent: true,
   }),
   defineTypeOperation("video", {
@@ -330,6 +369,13 @@ export const typeOperations: readonly OperationDefinition[] = [
     idempotent: true,
   }),
 
+  defineTypeOperation("audio", {
+    id: "audio.setTimeline",
+    exportName: "audioSetTimeline",
+    inputSchema: closedObject({ timestamps: TIMELINE }),
+    idempotent: true,
+  }),
+
   defineTypeOperation("webpage", {
     id: "webpage.replaceDocument",
     exportName: "webpageReplaceDocument",
@@ -341,6 +387,12 @@ export const typeOperations: readonly OperationDefinition[] = [
     idempotent: false,
   }),
 
+  defineTypeOperation("website", {
+    id: "website.setUrl",
+    exportName: "websiteSetUrl",
+    inputSchema: closedObject({ url: { type: "string" } }),
+    idempotent: true,
+  }),
   defineTypeOperation("website", {
     id: "website.setFavicon",
     exportName: "websiteSetFavicon",
@@ -364,6 +416,13 @@ export const typeOperations: readonly OperationDefinition[] = [
     id: "collection.removeView",
     exportName: "collectionRemoveView",
     inputSchema: closedObject({ viewId: { type: "string", minLength: 1 } }),
+    idempotent: true,
+  }),
+
+  defineTypeOperation("collection", {
+    id: "collection.setViews",
+    exportName: "collectionSetViews",
+    inputSchema: closedObject({ views: VIEWS }),
     idempotent: true,
   }),
 
@@ -405,6 +464,26 @@ export const typeOperations: readonly OperationDefinition[] = [
     id: "database.setView",
     exportName: "databaseSetView",
     inputSchema: closedObject({ view: VIEW }),
+    idempotent: true,
+  }),
+  defineTypeOperation("database", {
+    id: "database.setRows",
+    exportName: "databaseSetRows",
+    inputSchema: closedObject({ rows: ROWS }),
+    idempotent: true,
+  }),
+  defineTypeOperation("database", {
+    id: "database.setFields",
+    exportName: "databaseSetFields",
+    // A schema edit rewrites the cells of the fields it changed in the same
+    // gesture, so both halves travel in one input and land as one write.
+    inputSchema: closedObject({ fields: FIELDS, rows: ROWS }),
+    idempotent: true,
+  }),
+  defineTypeOperation("database", {
+    id: "database.setViews",
+    exportName: "databaseSetViews",
+    inputSchema: closedObject({ views: VIEWS }),
     idempotent: true,
   }),
 ];
