@@ -98,6 +98,7 @@ export const testFiles = [
   "backend/application/src/commands/node/node-command.service.test.ts",
   "backend/application/src/commands/operation/edge-view-operations.test.ts",
   "backend/application/src/commands/operation/operation.service.test.ts",
+  "backend/application/src/engine/capability-gateway-grants.test.ts",
   "backend/application/src/engine/capability-gateway.test.ts",
   "backend/application/src/events/event-metadata.test.ts",
   "backend/domain/src/contract-compile.test.ts",
@@ -123,6 +124,9 @@ export const testFiles = [
   "backend/infrastructure/src/event-bus/in-memory-event-bus.test.ts",
   "backend/infrastructure/src/event-publisher/event-publisher.test.ts",
   "backend/infrastructure/src/event-store/pocketbase-event-store.test.ts",
+  "backend/infrastructure/src/repositories/pocketbase-plugin-grant.repository.test.ts",
+  "backend/infrastructure/src/security/plugin-secret-cipher.test.ts",
+  "backend/infrastructure/src/security/plugin-secret-store.test.ts",
   "backend/infrastructure/src/storage/file-address.test.ts",
   "backend/infrastructure/src/storage/file-upload-sessions.test.ts",
   "backend/infrastructure/src/storage/media-cookie-cipher.test.ts",
@@ -132,6 +136,7 @@ export const testFiles = [
   "backend/infrastructure/src/transcoders/ffmpeg-audio-transcoder.test.ts",
   "backend/plugin-host/src/plugin-host.test.ts",
   "backend/plugin-host/src/registry.test.ts",
+  "backend/plugin-host/src/worker-bridge.test.ts",
 
   // Server and desktop entry points that run without PocketBase.
   "apps/server/src/desktop/security.test.ts",
