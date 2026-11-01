@@ -4,10 +4,13 @@
  * The builtin node types, in the order the product lists them.
  *
  * Every id here is an existing one; the migration only moves the declaration
- * out of `packages/interfaces`. The `operations` arrays follow the example
- * catalog in the architecture document (§4.3.5); that catalog is an example,
- * not a literal checklist, and the shared `node.add` / metadata operations are
- * registered once by the plugin host, so they are not repeated per type.
+ * out of `packages/interfaces`. The `operations` arrays are derived from
+ * `type-operations.ts`, so a type lists exactly the `self` operations that are
+ * registered: the design document's example catalog (§4.3.5) also sketches
+ * `external` and `system` operations, and listing one that has no handler would
+ * make the plugin refuse its own enablement (§4.3.9). The shared `node.add` /
+ * metadata operations are registered once by the plugin host, so they are not
+ * repeated per type.
  */
 
 import { defineNodeType } from "@workspace/plugin-sdk";
@@ -48,7 +51,10 @@ import {
   websiteSchema,
 } from "../types/single/website.ts";
 
-export const builtinPluginId = "dbrainx.builtin";
+import { builtinPluginId } from "./plugin-id.ts";
+import { selfOperationIds } from "./type-operations.ts";
+
+export { builtinPluginId };
 
 export const nodeTypes = [
   defineNodeType<TextContent>({
@@ -58,12 +64,7 @@ export const nodeTypes = [
     schema: textSchema,
     defaultContent: createTextContent,
     display: { label: "Text", icon: "FileText" },
-    operations: [
-      "text.setDocument",
-      "text.append",
-      "text.replaceRange",
-      "text.quoteInto",
-    ],
+    operations: [...selfOperationIds.text],
   }),
   defineNodeType<RichTextContent>({
     type: "rich-text",
@@ -72,13 +73,7 @@ export const nodeTypes = [
     schema: richTextSchema,
     defaultContent: createRichTextContent,
     display: { label: "Rich Text", icon: "FileEdit" },
-    operations: [
-      "rich-text.setDocument",
-      "rich-text.insertBlock",
-      "rich-text.updateBlock",
-      "rich-text.removeBlock",
-      "rich-text.extractBlockToNode",
-    ],
+    operations: [...selfOperationIds["rich-text"]],
   }),
   defineNodeType<ImageContent>({
     type: "image",
@@ -87,14 +82,7 @@ export const nodeTypes = [
     schema: imageSchema,
     defaultContent: createImageContent,
     display: { label: "Image", icon: "Image" },
-    operations: [
-      "image.addAnnotation",
-      "image.removeAnnotation",
-      "image.setMetadata",
-      "image.linkAnnotationToNode",
-      "image.analyze",
-      "image.renderCover",
-    ],
+    operations: [...selfOperationIds.image],
   }),
   defineNodeType<PdfContent>({
     type: "pdf",
@@ -103,13 +91,7 @@ export const nodeTypes = [
     schema: pdfSchema,
     defaultContent: createPdfContent,
     display: { label: "PDF", icon: "FileType" },
-    operations: [
-      "pdf.addAnnotation",
-      "pdf.removeAnnotation",
-      "pdf.moveAnnotation",
-      "pdf.createQuoteNode",
-      "pdf.analyze",
-    ],
+    operations: [...selfOperationIds.pdf],
   }),
   defineNodeType<VideoContent>({
     type: "video",
@@ -118,14 +100,7 @@ export const nodeTypes = [
     schema: videoSchema,
     defaultContent: createVideoContent,
     display: { label: "Video", icon: "Video" },
-    operations: [
-      "video.timeline.add",
-      "video.timeline.update",
-      "video.timeline.remove",
-      "video.setCover",
-      "video.createNoteNode",
-      "video.transcode",
-    ],
+    operations: [...selfOperationIds.video],
   }),
   defineNodeType<AudioContent>({
     type: "audio",
@@ -134,13 +109,7 @@ export const nodeTypes = [
     schema: audioSchema,
     defaultContent: createAudioContent,
     display: { label: "Audio", icon: "Volume" },
-    operations: [
-      "audio.timeline.add",
-      "audio.timeline.update",
-      "audio.timeline.remove",
-      "audio.createTranscriptNode",
-      "audio.transcode",
-    ],
+    operations: [...selfOperationIds.audio],
   }),
   defineNodeType<WebpageContent>({
     type: "webpage",
@@ -149,11 +118,7 @@ export const nodeTypes = [
     schema: webpageSchema,
     defaultContent: createWebpageContent,
     display: { label: "Webpage", icon: "Globe" },
-    operations: [
-      "webpage.replaceDocument",
-      "webpage.createSummaryNode",
-      "webpage.fetchSnapshot",
-    ],
+    operations: [...selfOperationIds.webpage],
   }),
   defineNodeType<WebsiteContent>({
     type: "website",
@@ -162,11 +127,7 @@ export const nodeTypes = [
     schema: websiteSchema,
     defaultContent: createWebsiteContent,
     display: { label: "Website", icon: "Globe" },
-    operations: [
-      "website.setFavicon",
-      "website.createBookmarkNode",
-      "website.fetchMetadata",
-    ],
+    operations: [...selfOperationIds.website],
   }),
   defineNodeType<CollectionContent>({
     type: "collection",
@@ -175,12 +136,7 @@ export const nodeTypes = [
     schema: collectionSchema,
     defaultContent: createCollectionContent,
     display: { label: "Collection", icon: "Folder" },
-    operations: [
-      "collection.setFilter",
-      "collection.setView",
-      "collection.removeView",
-      "collection.exportToDatabase",
-    ],
+    operations: [...selfOperationIds.collection],
   }),
   defineNodeType<DatabaseContent>({
     type: "database",
@@ -189,15 +145,6 @@ export const nodeTypes = [
     schema: databaseSchema,
     defaultContent: createDatabaseContent,
     display: { label: "Database", icon: "Table" },
-    operations: [
-      "database.addField",
-      "database.removeField",
-      "database.addRow",
-      "database.updateCell",
-      "database.deleteRow",
-      "database.setView",
-      "database.createNodeFromRow",
-      "database.syncRowsFromNodes",
-    ],
+    operations: [...selfOperationIds.database],
   }),
 ];

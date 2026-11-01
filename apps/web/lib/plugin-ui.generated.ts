@@ -14,6 +14,7 @@
 import type { NodeContentDescriptor } from "@workspace/plugin-sdk/ui";
 
 import * as plugin0 from "@plugin/builtin/ui";
+import * as plugin1 from "@plugin/counter/ui";
 
 /** What a plugin's browser UI entry must export (§5.4.9). */
 export interface PluginUiEntry {
@@ -30,4 +31,5 @@ export interface PluginUiDescriptor {
 
 export const pluginUiDescriptors: readonly PluginUiDescriptor[] = [
   { pluginId: "dbrainx.builtin", entry: "@plugin/builtin/ui", module: plugin0 },
+  { pluginId: "dbrainx.counter", entry: "@plugin/counter/ui", module: plugin1 },
 ];

@@ -1,0 +1,17 @@
+{
+  "id": "dbrainx.counter",
+  "name": "dBrainX counter fixture",
+  "version": "0.1.0",
+  "apiVersion": "1",
+  "serverEntry": "./server/index.ts",
+  "nodeTypesEntry": "./server/index.ts",
+  "uiEntry": "./ui/index.ts",
+  "dependencies": [],
+  "nodeTypes": [
+    "counter"
+  ],
+  "permissions": [],
+  "checksum": "sha256:3867cb1fe16146cc25c8373ed3bcb8f754da4fe2bde859a9f765ef8d0aecb46e",
+  "publicKeyId": "dbrainx.test-key",
+  "signature": "ed25519:kW6j41LQfhfVeYaq2qSOwiFAFHyXgBRR81d6o8daEGQp73a4A16R5sk6WkKijvb1HM4NWfDLa1rNr8PK5PLjCw=="
+}

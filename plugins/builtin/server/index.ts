@@ -9,3 +9,4 @@
 
 export { builtinPluginId, nodeTypes } from "./node-types.ts";
 export { operations } from "./operations.ts";
+export { selfOperationIds, typeOperations } from "./type-operations.ts";

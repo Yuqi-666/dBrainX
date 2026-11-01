@@ -28,6 +28,7 @@ export const testFiles = [
   "scripts/lib/pdfjs-assets.test.mjs",
   "scripts/lib/pdfjs-worker-patch.test.mjs",
   "scripts/lib/plugin-packages.test.mjs",
+  "scripts/lib/plugin-signing.test.mjs",
   "scripts/lib/pocketbase-migrations.test.mjs",
   "scripts/lib/workspace-members.test.mjs",
   "scripts/lib/yt-dlp-download.test.mjs",

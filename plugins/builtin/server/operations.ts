@@ -31,10 +31,13 @@
 import type { JsonSchema, OperationDefinition } from "@workspace/plugin-sdk";
 import { defineOperationDefinition } from "@workspace/plugin-sdk";
 
-import { builtinPluginId } from "./node-types.ts";
+import { builtinPluginId } from "./plugin-id.ts";
 
-/** Closed input object: undeclared fields are refused, never dropped. */
-function closedObject(
+/**
+ * Closed input object: undeclared fields are refused, never dropped.
+ * Shared with `type-operations.ts`, so both catalogues close inputs one way.
+ */
+export function closedObject(
   properties: Readonly<Record<string, JsonSchema>>,
   required: readonly string[] = Object.keys(properties),
 ): JsonSchema {

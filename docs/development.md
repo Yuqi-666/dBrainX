@@ -74,6 +74,26 @@ pnpm smoke:server
 The server smoke test needs isolated test data. Build before the smoke test.
 For a desktop change, also run the checks in [the desktop instructions](../apps/desktop/AGENTS.md).
 
+## Plugin manifests
+
+A plugin manifest carries a `checksum` and a `signature`.
+Run the commands from the repository root.
+
+```bash
+node scripts/plugin-sign.mjs --test-key plugins/counter
+node scripts/plugin-sign.mjs --verify plugins/counter
+```
+
+Rerun the first command after you change a file in the plugin.
+The second command reports `UNTRUSTED_PLUGIN` when a file does not match the checksum, when the signature does not verify, or when one of the two fields is missing.
+
+`plugins/counter` is a test fixture.
+The repository key that signs it is test-only.
+Its id is `dbrainx.test-key`, and the loader refuses it unless a test allows test keys.
+Do not add it to `DBRAINX_PLUGIN_TRUSTED_KEYS`.
+A deployment supplies its own public keys in `DBRAINX_PLUGIN_TRUSTED_KEYS`, as a JSON object that maps a key id to a base64 public key.
+The signing key of a deployment stays outside this repository.
+
 ## Release
 
 The owner commits to `develop` directly or through an internal `feature/*` or `fix/*` branch.

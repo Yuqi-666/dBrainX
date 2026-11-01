@@ -8,9 +8,17 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@workspace/plugin-sdk": "workspace:*",
+    "react": "^19.2.4"
+  },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^25.1.0"
+    "@cfworker/json-schema": "^4.1.4",
+    "@types/node": "^25.1.0",
+    "@types/react": "^19.2.10",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "^5.0.0"
   },
   "exports": {
     "./ui": "./ui",

@@ -1196,10 +1196,29 @@ importers:
         version: 5.9.3
 
   plugins/counter:
+    dependencies:
+      '@workspace/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+      react:
+        specifier: ^19.2.4
+        version: 19.2.4
     devDependencies:
+      '@cfworker/json-schema':
+        specifier: ^4.1.4
+        version: 4.1.4
       '@types/node':
         specifier: ^25.1.0
         version: 25.3.5
+      '@types/react':
+        specifier: ^19.2.10
+        version: 19.2.14
+      '@workspace/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
+      '@workspace/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
       typescript:
         specifier: ^5.0.0
         version: 5.9.3

@@ -1,0 +1,7 @@
+{
+  "warning": "TEST ONLY. This key pair is committed so the counter fixture carries a real signature. No deployment may trust it; production supplies its own keys in DBRAINX_PLUGIN_TRUSTED_KEYS.",
+  "id": "dbrainx.test-key",
+  "algorithm": "ed25519",
+  "publicKey": "MCowBQYDK2VwAyEAZm7hAVkG49HMOKI/liM9EubX4GXi/2Yd/2DKzGI4Qao=",
+  "privateKey": "MC4CAQAwBQYDK2VwBCIEIGxKvLJjxQHx/yxo7mAZPLRfUY1VAFgFPYzo93BHTuGC"
+}

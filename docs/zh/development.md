@@ -74,6 +74,26 @@ pnpm smoke:server
 Server smoke 测试只能使用隔离数据，且先构建再测试。
 桌面改动还需运行[桌面说明](../../apps/desktop/AGENTS.md)中的检查。
 
+## 插件清单
+
+插件清单带有 `checksum` 与 `signature`。
+在仓库根目录运行以下命令。
+
+```bash
+node scripts/plugin-sign.mjs --test-key plugins/counter
+node scripts/plugin-sign.mjs --verify plugins/counter
+```
+
+改动插件内任一文件后，重新运行第一条命令。
+当文件与校验和不一致、签名无法验证，或缺这两个字段之一时，第二条命令报告 `UNTRUSTED_PLUGIN`。
+
+`plugins/counter` 是测试夹具。
+为它签名的仓库密钥仅供测试。
+其 id 为 `dbrainx.test-key`，除非测试显式允许测试密钥，加载器会拒绝它。
+不要把它加入 `DBRAINX_PLUGIN_TRUSTED_KEYS`。
+部署在 `DBRAINX_PLUGIN_TRUSTED_KEYS` 中提供自己的公钥，取值为 JSON 对象：密钥 id 映射到 base64 公钥。
+部署的签名私钥不放在本仓库。
+
 ## 发行
 
 所有者直接提交到 `develop`，或通过仓库内的 `feature/*`、`fix/*` 分支合并。
