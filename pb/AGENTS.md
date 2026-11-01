@@ -41,6 +41,12 @@ That ceiling is a compatibility bound now: a web page node used to keep its whol
 The 0007 migration moves each inline source into the `files` collection, decoding the JSON-column text first because `getString` on a JSON column returns the serialized JSON; it then writes the stored address and byte length back onto the node and leaves already-migrated records alone.
 It is one-way: a downgrade keeps the blobs in the library, because restoring one inline could take a resource the user uploaded separately out of the library.
 A web page node now stores an address like a PDF node, so a reader must use `content.url`, not source text.
+
+`0000000011_dynamic_engine.js` makes `nodes.content` the only type payload.
+It folds the 23 legacy type columns into `content`, stamps `typeVersion`, drops the columns, adds `createdBy` / `runId` to `edges`, and creates the execution tables (`event_log` with both the aggregate `sequence` and the workspace `workspaceSequence`, `event_deliveries`, `operation_runs`) plus the plugin, automation, and scheduling tables.
+The fold reads 200 records per page and aborts, naming the record and the columns, when a value would not survive; `typeVersion` is its resume marker, so a re-run continues with the unfolded records.
+`pb_migrations_base` carries the same shape, so a new database is born with it and never runs this script.
+The base copy in a run directory is made once, at genesis, and its sha256 is recorded in `.dbrainx-migration-origin`; editing the base therefore changes only databases created afterwards, and an installed one upgrades through this change script alone.
 Databases created before this baseline are unsupported. The launcher refuses them instead of silently skipping schema work.
 The `files.file` cap is 2 GiB, which must stay equal to `MAX_UPLOAD_BYTES` in `packages/utils/src/upload.ts`.
 

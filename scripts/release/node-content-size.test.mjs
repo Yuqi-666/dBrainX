@@ -75,6 +75,28 @@ test("the change migration raises the ceiling and a rollback restores the defaul
   );
 });
 
+test("the dynamic-engine migration keeps the ceiling when it retires the type columns", () => {
+  const engine = readFileSync(
+    new URL("pb/pb_migrations_changes/0000000011_dynamic_engine.js", root),
+    "utf8",
+  );
+  assert.equal(
+    limitAfter(engine, "const NODE_CONTENT_MAX_BYTES ="),
+    24 * 1024 * 1024,
+    "the fold keeps the value the base and 0006 already use",
+  );
+  assert.match(
+    engine,
+    /getByName\("content"\)/,
+    "the up path targets the surviving content column",
+  );
+  assert.match(
+    engine,
+    /\.maxSize = NODE_CONTENT_MAX_BYTES/,
+    "the up path re-applies the ceiling",
+  );
+});
+
 test("the object-storage migration writes the source into the files collection", () => {
   // The JSON column returns the serialized JSON text in the PocketBase JSVM, so
   // the source must be decoded before it becomes a file.
