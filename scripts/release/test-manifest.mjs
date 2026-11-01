@@ -64,6 +64,7 @@ export const testFiles = [
   "scripts/release/webpage-object-storage.test.mjs",
 
   // Shared package tests that need no DOM or browser globals.
+  "packages/ui/src/components/node-content/registry.test.ts",
   "packages/utils/src/node-content.test.ts",
   "packages/utils/src/resource-references.test.ts",
   "packages/utils/src/storage-limits.test.ts",
@@ -76,6 +77,7 @@ export const testFiles = [
   "backend/application/src/commands/file/hls-playlist.test.ts",
   "backend/application/src/commands/media/cookie-file.test.ts",
   "backend/application/src/commands/media/media-import.service.test.ts",
+  "backend/application/src/commands/node/node-command.service.test.ts",
   "backend/domain/src/models/node-type/registry.test.ts",
   "backend/domain/src/models/workspace/name.test.ts",
   "backend/infrastructure/src/database/mappers/node.mapper.test.ts",
@@ -121,6 +123,7 @@ export const skippableTests = [
   { path: "packages/ui/src/components/header/graph-header/node-density.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/components/media-player/media-controller.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/components/media-player/types.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
+  { path: "packages/ui/src/components/node-content/unknown-node-content.test.tsx", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/components/pan-zoom/recognizer.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/components/pan-zoom/scroll-inertia.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/components/pan-zoom/transform.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
@@ -131,6 +134,7 @@ export const skippableTests = [
   { path: "packages/ui/src/components/pdf-viewer/pdf-slots.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/components/pdf-viewer/pdf-text.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/components/pdf-viewer/pdf-zoom.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
+  { path: "packages/ui/src/components/plugin-ui/node-content-host.test.tsx", reason: "jsdom client-render test for the lazy host: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/lib/i18n/runtime.test.ts", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
   { path: "packages/ui/src/ui-test-runner.test.tsx", reason: "JSX/TS UI test: runs under `pnpm test:ui` (esbuild transform), not node --test" },
 ];

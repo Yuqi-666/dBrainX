@@ -28,6 +28,7 @@
     "@workspace/editor": "workspace:*",
     "@workspace/hooks": "workspace:*",
     "@workspace/interfaces": "workspace:*",
+    "@workspace/plugin-sdk": "workspace:*",
     "@workspace/services": "workspace:*",
     "@workspace/store": "workspace:*",
     "@workspace/utils": "workspace:*",

@@ -1017,6 +1017,9 @@ importers:
       '@workspace/interfaces':
         specifier: workspace:*
         version: link:../interfaces
+      '@workspace/plugin-sdk':
+        specifier: workspace:*
+        version: link:../plugin-sdk
       '@workspace/services':
         specifier: workspace:*
         version: link:../services
