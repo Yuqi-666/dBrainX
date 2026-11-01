@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { after, before, beforeEach, describe, it } from "node:test";
+import { after, afterEach, before, beforeEach, describe, it } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { build } from "esbuild";
@@ -116,6 +116,7 @@ interface ContentWriteQueue {
   conflict(): ContentWriteConflict | null;
   resyncing(): Promise<void> | null;
   pending(): number;
+  dispose(): void;
 }
 
 interface RuntimeModule {
@@ -162,6 +163,22 @@ beforeEach(() => {
   runtime.useDataStore.getState().reset?.();
 });
 
+/**
+ * Every queue a test creates is disposed afterwards. The conflict path refetches
+ * the node, so a queue left halted holds callers and a refetch nobody awaits.
+ */
+const queues: ContentWriteQueue[] = [];
+
+function createQueue(options: QueueOptions): ContentWriteQueue {
+  const queue = runtime.createContentWriteQueue(options);
+  queues.push(queue);
+  return queue;
+}
+
+afterEach(() => {
+  for (const queue of queues.splice(0)) queue.dispose();
+});
+
 function textNode(): NodeData {
   return {
     id: NODE_ID,
@@ -191,7 +208,7 @@ function reply(
 describe("content write queue", () => {
   it("coalesces a burst of one operation into one invocation with the settled input", async () => {
     const calls: ContentInvocation[] = [];
-    const queue = runtime.createContentWriteQueue({
+    const queue = createQueue({
       nodeId: NODE_ID,
       nodeType: "text",
       declares: () => true,
@@ -217,7 +234,7 @@ describe("content write queue", () => {
 
   it("keeps different operations separate, in order, each carrying the last reply's version", async () => {
     const calls: ContentInvocation[] = [];
-    const queue = runtime.createContentWriteQueue({
+    const queue = createQueue({
       nodeId: NODE_ID,
       nodeType: "text",
       declares: () => true,
@@ -247,7 +264,15 @@ describe("content write queue", () => {
 
   it("surfaces a conflict, stops the queue, and keeps the draft", async () => {
     const calls: ContentInvocation[] = [];
-    const queue = runtime.createContentWriteQueue({
+    // The refetch a conflict starts is a seam: the default one is the live tRPC
+    // client, which has no server to answer it under `node --test`. Held shut
+    // here so the queue stays stopped while the test asserts, and released at
+    // the end so no promise outlives the test.
+    let releaseResync: (() => void) | undefined;
+    const resyncGate = new Promise<void>((resolve) => {
+      releaseResync = resolve;
+    });
+    const queue = createQueue({
       nodeId: NODE_ID,
       nodeType: "text",
       declares: () => true,
@@ -256,6 +281,7 @@ describe("content write queue", () => {
         calls.push(invocation);
         throw new Error("VERSION_CONFLICT: the node moved on");
       },
+      resync: () => resyncGate,
     });
 
     const [document, title] = await Promise.all([
@@ -280,11 +306,20 @@ describe("content write queue", () => {
 
     const content = queue.liveContent({ docs: null }) as { docs: unknown };
     assert.deepEqual(content.docs, DOC_B);
+
+    releaseResync?.();
+    await queue.resyncing();
   });
 
   it("replays only a replayable write after a conflict, never an insertion", async () => {
     const calls: ContentInvocation[] = [];
-    const queue = runtime.createContentWriteQueue({
+    // Same seam as above: a conflict must not reach for a live server, and the
+    // refetch stays shut until this test has asserted the stopped queue.
+    let releaseResync: (() => void) | undefined;
+    const resyncGate = new Promise<void>((resolve) => {
+      releaseResync = resolve;
+    });
+    const queue = createQueue({
       nodeId: NODE_ID,
       nodeType: "video",
       declares: () => true,
@@ -293,6 +328,7 @@ describe("content write queue", () => {
         calls.push(invocation);
         throw new Error("VERSION_CONFLICT: the node moved on");
       },
+      resync: () => resyncGate,
     });
 
     await queue.apply("video.timeline.add", { item: { id: "note_1" } });
@@ -311,6 +347,9 @@ describe("content write queue", () => {
       queue.held().map((intent) => intent.operationId),
       ["node.setTitle", "video.timeline.add"],
     );
+
+    releaseResync?.();
+    await queue.resyncing();
   });
 
   it("requests one refetch on VERSION_CONFLICT and sends nothing while it runs", async () => {
@@ -322,7 +361,7 @@ describe("content write queue", () => {
     const resyncGate = new Promise<void>((resolve) => {
       releaseResync = resolve;
     });
-    const queue = runtime.createContentWriteQueue({
+    const queue = createQueue({
       nodeId: NODE_ID,
       nodeType: "text",
       declares: () => true,
@@ -375,7 +414,7 @@ describe("content write queue", () => {
     let stored = textNode();
     const latestVersion = "2026-11-01T00:00:09.000Z";
     const calls: ContentInvocation[] = [];
-    const queue = runtime.createContentWriteQueue({
+    const queue = createQueue({
       nodeId: NODE_ID,
       nodeType: "text",
       declares: () => true,
@@ -418,7 +457,7 @@ describe("content write queue", () => {
   it("refuses an unregistered type's edit instead of patching the node", async () => {
     const calls: ContentInvocation[] = [];
     const legacyWrites: Partial<NodeData>[] = [];
-    const queue = runtime.createContentWriteQueue({
+    const queue = createQueue({
       nodeId: NODE_ID,
       nodeType: "ghost",
       declares: () => false,
@@ -451,6 +490,53 @@ describe("content write queue", () => {
     );
     assert.equal(calls.length, 0);
     assert.equal(legacyWrites.length, 0);
+  });
+
+  it("settles the caller of a write the surface closed on, and refuses later ones", async () => {
+    const calls: ContentInvocation[] = [];
+    let releaseSend: (() => void) | undefined;
+    const sendGate = new Promise<void>((resolve) => {
+      releaseSend = resolve;
+    });
+    const queue = createQueue({
+      nodeId: NODE_ID,
+      nodeType: "text",
+      declares: () => true,
+      read: () => textNode(),
+      // `task()` runs the drain at once, so the first write is in flight when
+      // the second one is queued behind it.
+      schedule: (task) => task(),
+      invoke: async (invocation) => {
+        calls.push(invocation);
+        await sendGate;
+        return reply(invocation, VERSION);
+      },
+    });
+
+    const inFlight = queue.apply("text.setDocument", { docs: DOC_B });
+    const queued = queue.apply("node.setTitle", { title: "Renamed" });
+
+    queue.dispose();
+
+    const settled = await queued;
+    assert.equal(settled.ok, false);
+    assert.equal(
+      settled.ok === false ? settled.code : "",
+      "CONTENT_QUEUE_DISPOSED",
+    );
+
+    const refused = await queue.apply("node.setAbstract", { abstract: "x" });
+    assert.equal(refused.ok, false);
+    assert.equal(
+      refused.ok === false ? refused.code : "",
+      "CONTENT_QUEUE_DISPOSED",
+    );
+    assert.equal(calls.length, 1);
+    assert.equal(queue.pending(), 0);
+
+    releaseSend?.();
+    const sent = await inFlight;
+    assert.equal(sent.ok, true);
   });
 });
 

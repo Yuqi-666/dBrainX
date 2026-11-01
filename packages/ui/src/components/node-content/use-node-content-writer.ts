@@ -68,6 +68,15 @@ export const OPERATION_NOT_DECLARED = "OPERATION_NOT_DECLARED";
 export const VERSION_CONFLICT = "VERSION_CONFLICT";
 
 /**
+ * The code a queued write gets when its surface went away before it was sent.
+ *
+ * A disposed queue answers instead of going quiet: a caller waiting on an
+ * outcome learns that the write never reached the server, rather than holding a
+ * promise nothing will ever settle.
+ */
+export const CONTENT_QUEUE_DISPOSED = "CONTENT_QUEUE_DISPOSED";
+
+/**
  * A queue stopped by a version conflict.
  *
  * The queue refetched the node instead of replaying the invocation, and the
@@ -160,6 +169,14 @@ export interface ContentWriteQueue {
    */
   resyncing(): Promise<void> | null;
   pending(): number;
+  /**
+   * Settle every write still queued and refuse later ones.
+   *
+   * The host calls this when the node it writes for goes away, so a surface
+   * that closed mid-quiet cannot leave a caller waiting for an outcome that no
+   * drain will produce. Idempotent.
+   */
+  dispose(): void;
 }
 
 interface Waiter {
@@ -257,6 +274,7 @@ export function createContentWriteQueue(
   let lastConflict: ContentWriteConflict | null = null;
   let resyncPromise: Promise<void> | null = null;
   let resyncPending = false;
+  let disposed = false;
   let draining = false;
   let drainScheduled = false;
   let halted = false;
@@ -286,6 +304,23 @@ export function createContentWriteQueue(
 
   const inputOf = (intent: ContentWriteIntent): Record<string, unknown> =>
     intent.kind === "operation" ? intent.input : {};
+
+  const disposedOutcome = (
+    intent: ContentWriteIntent,
+  ): ContentWriteOutcome => ({
+    ok: false,
+    operationId: operationIdOf(intent),
+    code: CONTENT_QUEUE_DISPOSED,
+    message: "the content surface was closed before the write was sent",
+  });
+
+  const dispose = (): void => {
+    if (disposed) return;
+    disposed = true;
+    for (const queued of queue.splice(0)) {
+      settle(queued, disposedOutcome(queued.intent));
+    }
+  };
 
   /**
    * Refetch the node a conflict stopped on, then accept new writes from its
@@ -455,6 +490,10 @@ export function createContentWriteQueue(
 
   const enqueue = (intent: ContentWriteIntent): Promise<ContentWriteOutcome> =>
     new Promise((resolve) => {
+      if (disposed) {
+        resolve(disposedOutcome(intent));
+        return;
+      }
       if (halted) {
         heldIntents = [...heldIntents, intent];
         resolve({
@@ -526,6 +565,7 @@ export function createContentWriteQueue(
     conflict: () => lastConflict,
     resyncing: () => resyncPromise,
     pending: () => queue.length,
+    dispose,
   };
 }
 
@@ -608,6 +648,10 @@ export function useNodeContentWriter<C>(
 ): NodeContentWriter<C> {
   const queueRef = useRef<ContentWriteQueue | null>(null);
   if (queueRef.current?.nodeId !== nodeId) {
+    // One queue belongs to one node. Switching nodes tears the old one down, so
+    // a caller waiting on a write it will never send settles instead of holding
+    // a promise no drain can answer.
+    queueRef.current?.dispose();
     queueRef.current = createContentWriteQueue({
       nodeId,
       nodeType,

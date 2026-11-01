@@ -24,6 +24,7 @@
     "@workspace/utils": "workspace:*"
   },
   "devDependencies": {
+    "esbuild": "^0.27.7",
     "typescript": "^5.0.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3"
