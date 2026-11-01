@@ -13,21 +13,25 @@
  * Public metadata operations and `node.add` are not repeated: they live once in
  * `operations.ts` and apply to every type.
  *
- * ## Handler gaps
+ * ## Handlers
  *
  * Every definition below is built with `defineOperationDefinition`, so its
  * `handler` is already `plugin:dbrainx.builtin#<exportName>`; the module exports
- * no `run` for them. The reason is a missing contract, not a shortcut: a self
- * operation writes the target node's content through `OperationContext.writeNode`
- * (design §4.4.2), and the landed domain port
- * (`backend/domain/src/ports/operation-context.ts`) still exposes only `actor`,
- * `workspaceId`, `scope`, `target`, `node` and `correlationId` — `readNode` /
- * `writeNode` / `emit` arrive with the executor. Until then a handler could
- * compute the next content and have nowhere to persist it, which would be a
- * silent no-op. The plugin host must therefore refuse to enable the plugin
- * while these exports are unbound, exactly as §4.3.9 requires.
+ * no `run` for them, because a self operation writes the target node's content
+ * through the host. The host binds the ones this build implements by id
+ * (`apps/server/src/operation-registry.ts`).
  *
- * What each handler will do, once the port lands:
+ * Bound today: `video.setCover`, `website.setFavicon`, `collection.setFilter`
+ * and `webpage.replaceDocument`, each of which writes one field of the node's
+ * content, plus the four `*.attachFile` operations from `operations.ts`, which
+ * resolve the stored upload result before they write.
+ *
+ * The rest stay unbound: the document, timeline, annotation, view and database
+ * operations in the table below. The plugin host refuses to enable a plugin
+ * whose declared export is missing, exactly as §4.3.9 requires, so
+ * `operation.list` never offers one that would fail.
+ *
+ * What each handler does, or will do once it is bound:
  *
  * | operation | export | effect on the node content |
  * | --- | --- | --- |
@@ -51,9 +55,9 @@
  * | `audio.timeline.add` | `audioTimelineAdd` | append a `timestamps` entry |
  * | `audio.timeline.update` | `audioTimelineUpdate` | replace the entry with that id |
  * | `audio.timeline.remove` | `audioTimelineRemove` | drop the entry by id |
- * | `webpage.replaceDocument` | `webpageReplaceDocument` | point `url`/`fileSize` at the stored upload |
+ * | `webpage.replaceDocument` | `webpageReplaceDocument` | replace `url` |
  * | `website.setFavicon` | `websiteSetFavicon` | set `faviconUrl` |
- * | `collection.setFilter` | `collectionSetFilter` | replace `filterConfig` |
+ * | `collection.setFilter` | `collectionSetFilter` | merge into `filterConfig` |
  * | `collection.setView` | `collectionSetView` | upsert one view by id |
  * | `collection.removeView` | `collectionRemoveView` | drop the view by id |
  * | `database.addField` | `databaseAddField` | append a field |
@@ -92,7 +96,6 @@ export type BuiltinTypeId =
 type Capabilities = OperationDefinition["requiredCapabilities"];
 
 const NODE_WRITE: Capabilities = ["node.write"];
-const NODE_WRITE_AND_STORAGE: Capabilities = ["node.write", "storage.read"];
 
 interface TypeOperationSpec {
   readonly id: string;
@@ -330,9 +333,12 @@ export const typeOperations: readonly OperationDefinition[] = [
   defineTypeOperation("webpage", {
     id: "webpage.replaceDocument",
     exportName: "webpageReplaceDocument",
-    inputSchema: closedObject({ uploadId: { type: "string", minLength: 1 } }),
+    // The attribute panel edits the stored address itself: a user can paste a
+    // URL, and nothing here has an upload to resolve. The byte length is not
+    // part of the write, so a schema that names `fileSize` would be refused for
+    // the one input the panel sends.
+    inputSchema: closedObject({ url: { type: "string", minLength: 1 } }),
     idempotent: false,
-    requiredCapabilities: NODE_WRITE_AND_STORAGE,
   }),
 
   defineTypeOperation("website", {

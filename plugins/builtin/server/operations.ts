@@ -55,12 +55,21 @@ const NODE_STATE_DATA: JsonSchema = closedObject({
   server: { type: "object" },
 });
 
-/** Display icon; clearing is `node.clearIcon`, so `null` is not accepted. */
-const NODE_ICON: JsonSchema = closedObject({
-  kind: { enum: ["emoji", "icon", "image"] },
-  value: { type: "string", minLength: 1 },
-  color: { type: "string", pattern: "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$" },
-});
+/**
+ * Display icon; clearing is `node.clearIcon`, so `null` is not accepted.
+ *
+ * `color` is optional because `NodeIcon.color` is: a user who picks an emoji
+ * without a background sends `{ kind, value }`, and a schema that required the
+ * colour would refuse the ordinary case.
+ */
+const NODE_ICON: JsonSchema = closedObject(
+  {
+    kind: { enum: ["emoji", "icon", "image"] },
+    value: { type: "string", minLength: 1 },
+    color: { type: "string", pattern: "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$" },
+  },
+  ["kind", "value"],
+);
 
 /** Cover; clearing is `node.clearCover`, so `null` is not accepted. */
 const NODE_COVER: JsonSchema = {

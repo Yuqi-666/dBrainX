@@ -10,9 +10,11 @@
  * per-type field table is asserted where the declaration lives.
  *
  * A field only names an operation the catalog already defines (§4.3.4). Media
- * uploads replace a file through `*.attachFile`, and a hand-typed media address
- * has no operation yet, so those fields carry no `operationId`; the panel keeps
- * their edits local until Todo 39 wires the mapping.
+ * uploads replace a file through `*.attachFile`, so a media `url` carries no
+ * `operationId`: the panel renders such a field read-only and shows the address
+ * the attach wrote, instead of raising an operation the catalog does not have.
+ * `webpage` is the one type whose address a user may type, and
+ * `webpage.replaceDocument` takes exactly the `url` this field edits.
  */
 import type { NodeAttributeField } from "@workspace/plugin-sdk/ui";
 import { translate } from "@workspace/ui/lib/i18n/runtime";

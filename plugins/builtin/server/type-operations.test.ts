@@ -226,8 +226,8 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
   [
     "webpage.replaceDocument",
     {
-      valid: { uploadId: "upload-1" },
-      invalid: [{}, { uploadId: "" }, { uploadId: "u", url: "/api/files/x" }],
+      valid: { url: "/api/files/files/rec1/page.html" },
+      invalid: [{}, { url: "" }, { url: "/api/files/x", uploadId: "u" }],
     },
   ],
   [
@@ -349,8 +349,8 @@ test("every operation is a self update on exactly one node type", () => {
           .map((definition) => definition.id),
       ),
     ],
-    ["webpage.replaceDocument"],
-    "only a stored-document replacement reads storage",
+    [],
+    "no self operation reads storage: a stored address is written, never resolved",
   );
 });
 

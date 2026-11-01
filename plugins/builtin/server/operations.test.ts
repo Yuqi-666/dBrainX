@@ -89,7 +89,7 @@ const INPUT_CASES: ReadonlyMap<string, InputCase> = new Map([
   [
     "node.setIcon",
     {
-      valid: { icon: { kind: "emoji", value: "📄", color: "#6366f1" } },
+      valid: { icon: { kind: "emoji", value: "📄" } },
       invalid: [
         { icon: { kind: "emoji" } },
         { icon: { kind: "emoji", value: "x", extra: 1 } },
