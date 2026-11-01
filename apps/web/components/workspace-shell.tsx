@@ -54,7 +54,8 @@ export function WorkspaceShell(): ReactNode {
   const pathname = usePathname();
   const { isInitialized, error, retry } = useWorkspaceInitialization();
 
-  const routeView = matchIslandRoute(pathname)?.view ?? "graph";
+  const route = matchIslandRoute(pathname);
+  const routeView = route?.view ?? "graph";
 
   const mainViewType = useUIStore((state) => state.mainViewType);
   const editorReturnViewType = useUIStore(
@@ -71,10 +72,11 @@ export function WorkspaceShell(): ReactNode {
   // for a click. Keeping them in step here means every entry point agrees, and
   // the island's optimistic write makes this a no-op in the common case.
   useEffect(() => {
+    if (route === undefined) return;
     if (useUIStore.getState().mainViewType !== routeView) {
       useUIStore.getState().setMainViewType(routeView);
     }
-  }, [routeView]);
+  }, [route, routeView]);
 
   // A full-page surface (the dashboard, the resource library) has no sidebar.
   // A *transient* (temp) sidebar must not stay open behind it; a `fixed` one is
@@ -104,6 +106,12 @@ export function WorkspaceShell(): ReactNode {
   useEffect(() => {
     if (activeView === "resources") setResourcesVisited(true);
   }, [activeView]);
+
+  // A page that is not a workspace surface (`/settings/…`) owns the screen: the
+  // shell renders nothing so the page's own content fills the layout. All hooks
+  // above still run, so keeping the shell mounted across a switch to a settings
+  // page does not change the hook order.
+  if (route === undefined) return null;
 
   return (
     <MainLayout sidebar={isFullPageSurface ? null : <GraphSidebar />}>
