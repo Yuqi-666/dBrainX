@@ -139,6 +139,10 @@ async function main() {
     nodeTypeRegistry: createServerNodeTypeRegistry(),
     operationRegistry: createServerOperationRegistry(
       () => AppContainer.getInstance().nodeCommandService,
+      () => ({
+        edges: AppContainer.getInstance().edgeCommandService,
+        views: AppContainer.getInstance().viewCommandService,
+      }),
     ),
   });
   // The upload pipeline writes to the local PocketBase from this process with

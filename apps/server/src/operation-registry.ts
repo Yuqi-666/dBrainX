@@ -18,6 +18,8 @@
  */
 import { createNodeOperationHandlers } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
 import type { NodeOperationPort } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
+import { createEdgeViewOperationHandlers } from "../../../backend/application/src/commands/operation/edge-view-operation-handlers.ts";
+import type { EdgeViewOperationPorts } from "../../../backend/application/src/commands/operation/edge-view-operation-handlers.ts";
 import type { OperationContext } from "../../../backend/domain/src/ports/operation-context.ts";
 import { createOperationRegistry } from "../../../backend/domain/src/ports/operation-handler.ts";
 import type {
@@ -30,6 +32,7 @@ import {
 } from "../../../plugins/counter/server/index.ts";
 import type { CounterContent } from "../../../plugins/counter/server/index.ts";
 import { operations as builtinOperations } from "../../../plugins/builtin/server/operations.ts";
+import { graphOperations } from "../../../plugins/builtin/server/graph-operations.ts";
 
 /**
  * The node command service, resolved on first use.
@@ -38,6 +41,12 @@ import { operations as builtinOperations } from "../../../plugins/builtin/server
  * argument, so the host cannot read it eagerly.
  */
 export type NodeOperationPortProvider = () => NodeOperationPort;
+
+/**
+ * The edge and view command services, resolved on first use for the same
+ * reason: they are fields of the container this registry is an argument of.
+ */
+export type GraphOperationPortProvider = () => EdgeViewOperationPorts;
 
 function lazyPort(provider: NodeOperationPortProvider): NodeOperationPort {
   return {
@@ -80,15 +89,32 @@ function counterIncrement(port: NodeOperationPort): OperationHandler {
 
 export function createServerOperationRegistry(
   nodes: NodeOperationPortProvider,
+  graph?: GraphOperationPortProvider,
 ): IOperationHandlerRegistry {
   const port = lazyPort(nodes);
   const handlers: Readonly<Record<string, OperationHandler>> = {
     ...createNodeOperationHandlers(port),
+    ...(graph === undefined
+      ? {}
+      : createEdgeViewOperationHandlers({
+          edges: {
+            createEdge: (command) => graph().edges.createEdge(command),
+            deleteEdge: (command) => graph().edges.deleteEdge(command),
+          },
+          views: {
+            createView: (command) => graph().views.createView(command),
+            deleteView: (command) => graph().views.deleteView(command),
+          },
+        })),
     "counter.increment": counterIncrement(port),
   };
 
   const registry = createOperationRegistry();
-  for (const definition of [...builtinOperations, ...counterOperations]) {
+  for (const definition of [
+    ...builtinOperations,
+    ...graphOperations,
+    ...counterOperations,
+  ]) {
     const handler = handlers[definition.id];
     if (handler !== undefined) registry.register(definition, handler);
   }

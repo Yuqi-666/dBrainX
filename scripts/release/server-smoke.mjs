@@ -721,6 +721,78 @@ try {
     direction: "forward", semanticId: "", workspaceId: wa.id,
   }));
   console.log("PASS untyped edge creation, semantic selection/clearing and workspace isolation");
+  // The composed app resolves an edge or a view target through the container's
+  // access policies and writes through the command services the host bound, so
+  // this block is the proof that neither kind answers `TARGET_KIND_UNSUPPORTED`
+  // any more. A cross-workspace endpoint stays refused on the same path.
+  const graphEdge = await aw.operation.invoke.mutate({
+    operationId: "edge.create",
+    target: { kind: "workspace", workspaceId: wa.id },
+    input: {
+      from: node.id,
+      to: target.id,
+      semanticId: edgeSemantic.id,
+      direction: "forward",
+    },
+  });
+  assert.equal(graphEdge.operationId, "edge.create");
+  assert.ok(graphEdge.edge, "edge.create answers with the stored edge");
+  assert.equal(graphEdge.edge.from, node.id);
+  assert.equal(graphEdge.edge.to, target.id);
+  assert.equal(graphEdge.edge.semanticId, edgeSemantic.id);
+  assert.equal(graphEdge.edge.workspaceId, wa.id);
+  assert.equal(
+    (await a.edge.getById.query({ id: graphEdge.edge.id })).to,
+    target.id,
+  );
+  const deletedEdgeResult = await aw.operation.invoke.mutate({
+    operationId: "edge.delete",
+    target: { kind: "edge", edgeId: graphEdge.edge.id },
+    input: {},
+  });
+  assert.equal(deletedEdgeResult.operationId, "edge.delete");
+  assert.equal(deletedEdgeResult.edge, undefined);
+  assert.equal(await a.edge.getById.query({ id: graphEdge.edge.id }), null);
+  await assert.rejects(
+    aw.operation.invoke.mutate({
+      operationId: "edge.create",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: {
+        from: node.id,
+        to: foreignTarget.id,
+        semanticId: edgeSemantic.id,
+        direction: "forward",
+      },
+    }),
+    (error) => {
+      assert.match(error.message, /^TARGET_NOT_FOUND:/);
+      return true;
+    },
+  );
+  const graphView = await aw.operation.invoke.mutate({
+    operationId: "view.create",
+    target: { kind: "workspace", workspaceId: wa.id },
+    input: { name: "operation view", viewType: "Force" },
+  });
+  assert.equal(graphView.operationId, "view.create");
+  assert.ok(graphView.view, "view.create answers with the stored view");
+  assert.equal(graphView.view.name, "operation view");
+  assert.equal(graphView.view.workspaceId, wa.id);
+  assert.equal(
+    (await a.view.getById.query({ id: graphView.view.id })).name,
+    "operation view",
+  );
+  const deletedViewResult = await aw.operation.invoke.mutate({
+    operationId: "view.delete",
+    target: { kind: "view", viewId: graphView.view.id },
+    input: {},
+  });
+  assert.equal(deletedViewResult.operationId, "view.delete");
+  assert.equal(deletedViewResult.view, undefined);
+  assert.equal(await a.view.getById.query({ id: graphView.view.id }), null);
+  console.log(
+    "PASS operation.invoke edge.create/edge.delete and view.create/view.delete resolve edge and view targets",
+  );
   await new Promise((resolve) => setTimeout(resolve, 400));
   const createdEvent = eventsA.find((e) => e.eventType === "NodeCreated");
   assert.ok(createdEvent, "the live stream carries NodeCreated");

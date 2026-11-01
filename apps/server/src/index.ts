@@ -52,6 +52,10 @@ async function main() {
     // container that owns the service it writes through.
     operationRegistry: createServerOperationRegistry(
       () => AppContainer.getInstance().nodeCommandService,
+      () => ({
+        edges: AppContainer.getInstance().edgeCommandService,
+        views: AppContainer.getInstance().viewCommandService,
+      }),
     ),
   });
   // Sessions outlive the request that opened them, so something has to collect
