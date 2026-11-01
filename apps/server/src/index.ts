@@ -9,6 +9,7 @@ import {
 } from "@workspace/adapter-front";
 import { verifyToken } from "@workspace/infrastructure";
 import { allowedFileRequest } from "./desktop/security";
+import { createServerNodeTypeRegistry } from "./node-type-registry";
 import { TRPC_PATH, sameOrigin } from "./origin";
 import {
   handleUploadRequest,
@@ -44,7 +45,9 @@ async function main() {
     if (attempt >= 30) throw new Error("PocketBase did not become ready");
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  await AppContainer.initialize(PB_URL);
+  await AppContainer.initialize(PB_URL, {
+    nodeTypeRegistry: createServerNodeTypeRegistry(),
+  });
   // Sessions outlive the request that opened them, so something has to collect
   // the abandoned ones.
   startUploadSweeper(() => AppContainer.getInstance().uploadCommandService);

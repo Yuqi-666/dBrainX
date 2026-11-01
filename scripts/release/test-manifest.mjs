@@ -73,6 +73,7 @@ export const testFiles = [
   "plugins/builtin/server/node-types.test.ts",
 
   // Backend tests. These construct their own fakes; none needs PocketBase.
+  "backend/adapter-front/src/trpc/router/node.test.ts",
   "backend/application/src/commands/file/file-command.service.test.ts",
   "backend/application/src/commands/file/hls-playlist.test.ts",
   "backend/application/src/commands/media/cookie-file.test.ts",
@@ -101,6 +102,7 @@ export const testFiles = [
   "backend/infrastructure/src/storage/multipart-envelope.test.ts",
   "backend/infrastructure/src/storage/pocketbase-media-analysis.test.ts",
   "backend/infrastructure/src/transcoders/ffmpeg-audio-transcoder.test.ts",
+  "backend/plugin-host/src/registry.test.ts",
 
   // Server and desktop entry points that run without PocketBase.
   "apps/server/src/desktop/security.test.ts",

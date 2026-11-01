@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import PocketBase from "pocketbase";
 import { AppContainer, appRouter, createContext, createWSServer } from "@workspace/adapter-front";
 import { allowedFileRequest, allowedOrigin, sessionPath } from "./security";
+import { createServerNodeTypeRegistry } from "../node-type-registry";
 import { handleUploadRequest, isUploadPath, startUploadSweeper } from "../upload/routes";
 
 const runtimeDir = dirname(fileURLToPath(import.meta.url));
@@ -133,7 +134,9 @@ async function main() {
     await pb.collection("users").create({ ...identity, passwordConfirm: identity.password, nickname: "本地用户" });
     session = await pb.collection("users").authWithPassword(identity.email, identity.password);
   }
-  await AppContainer.initialize(pbUrl);
+  await AppContainer.initialize(pbUrl, {
+    nodeTypeRegistry: createServerNodeTypeRegistry(),
+  });
   // The upload pipeline writes to the local PocketBase from this process with
   // raw `node:http` (a 2 GiB multipart body cannot go through `fetch`), where
   // the patched global fetch below cannot add the internal header. Handing the

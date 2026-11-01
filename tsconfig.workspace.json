@@ -2,6 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
+      "@plugin/*": ["plugins/*"],
       "@workspace/adapter-back": ["backend/adapter-back/src"],
       "@workspace/adapter-back/*": ["backend/adapter-back/src/*"],
       "@workspace/adapter-front": ["backend/adapter-front/src"],

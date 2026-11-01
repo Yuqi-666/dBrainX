@@ -186,6 +186,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@plugin/builtin':
+        specifier: workspace:*
+        version: link:../../plugins/builtin
       '@workspace/adapter-front':
         specifier: workspace:*
         version: link:../../backend/adapter-front
@@ -201,6 +204,9 @@ importers:
       '@workspace/interfaces':
         specifier: workspace:*
         version: link:../../packages/interfaces
+      '@workspace/plugin-host':
+        specifier: workspace:*
+        version: link:../../backend/plugin-host
       '@workspace/utils':
         specifier: workspace:*
         version: link:../../packages/utils

@@ -13,11 +13,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@plugin/builtin": "workspace:*",
     "@workspace/adapter-front": "workspace:*",
     "@workspace/application": "workspace:*",
     "@workspace/domain": "workspace:*",
     "@workspace/infrastructure": "workspace:*",
     "@workspace/interfaces": "workspace:*",
+    "@workspace/plugin-host": "workspace:*",
     "@workspace/utils": "workspace:*",
     "pocketbase": "^0.26.9"
   },

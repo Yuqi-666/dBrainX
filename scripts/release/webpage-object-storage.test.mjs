@@ -16,7 +16,9 @@ import { readFileSync } from "node:fs";
  *
  * These tests pin the properties a future change could silently undo:
  *
- * 1. The wire shape and the domain mapper carry `url`, not source text.
+ * 1. The wire shape and the domain mapper carry `url`, not source text. The
+ *    create endpoint now takes only a node type; the webpage content schema
+ *    belongs to the type's plugin package.
  * 2. The import surface uploads or references a stored object; it never reads
  *    the file text into the node.
  * 3. The view reads the object back only for rendering/editing and renders it
@@ -37,6 +39,10 @@ const dropZone = read(
 );
 const model = read("packages/interfaces/src/models/node/nodes/single/webpage.ts");
 const router = read("backend/adapter-front/src/trpc/router/node.ts");
+const createInput = read(
+  "backend/adapter-front/src/trpc/router/node-add.ts",
+);
+const webpageType = read("plugins/builtin/types/single/webpage.ts");
 const mapper = read(
   "backend/infrastructure/src/database/mappers/node.mapper.ts",
 );
@@ -57,14 +63,24 @@ test("the webpage model is a stored address and a byte length", () => {
 
 test("the API and the mapper carry the stored address", () => {
   assert.match(
+    createInput,
+    /export const addSchema = z\.object\(\{\s*nodeType: z\.string\(\),?\s*\}\)/,
+    "the create schema accepts a node type and nothing else",
+  );
+  assert.doesNotMatch(
     router,
-    /const webpageContentSchema = z[\s\S]*?url: z\.string\(\)\.optional\(\)[\s\S]*?url: content\.url \?\? ""/,
-    "the router accepts an address and defaults a legacy payload to empty",
+    /webpageContentSchema/,
+    "no per-type payload is declared in the router any more",
   );
   assert.match(
-    router,
-    /nodeType: z\.literal\("webpage"\),\s*\n\s*fileSize: z\.number\(\)\.optional\(\)/,
-    "a create may carry the byte length",
+    webpageType,
+    /export const webpageSchema: JsonSchema = \{[\s\S]*?required: \["url", "fileSize"\][\s\S]*?url: \{ type: "string" \}/,
+    "the webpage type declares its stored address and byte length",
+  );
+  assert.match(
+    webpageType,
+    /export function createWebpageContent\(\): WebpageContent \{\s*return \{ url: "", fileSize: 0 \};/,
+    "a new node starts with an empty address and no file",
   );
   assert.match(
     mapper,

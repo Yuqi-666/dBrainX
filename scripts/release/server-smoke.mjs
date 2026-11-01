@@ -59,10 +59,16 @@ async function ready(url) {
   }
   throw new Error(`Startup timeout: ${logs}`);
 }
-function client(token) {
+function client(token, workspaceId) {
   const ws = createWSClient({
     url: `${serverUrl.replace("http:", "ws:")}/trpc`,
-    connectionParams: token ? { token } : {},
+    // The active workspace travels with the connection, like a header: the
+    // server verifies membership before `node.add` may use it, and the create
+    // request body carries no workspace at all.
+    connectionParams: {
+      ...(token ? { token } : {}),
+      ...(workspaceId ? { "x-workspace-id": workspaceId } : {}),
+    },
   });
   connections.push(ws);
   return createTRPCClient({
@@ -486,20 +492,20 @@ try {
     name: "private",
     workspaceId: wa.id,
   });
-  const node = await a.node.add.mutate({
-    id: "tmp_node",
-    nodeType: "text",
-    semanticId: semantic.id,
-    workspaceId: wa.id,
-    content: { docs: {} },
-    title: "private",
-  });
+  const aw = client(alice.token, wa.id),
+    bw = client(bob.token, wb.id);
+  const node = await aw.node.add.mutate({ nodeType: "text" });
+  assert.equal(node.workspaceId, wa.id);
+  // The semantic is attached after creation: the create body no longer carries
+  // one, so this pins that the unchanged update path still selects it.
+  await a.node.update.mutate({ id: node.id, updates: { semanticId: semantic.id } });
+  assert.equal(
+    (await a.node.getById.query({ id: node.id })).semanticId,
+    semantic.id,
+  );
   assert.equal(await b.node.getById.query({ id: node.id }), null);
   await assert.rejects(b.node.delete.mutate({ id: node.id }));
-  const target = await a.node.add.mutate({
-    id: "tmp_edge_target", nodeType: "text", semanticId: "",
-    workspaceId: wa.id, content: { docs: {} }, title: "edge target",
-  });
+  const target = await aw.node.add.mutate({ nodeType: "text" });
   const edge = await a.edge.add.mutate({
     id: "tmp_edge", from: node.id, to: target.id,
     direction: "forward", semanticId: "", workspaceId: wa.id,
@@ -514,10 +520,7 @@ try {
   await a.edge.update.mutate({ id: edge.id, updates: { semanticId: edgeSemantic.id } });
   assert.equal((await a.edge.getById.query({ id: edge.id })).semanticId, edgeSemantic.id);
   await a.edge.update.mutate({ id: edge.id, updates: { semanticId: "" } });
-  const foreignTarget = await b.node.add.mutate({
-    id: "tmp_foreign_target", nodeType: "text", semanticId: "",
-    workspaceId: wb.id, content: { docs: {} }, title: "foreign target",
-  });
+  const foreignTarget = await bw.node.add.mutate({ nodeType: "text" });
   await assert.rejects(a.edge.add.mutate({
     id: "tmp_cross_workspace", from: node.id, to: foreignTarget.id,
     direction: "forward", semanticId: "", workspaceId: wa.id,
