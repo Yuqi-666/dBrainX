@@ -1317,10 +1317,6 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
     "zh-CN": "在媒体侧栏中编辑",
     en: "Edit in the media sidebar",
   },
-  "属性改动将在引擎接线后保存": {
-    "zh-CN": "属性改动将在引擎接线后保存",
-    en: "Attribute edits are saved once the engine is wired",
-  },
   点击添加: {
     "zh-CN": "点击添加",
     en: "Click to add",

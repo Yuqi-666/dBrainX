@@ -32,12 +32,9 @@ import {
   attributeFieldPatch,
   attributeFieldsOf,
   attributeTimelineCount,
-  emitAttributeOperation,
   isNodeTypeRegistered,
   readAttributeValue,
-  resetAttributeOperationSink,
   resolveAttributeFields,
-  setAttributeOperationSink,
 } from "../../lib/node-attribute-fields.ts";
 
 function NullContent() {
@@ -256,28 +253,4 @@ test("timeline entries are counted, never invented", () => {
   assert.equal(attributeTimelineCount(undefined), 0);
   assert.equal(attributeTimelineCount({ length: 3 }), 0);
   assert.equal(attributeTimelineCount([{ type: "note" }, { type: "subtitle" }]), 2);
-});
-
-test("one edit raises one operation intent with the field's operation id", () => {
-  const raised: unknown[] = [];
-  setAttributeOperationSink((intent) => raised.push(intent));
-  try {
-    emitAttributeOperation({
-      nodeId: "node-1",
-      operationId: "node.setAbstract",
-      field: "abstract",
-      value: "摘要",
-    });
-  } finally {
-    resetAttributeOperationSink();
-  }
-
-  assert.deepEqual(raised, [
-    {
-      nodeId: "node-1",
-      operationId: "node.setAbstract",
-      field: "abstract",
-      value: "摘要",
-    },
-  ]);
 });

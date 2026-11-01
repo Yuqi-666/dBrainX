@@ -11,10 +11,11 @@
  * registered type that declares no field renders nothing at all.
  *
  * Edits are kept in a local draft and raised through `onFieldChange`; the
- * caller decides where they go (todo 39 makes that an `operation.invoke`).
- * Nothing here builds a whole `content` object.
+ * caller performs exactly one `operation.invoke` and reports the outcome. A
+ * refused edit drops the draft, so the control shows the value the store still
+ * holds. Nothing here builds a whole `content` object.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactElement } from "react";
 import type {
   NodeAttributeField,
@@ -50,8 +51,17 @@ export interface AttributeFieldsHostProps {
   type: string;
   /** The node's `content`; each field reads its dotted path out of it. */
   content: unknown;
-  /** Raised once per edit, with the declaration that produced the control. */
-  onFieldChange?: (field: NodeAttributeField, value: string) => void;
+  /**
+   * Raised once per edit, with the declaration that produced the control.
+   *
+   * A returned promise settles the draft: the control then shows the store's
+   * value again, which is the old value when the caller's operation was refused.
+   * A caller that leaves the prop out keeps the draft local.
+   */
+  onFieldChange?: (
+    field: NodeAttributeField,
+    value: string,
+  ) => void | Promise<void>;
   className?: string;
 }
 
@@ -138,6 +148,7 @@ export function AttributeFieldsHost({
   const { t } = useI18n();
   const fields = resolveAttributeFields(type);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const sequences = useRef<Record<string, number>>({});
 
   if (!isNodeTypeRegistered(type)) {
     return (
@@ -158,6 +169,28 @@ export function AttributeFieldsHost({
   }
 
   if (fields.length === 0) return null;
+
+  const settle = (field: string, request: number) => {
+    if (sequences.current[field] !== request) return;
+    setDrafts((previous) => {
+      const next = { ...previous };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const changeField = (field: NodeAttributeField, next: string) => {
+    const request = (sequences.current[field.field] ?? 0) + 1;
+    sequences.current[field.field] = request;
+    setDrafts((previous) => ({ ...previous, [field.field]: next }));
+    if (!onFieldChange) return;
+    const pending = onFieldChange(field, next);
+    if (pending && typeof pending.then === "function") {
+      void pending.then(() => settle(field.field, request));
+      return;
+    }
+    settle(field.field, request);
+  };
 
   return (
     <div className={cn("space-y-4", className)} data-attribute-fields={type}>
@@ -184,10 +217,7 @@ export function AttributeFieldsHost({
             <Control
               field={field}
               value={value}
-              onChange={(next) => {
-                setDrafts((previous) => ({ ...previous, [field.field]: next }));
-                onFieldChange?.(field, next);
-              }}
+              onChange={(next) => changeField(field, next)}
             />
           </div>
         );

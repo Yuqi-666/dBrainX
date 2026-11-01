@@ -9,8 +9,9 @@
  * registered resolves to no fields and no throw, so the panel degrades to an
  * empty state instead of blanking a page.
  *
- * The write half is deliberately still a stub: every field is a call site with
- * a `TODO(engine: wire in 39)` marker, and no path here merges a whole node.
+ * This module is read-only on purpose. The write half lives in
+ * `./attribute-operations.ts`: one declared operation per edit, never a merged
+ * whole-node patch.
  */
 import type {
   NodeAttributeField,
@@ -95,38 +96,3 @@ export function attributeTimelineCount(value: unknown): number {
   return Array.isArray(value) ? value.length : 0;
 }
 
-/** One metadata edit the panel raises; the operation that writes it is resolved in 39. */
-export interface AttributeOperationIntent {
-  nodeId: string;
-  /** Absent when the catalog has no operation for the field yet. */
-  operationId?: string;
-  field: string;
-  value: string;
-}
-
-/** Where a raised intent goes. Todo 39 installs the `NodeService.invoke` adapter. */
-export type AttributeOperationSink = (intent: AttributeOperationIntent) => void;
-
-/**
- * TODO(engine: wire in 39): replace the default sink with
- * `NodeService.invoke(operationId, { kind: "node", nodeId }, input)`.
- *
- * Until then the sink is a no-op and the panel keeps the draft locally. That is
- * the point of this step: the panel must not fall back to merging a whole node.
- */
-let operationSink: AttributeOperationSink = () => {};
-
-/** Install the sink that receives the panel's metadata edits. */
-export function setAttributeOperationSink(next: AttributeOperationSink): void {
-  operationSink = next;
-}
-
-/** Restore the default no-op sink. */
-export function resetAttributeOperationSink(): void {
-  operationSink = () => {};
-}
-
-/** Raise one metadata edit to the sink. */
-export function emitAttributeOperation(intent: AttributeOperationIntent): void {
-  operationSink(intent);
-}

@@ -38,7 +38,14 @@ import { NodeTagSelector } from "@workspace/ui/components/selector/node-tag-sele
 import { TagPill } from "@workspace/ui/components/tag/tag-pill";
 import { NodeSemanticSelector } from "@workspace/ui/components/selector/node-semantic-selector";
 import { AttributeFieldsHost } from "@workspace/ui/components/plugin-ui/attribute-fields-host";
-import { emitAttributeOperation } from "@workspace/ui/lib/node-attribute-fields";
+import { useAttributeDraft } from "@workspace/ui/hooks/use-attribute-draft";
+import { useAttributeOperation } from "@workspace/ui/hooks/use-attribute-operation";
+import {
+  abstractRequest,
+  attributeFieldRequest,
+  semanticRequest,
+  tagRequest,
+} from "@workspace/ui/lib/attribute-operations";
 
 /** Colors a new tag starts with, matching the ones `useGraph` used to pick. */
 const TAG_COLORS = [
@@ -184,27 +191,14 @@ function MetadataTabContent({
   const nodeSemanticsMap = useDataStore((state) => state.nodeSemantics);
   const allSemantics = Array.from(nodeSemanticsMap.values());
 
-  const [abstractDraft, setAbstractDraft] = useState<string | null>(null);
+  const applyOperation = useAttributeOperation();
 
-  const handleAbstractChange = (value: string) => {
-    setAbstractDraft(value);
-    // TODO(engine: wire in 39): node.setAbstract
-    emitAttributeOperation({
-      nodeId,
-      operationId: "node.setAbstract",
-      field: "abstract",
-      value,
-    });
-  };
+  const abstract = useAttributeDraft(node.abstract ?? "", (value) =>
+    applyOperation(abstractRequest(nodeId, value)),
+  );
 
-  const handleSemanticIdChange = (value: string) => {
-    // TODO(engine: wire in 39): node.setSemanticId
-    emitAttributeOperation({
-      nodeId,
-      operationId: "node.setSemanticId",
-      field: "semanticId",
-      value,
-    });
+  const handleSemanticIdChange = async (value: string) => {
+    await applyOperation(semanticRequest(nodeId, value));
   };
 
   const nodeTagsMap = useDataStore((state) => state.nodeTags);
@@ -216,15 +210,13 @@ function MetadataTabContent({
     ? allSemantics.find((s) => s.id === node.semanticId)
     : undefined;
 
+  const applyTag = async (tagId: NodeTagId, applied: boolean) => {
+    await applyOperation(tagRequest(nodeId, tagId, applied));
+  };
+
   const handleToggleTag = (tagId: NodeTagId) => {
     const applied = (node.tags || []).includes(tagId);
-    // TODO(engine: wire in 39): node.addTag / node.removeTag
-    emitAttributeOperation({
-      nodeId,
-      operationId: applied ? "node.removeTag" : "node.addTag",
-      field: "tags",
-      value: tagId,
-    });
+    void applyTag(tagId, applied);
   };
 
   const handleDeleteTag = async (tagId: NodeTagId) => {
@@ -236,13 +228,7 @@ function MetadataTabContent({
   };
 
   const handleRemoveTag = (tagId: NodeTagId) => {
-    // TODO(engine: wire in 39): node.removeTag
-    emitAttributeOperation({
-      nodeId,
-      operationId: "node.removeTag",
-      field: "tags",
-      value: tagId,
-    });
+    void applyTag(tagId, true);
   };
 
   const handleCreateTag = async (name: string): Promise<NodeTag | null> => {
@@ -261,17 +247,11 @@ function MetadataTabContent({
     }
   };
 
-  const handleAttributeFieldChange = (
+  const handleAttributeFieldChange = async (
     field: NodeAttributeField,
     value: string,
   ) => {
-    // TODO(engine: wire in 39): NodeService.invoke(field.operationId, target, input)
-    emitAttributeOperation({
-      nodeId,
-      operationId: field.operationId,
-      field: field.field,
-      value,
-    });
+    await applyOperation(attributeFieldRequest(nodeId, field, value));
   };
 
   return (
@@ -367,8 +347,8 @@ function MetadataTabContent({
       <div className="space-y-1.5">
         <FieldLabel icon={AlignLeft}>{t("摘要")}</FieldLabel>
         <Textarea
-          value={abstractDraft ?? node.abstract ?? ""}
-          onChange={(e) => handleAbstractChange(e.target.value)}
+          value={abstract.value}
+          onChange={(e) => abstract.change(e.target.value)}
           placeholder={t("输入摘要...")}
           className="min-h-24 resize-none text-xs leading-relaxed"
         />
@@ -381,13 +361,6 @@ function MetadataTabContent({
         content={node.content}
         onFieldChange={handleAttributeFieldChange}
       />
-
-      <p
-        data-attribute-operations-pending=""
-        className="text-[11px] leading-relaxed text-muted-foreground/70"
-      >
-        {t("属性改动将在引擎接线后保存")}
-      </p>
 
       {/* Read-only: Metadata footer */}
       <div className="space-y-2.5 border-t border-border pt-4">
