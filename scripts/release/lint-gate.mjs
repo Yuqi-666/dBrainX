@@ -37,7 +37,10 @@ if (
 ) {
   const results = [];
   let packages = 0;
-  for (const group of ["apps", "backend", "packages"]) {
+  // Every workspace member with a `lint` script is scanned. `apps/marketing` is a
+  // submodule whose root holds no package.json, so it never reaches this loop;
+  // its site workspace member is not a direct child of `apps/`.
+  for (const group of ["apps", "backend", "packages", "plugins"]) {
     for (const entry of (
       await readdir(join(root, group), { withFileTypes: true })
     ).sort((a, b) => a.name.localeCompare(b.name))) {
@@ -66,9 +69,12 @@ if (
       packages++;
     }
   }
+  // 3 apps + 7 backend + 11 packages + 2 plugins. Directories without a
+  // package.json (apps/marketing) or without a `lint` script
+  // (packages/eslint-config, packages/typescript-config) are not counted.
   assert.equal(
     packages,
-    18,
+    23,
     "Workspace lint coverage changed; review the gate",
   );
   const actual = diagnosticCounts(results, root);
