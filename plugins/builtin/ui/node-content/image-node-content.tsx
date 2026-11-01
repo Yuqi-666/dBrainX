@@ -14,8 +14,8 @@ import { useUIStore } from "@workspace/store";
 import { resolveFileUrl } from "@workspace/api-client";
 import { ImageViewer } from "@workspace/ui/components/image-viewer/image-viewer";
 import { cn } from "@workspace/ui/lib/utils";
-import { FileDropZone } from "./file-drop-zone";
-import { useNodeContentWriter } from "./use-node-content-writer";
+import { FileDropZone } from "@workspace/ui/components/node-content/file-drop-zone";
+import { useNodeContentWriter } from "@workspace/ui/components/node-content/use-node-content-writer";
 
 interface ImageNodeContentProps {
   node: ImageNodeData;

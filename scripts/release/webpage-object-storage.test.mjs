@@ -30,7 +30,7 @@ const root = new URL("../../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
 
 const webpage = read(
-  "packages/ui/src/components/node-content/webpage-node-content.tsx",
+  "plugins/builtin/ui/node-content/webpage-node-content.tsx",
 );
 const dropZone = read(
   "packages/ui/src/components/node-content/file-drop-zone.tsx",

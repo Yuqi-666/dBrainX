@@ -23,7 +23,7 @@ import {
   languageFromFilename,
 } from "@workspace/ui/components/code-editor/code-editor";
 import { toast } from "@workspace/ui/components/ui/toast";
-import { FileDropZone } from "./file-drop-zone";
+import { FileDropZone } from "@workspace/ui/components/node-content/file-drop-zone";
 
 /** Types the picker accepts: a web page node holds an HTML document. */
 const DOCUMENT_ACCEPT = ".html,.htm,.xhtml,text/html";

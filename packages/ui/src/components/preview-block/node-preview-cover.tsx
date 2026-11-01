@@ -21,74 +21,56 @@
  */
 import { FileText } from "lucide-react";
 import type { NodeData } from "@workspace/interfaces";
+import type { NodeContentDescriptor } from "@workspace/plugin-sdk/ui";
 import { resolveFileUrl } from "@workspace/api-client";
 import { cn } from "@workspace/ui/lib/utils";
-import { NODE_TYPE_ICONS } from "@workspace/ui/components/icon/node-type-icons";
-
-/** How much extracted text a text-like cover shows. */
+import { getNodeContentDescriptor } from "../node-content/registry";
 
 /** How many `{kind:"node"}` hops a cover may follow (`node-content-ui.md` §M2.2-5). */
 const MAX_COVER_DEPTH = 1;
 
-/** Flattens a Tiptap/ProseMirror doc to plain text (text + rich-text nodes). */
-function extractDocText(docs: Record<string, unknown> | undefined): string {
-  if (!docs || !("content" in docs)) return "";
+/**
+ * What a descriptor contributes to a card's cover box.
+ *
+ * The cover box draws a picture, else a text stand-in, else the type glyph. Only
+ * the type's plugin knows which field holds that picture (an image's `url`, a
+ * video's `coverUrl`, a site's `faviconUrl`) and which document is its text, so
+ * the contribution travels with the descriptor instead of a ten-way switch over
+ * `nodeType` in this leaf.
+ *
+ * The field is not in `NodeContentDescriptor` yet: the SDK contract still has to
+ * grow it. Until then the builtin plugin types its descriptors with
+ * `BuiltinNodeContentDescriptor` and this file reads the same shape through a
+ * narrow cast in `descriptorOf`.
+ */
+export interface NodeCoverContribution {
+  /** The picture the node draws itself with, as stored; `null` when it has none. */
+  url?: (node: NodeData) => string | null;
+  /** A textual stand-in when the node holds no picture. */
+  text?: (node: NodeData) => string;
+}
 
-  const walk = (node: unknown): string => {
-    if (!node) return "";
-    if (typeof node === "string") return node;
-    if (typeof node !== "object") return "";
-    const record = node as { text?: unknown; content?: unknown };
-    if (typeof record.text === "string") return record.text;
-    if (Array.isArray(record.content)) {
-      return record.content.map(walk).join(" ");
-    }
-    return "";
-  };
+/** A descriptor that also carries a cover contribution. */
+interface CoverAwareDescriptor extends NodeContentDescriptor {
+  cover?: NodeCoverContribution;
+}
 
-  return walk(docs).replace(/\s+/g, " ").trim();
+/** The registered descriptor for `node`, with its cover contribution. */
+function descriptorOf(node: NodeData): CoverAwareDescriptor | undefined {
+  return getNodeContentDescriptor(node.nodeType) as
+    | CoverAwareDescriptor
+    | undefined;
 }
 
 /** The image a node can draw itself with, resolved to a servable URL. */
 function nodeCoverUrl(node: NodeData): string | null {
-  switch (node.nodeType) {
-    case "image":
-      return node.content?.url ? resolveFileUrl(node.content.url) : null;
-    case "video":
-      return node.content?.coverUrl
-        ? resolveFileUrl(node.content.coverUrl)
-        : null;
-    case "audio":
-      // Only an imported audio node has a cover; a local upload falls through
-      // to the type glyph, exactly as it did before the import existed.
-      return node.content?.coverUrl
-        ? resolveFileUrl(node.content.coverUrl)
-        : null;
-    case "pdf":
-      return node.content?.coverUrl
-        ? resolveFileUrl(node.content.coverUrl)
-        : null;
-    case "website":
-      return node.content?.faviconUrl
-        ? resolveFileUrl(node.content.faviconUrl)
-        : null;
-    default:
-      return null;
-  }
+  const url = descriptorOf(node)?.cover?.url?.(node) ?? null;
+  return url ? resolveFileUrl(url) : null;
 }
 
 /** A textual stand-in for a node whose content is text. */
 function nodeCoverText(node: NodeData): string {
-  switch (node.nodeType) {
-    case "text":
-      return extractDocText(node.content?.docs);
-    case "rich-text":
-      return extractDocText(node.content?.docs);
-    default:
-      // A webpage node stores its document as an object, so there is no record
-      // text to draw; the type glyph stands in.
-      return "";
-  }
+  return descriptorOf(node)?.cover?.text?.(node) ?? "";
 }
 
 interface ResolvedCover {
@@ -165,7 +147,7 @@ export function NodePreviewCover({
   const cover = resolveCover(node, resolveNode);
   const source = cover.node;
   const text = cover.url || cover.iconOnly ? "" : nodeCoverText(source);
-  const Icon = NODE_TYPE_ICONS[source.nodeType] ?? FileText;
+  const Icon = descriptorOf(source)?.icon ?? FileText;
 
   if (cover.url) {
     return (

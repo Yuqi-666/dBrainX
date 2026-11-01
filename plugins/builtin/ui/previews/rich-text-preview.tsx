@@ -6,15 +6,23 @@ import { useI18n } from "@workspace/ui/lib/i18n";
 import type { RichTextNodeData } from "@workspace/interfaces";
 import { Link2 } from "lucide-react";
 
-function extractTextContent(docs: Record<string, any>): string {
+/** A Tiptap document node, as far as a rich-text preview needs to read it. */
+interface DocNode {
+  text?: unknown;
+  content?: unknown;
+}
+
+function extractTextContent(docs: Record<string, unknown>): string {
   if (!docs || !docs.content) return "";
 
-  const extractText = (node: any): string => {
+  const extractText = (node: unknown): string => {
     if (!node) return "";
     if (typeof node === "string") return node;
-    if (node.text) return node.text;
-    if (node.content && Array.isArray(node.content)) {
-      return node.content.map(extractText).join(" ");
+    if (typeof node !== "object") return "";
+    const record = node as DocNode;
+    if (typeof record.text === "string") return record.text;
+    if (Array.isArray(record.content)) {
+      return record.content.map(extractText).join(" ");
     }
     return "";
   };

@@ -14,7 +14,7 @@ import {
   initializeLocale,
   subscribeLocale,
   translate,
-} from "./i18n/runtime";
+} from "./i18n/runtime.ts";
 
 const translators = {
   "zh-CN": (key: string, values?: Record<string, string | number>) =>
@@ -23,8 +23,8 @@ const translators = {
     translate(key, values, "en"),
 };
 
-export { getLocale, setLocale, translate } from "./i18n/runtime";
-export type { Locale } from "./i18n/runtime";
+export { getLocale, setLocale, translate } from "./i18n/runtime.ts";
+export type { Locale } from "./i18n/runtime.ts";
 
 /** Subscribe without remounting editors or discarding unsaved component state. */
 export function useI18n() {

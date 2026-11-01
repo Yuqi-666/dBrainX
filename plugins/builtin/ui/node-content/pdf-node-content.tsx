@@ -30,7 +30,7 @@ import { useI18n } from "@workspace/ui/lib/i18n";
  */
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@workspace/ui/lib/utils";
-import { FileDropZone } from "./file-drop-zone";
+import { FileDropZone } from "@workspace/ui/components/node-content/file-drop-zone";
 import type {
   Annotation,
   PdfContent,
@@ -41,7 +41,7 @@ import { useAuthStore, useUIStore } from "@workspace/store";
 import { resolveFileUrl } from "@workspace/api-client";
 import { PdfViewer } from "@workspace/ui/components/pdf-viewer/pdf-viewer";
 import type { PdfLoadFailure } from "@workspace/ui/components/pdf-viewer/types";
-import { useNodeContentWriter } from "./use-node-content-writer";
+import { useNodeContentWriter } from "@workspace/ui/components/node-content/use-node-content-writer";
 
 interface PdfNodeContentProps {
   node: PdfNodeData;

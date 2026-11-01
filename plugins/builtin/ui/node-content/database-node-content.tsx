@@ -20,7 +20,7 @@ import {
 import { useDataStore, useUIStore } from "@workspace/store";
 import { cn } from "@workspace/ui/lib/utils";
 
-import { useNodeContentWriter } from "./use-node-content-writer";
+import { useNodeContentWriter } from "@workspace/ui/components/node-content/use-node-content-writer";
 
 interface DatabaseNodeContentProps {
   node: DatabaseNodeData;

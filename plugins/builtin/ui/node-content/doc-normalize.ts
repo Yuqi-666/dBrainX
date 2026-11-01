@@ -83,3 +83,25 @@ export function normalizeDoc(value: unknown): NormalizedDoc {
 
   return { type: "doc", content: [] };
 }
+
+/**
+ * Flattens a Tiptap/ProseMirror document to one line of plain text.
+ *
+ * Card covers draw the first line of a text-like node, so the descriptor's cover
+ * contribution needs the document as text without mounting an editor.
+ */
+export function docText(docs: unknown): string {
+  const walk = (node: unknown): string => {
+    if (!node) return "";
+    if (typeof node === "string") return node;
+    if (typeof node !== "object") return "";
+    const record = node as { text?: unknown; content?: unknown };
+    if (typeof record.text === "string") return record.text;
+    if (Array.isArray(record.content)) {
+      return record.content.map(walk).join(" ");
+    }
+    return "";
+  };
+
+  return walk(docs).replace(/\s+/g, " ").trim();
+}

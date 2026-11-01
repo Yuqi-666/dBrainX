@@ -9,7 +9,7 @@ import { useI18n } from "@workspace/ui/lib/i18n";
  *
  * This is the M6 implementation (`video-player.tsx` before the video.js v10
  * player took that name) and it is still the right tool for one caller: the
- * hover preview (`preview-block/previews/video-preview.tsx`). A preview is a
+ * hover preview (`plugins/builtin/ui/previews/video-preview.tsx`). A preview is a
  * muted, looping thumbnail that exists only while the pointer is over it, so a
  * v10 player — a provider, a store, a control bar and its stylesheet — would be
  * a large amount of machinery for a background element. The node editor, where

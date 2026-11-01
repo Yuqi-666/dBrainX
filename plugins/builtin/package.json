@@ -10,12 +10,22 @@
   },
   "dependencies": {
     "@cfworker/json-schema": "^4.1.4",
+    "@workspace/api-client": "workspace:*",
+    "@workspace/dataview": "workspace:*",
+    "@workspace/editor": "workspace:*",
     "@workspace/interfaces": "workspace:*",
-    "@workspace/plugin-sdk": "workspace:*"
+    "@workspace/plugin-sdk": "workspace:*",
+    "@workspace/services": "workspace:*",
+    "@workspace/store": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "@workspace/utils": "workspace:*",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.4"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
-    "@types/node": "^25.1.0"
+    "@types/node": "^25.1.0",
+    "@types/react": "^19.2.10"
   },
   "exports": {
     "./ui": "./ui",

@@ -1145,16 +1145,46 @@ importers:
       '@cfworker/json-schema':
         specifier: ^4.1.4
         version: 4.1.4
+      '@workspace/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@workspace/dataview':
+        specifier: workspace:*
+        version: link:../../packages/dataview
+      '@workspace/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@workspace/interfaces':
         specifier: workspace:*
         version: link:../../packages/interfaces
       '@workspace/plugin-sdk':
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
+      '@workspace/services':
+        specifier: workspace:*
+        version: link:../../packages/services
+      '@workspace/store':
+        specifier: workspace:*
+        version: link:../../packages/store
+      '@workspace/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@workspace/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      lucide-react:
+        specifier: ^0.577.0
+        version: 0.577.0(react@19.2.4)
+      react:
+        specifier: ^19.2.4
+        version: 19.2.4
     devDependencies:
       '@types/node':
         specifier: ^25.1.0
         version: 25.3.5
+      '@types/react':
+        specifier: ^19.2.10
+        version: 19.2.14
       typescript:
         specifier: ^5.0.0
         version: 5.9.3

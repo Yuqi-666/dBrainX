@@ -47,7 +47,7 @@ const TYPES_SOURCE = fileURLToPath(
   new URL("../../packages/ui/src/components/pdf-viewer/types.ts", import.meta.url),
 );
 const HOST_SOURCE = fileURLToPath(
-  new URL("../../packages/ui/src/components/node-content/pdf-node-content.tsx", import.meta.url),
+  new URL("../../plugins/builtin/ui/node-content/pdf-node-content.tsx", import.meta.url),
 );
 
 const pdfjs = await import(PDFJS);

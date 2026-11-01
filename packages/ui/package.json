@@ -71,6 +71,8 @@
     "./postcss.config": "./postcss.config.mjs",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",
+    "./components/node-content/registry": "./src/components/node-content/registry.ts",
+    "./components/node-content/use-node-content-writer": "./src/components/node-content/use-node-content-writer.ts",
     "./hooks/*": "./src/hooks/*.ts"
   }
 }

@@ -4,6 +4,7 @@
 import { useI18n } from "@workspace/ui/lib/i18n";
 
 import { useCallback, useEffect, useRef } from "react";
+import { FileEdit } from "lucide-react";
 import type {
   NodeData,
   RichTextContent,
@@ -15,7 +16,7 @@ import { Button } from "@workspace/ui/components/ui/button";
 import { CoverSelectorPopover } from "@workspace/ui/components/selector/cover-selector-popover";
 import { IconSelectorPopover } from "@workspace/ui/components/selector/icon-selector-popover";
 import { IconView } from "@workspace/ui/components/icon/icon-view";
-import { NODE_TYPE_ICONS } from "@workspace/ui/components/icon/node-type-icons";
+import { getNodeContentDescriptor } from "@workspace/ui/components/node-content/registry";
 import { NodePreviewCover } from "@workspace/ui/components/preview-block/node-preview-cover";
 import { cn } from "@workspace/ui/lib/utils";
 import {
@@ -23,8 +24,8 @@ import {
   NODE_ICON_GLYPH,
   NODE_ICON_PLATE,
   NodeContentHeader,
-} from "./node-content-header";
-import { useNodeContentWriter } from "./use-node-content-writer";
+} from "@workspace/ui/components/node-content/node-content-header";
+import { useNodeContentWriter } from "@workspace/ui/components/node-content/use-node-content-writer";
 
 /** How many nodes 「从节点选」offers before the search narrows it. */
 const CANDIDATE_LIMIT = 24;
@@ -130,7 +131,8 @@ export function RichTextNodeContent({
     [node.id],
   );
 
-  const TypeIcon = NODE_TYPE_ICONS[liveNode.nodeType];
+  const TypeIcon =
+    getNodeContentDescriptor(liveNode.nodeType)?.icon ?? FileEdit;
 
   return (
     <div className={cn("flex min-h-full flex-col", className)}>

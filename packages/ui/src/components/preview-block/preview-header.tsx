@@ -7,14 +7,14 @@ import { useDataStore } from "@workspace/store";
 import type { NodeData } from "@workspace/interfaces";
 import { FileText } from "lucide-react";
 import { IconView } from "@workspace/ui/components/icon/icon-view";
-import { NODE_TYPE_ICONS } from "@workspace/ui/components/icon/node-type-icons";
+import { getNodeContentDescriptor } from "../node-content/registry";
 
 export function PreviewHeader({ node }: { node: NodeData }) {
   const { t } = useI18n();
 
   const nodeSemantics = useDataStore((state) => state.nodeSemantics);
   const semantic = nodeSemantics.get(node.semanticId);
-  const Icon = NODE_TYPE_ICONS[node.nodeType] ?? FileText;
+  const Icon = getNodeContentDescriptor(node.nodeType)?.icon ?? FileText;
 
   return (
     <div className="px-4 pt-4 pb-2 pr-12">

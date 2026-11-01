@@ -22,7 +22,7 @@ import { Button } from "@workspace/ui/components/ui/button";
 import { cn } from "@workspace/ui/lib/utils";
 
 import { CollectionFilterDialog } from "@workspace/ui/components/dialog/collection-filter-dialog";
-import { useNodeContentWriter } from "./use-node-content-writer";
+import { useNodeContentWriter } from "@workspace/ui/components/node-content/use-node-content-writer";
 
 interface CollectionNodeContentProps {
   node: CollectionNodeData;

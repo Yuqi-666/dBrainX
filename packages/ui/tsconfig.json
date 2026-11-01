@@ -8,10 +8,13 @@
   },
   "include": [
     ".",
-    "../hooks/src/useGraph.ts"
+    "../hooks/src/useGraph.ts",
+    // `packages/editor`'s color-highlight controls call the `nodeBackground`
+    // commands that this file augments into `@tiptap/core`. `ui` reaches those
+    // controls through the single-block template, so the augmentation has to be
+    // in this program too; it used to arrive only through the notion editor that
+    // the rich-text node content imported before the plugin migration.
+    "../editor/components/tiptap-extension/node-background-extension.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "exclude": ["node_modules", "dist"]
 }

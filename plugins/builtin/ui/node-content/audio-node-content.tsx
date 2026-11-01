@@ -11,9 +11,9 @@ import { AudioPlayer } from "@workspace/ui/components/media-player/audio-player/
 import { cn } from "@workspace/ui/lib/utils";
 import { resolveFileUrl } from "@workspace/api-client";
 
-import { FileDropZone } from "./file-drop-zone";
-import { MediaNodeLayout } from "./media-node-layout";
-import { useMediaTimestamps } from "./use-media-timestamps";
+import { FileDropZone } from "@workspace/ui/components/node-content/file-drop-zone";
+import { MediaNodeLayout } from "@workspace/ui/components/node-content/media-node-layout";
+import { useMediaTimestamps } from "@workspace/ui/components/node-content/use-media-timestamps";
 
 interface AudioNodeContentProps {
   node: AudioNodeData;

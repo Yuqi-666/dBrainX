@@ -41,7 +41,7 @@ import { SingleBlockEditor } from "@workspace/editor/components/tiptap-templates
 import { useUIStore } from "@workspace/store";
 import { cn } from "@workspace/ui/lib/utils";
 import { normalizeDoc } from "./doc-normalize";
-import { useNodeContentWriter } from "./use-node-content-writer";
+import { useNodeContentWriter } from "@workspace/ui/components/node-content/use-node-content-writer";
 
 /**
  * The content half of a text node. Read off the node type rather than imported:
