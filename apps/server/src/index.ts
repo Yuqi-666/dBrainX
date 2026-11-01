@@ -10,6 +10,7 @@ import {
 import { verifyToken } from "@workspace/infrastructure";
 import { allowedFileRequest } from "./desktop/security";
 import { createServerNodeTypeRegistry } from "./node-type-registry";
+import { createServerOperationRegistry } from "./operation-registry";
 import { TRPC_PATH, sameOrigin } from "./origin";
 import {
   handleUploadRequest,
@@ -47,6 +48,11 @@ async function main() {
   }
   await AppContainer.initialize(PB_URL, {
     nodeTypeRegistry: createServerNodeTypeRegistry(),
+    // Resolved on first invocation: the registry is an argument of the
+    // container that owns the service it writes through.
+    operationRegistry: createServerOperationRegistry(
+      () => AppContainer.getInstance().nodeCommandService,
+    ),
   });
   // Sessions outlive the request that opened them, so something has to collect
   // the abandoned ones.

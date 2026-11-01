@@ -72,6 +72,7 @@ export const testFiles = [
   "packages/utils/src/storage-limits.test.ts",
 
   // Plugin package tests that need no DOM or browser globals.
+  "plugins/builtin/server/graph-operations.test.ts",
   "plugins/builtin/server/node-types.test.ts",
   "plugins/builtin/server/operations.test.ts",
   "plugins/builtin/server/type-operations.test.ts",
@@ -86,6 +87,7 @@ export const testFiles = [
   "backend/application/src/commands/media/cookie-file.test.ts",
   "backend/application/src/commands/media/media-import.service.test.ts",
   "backend/application/src/commands/node/node-command.service.test.ts",
+  "backend/application/src/commands/operation/edge-view-operations.test.ts",
   "backend/application/src/commands/operation/operation.service.test.ts",
   "backend/application/src/engine/capability-gateway.test.ts",
   "backend/application/src/events/event-metadata.test.ts",
@@ -124,6 +126,7 @@ export const testFiles = [
   // Server and desktop entry points that run without PocketBase.
   "apps/server/src/desktop/security.test.ts",
   "apps/server/src/desktop/upgrade-backup.test.ts",
+  "apps/server/src/operation-registry.test.ts",
   "apps/server/src/origin.test.ts",
 ];
 

@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { pdfFixture } from "../lib/smoke-fixtures.mjs";
 import { spawn, execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 import { cp, mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -21,6 +22,8 @@ const temp = await mkdtemp(join(tmpdir(), "dbrainx-server-smoke-"));
 const children = [],
   connections = [];
 let logs = "";
+/** The operator account this run created for its own PocketBase, if it owns it. */
+let operator;
 async function port() {
   const server = createServer();
   server.listen(0, "127.0.0.1");
@@ -86,6 +89,57 @@ async function upload(token, bytes = "private file", workspaceId = "") {
   assert.equal(response.status, 200, await response.clone().text());
   return response.json();
 }
+/**
+ * Buffer for one event subscription: the delivered messages plus a bounded
+ * wait for a predicate, so a test never sleeps and hopes.
+ */
+function eventSink() {
+  const events = [];
+  const waiters = [];
+  let failure;
+  return {
+    events,
+    get failure() {
+      return failure;
+    },
+    push(event) {
+      events.push(event);
+      for (const waiter of [...waiters]) waiter.offer(event);
+    },
+    fail(error) {
+      failure = error;
+      for (const waiter of waiters.splice(0)) waiter.reject(error);
+    },
+    waitFor(predicate, label, timeoutMs = 5000) {
+      return new Promise((resolve, reject) => {
+        if (failure !== undefined) return reject(failure);
+        const found = events.find(predicate);
+        if (found !== undefined) return resolve(found);
+        const waiter = {
+          offer(event) {
+            if (!predicate(event)) return;
+            finish();
+            resolve(event);
+          },
+          reject(error) {
+            finish();
+            reject(error);
+          },
+        };
+        const timer = setTimeout(() => {
+          finish();
+          reject(new Error(`no ${label} event within ${timeoutMs}ms`));
+        }, timeoutMs);
+        function finish() {
+          clearTimeout(timer);
+          const index = waiters.indexOf(waiter);
+          if (index >= 0) waiters.splice(index, 1);
+        }
+        waiters.push(waiter);
+      });
+    },
+  };
+}
 const pbPort = await port(),
   serverPort = await port();
 const pbUrl = process.env.DBRAINX_SMOKE_PB_URL ?? `http://127.0.0.1:${pbPort}`;
@@ -110,13 +164,34 @@ try {
       changesDir: join(root, "pb/pb_migrations_changes"),
       runDir: join(temp, "migrations"),
     });
-    launch(
+    const pocketbase =
       process.env.DBRAINX_POCKETBASE_PATH ??
-        join(
-          root,
-          "pb",
-          process.platform === "win32" ? "pocketbase.exe" : "pocketbase",
-        ),
+      join(
+        root,
+        "pb",
+        process.platform === "win32" ? "pocketbase.exe" : "pocketbase",
+      );
+    // The append-only event log needs the operator account, so the cursor
+    // replay below runs against a real store instead of the "resynchronize"
+    // path. The account is written before `serve` so PocketBase never installs
+    // its placeholder superuser.
+    operator = {
+      email: "smoke-operator@example.test",
+      password: randomBytes(24).toString("hex"),
+    };
+    execFileSync(
+      pocketbase,
+      [
+        "superuser",
+        "upsert",
+        operator.email,
+        operator.password,
+        `--dir=${join(temp, "data")}`,
+      ],
+      { stdio: "ignore" },
+    );
+    launch(
+      pocketbase,
       [
         "serve",
         `--http=127.0.0.1:${pbPort}`,
@@ -158,6 +233,12 @@ try {
     launch(process.execPath, [join(temp, "server/index.mjs")], {
       PB_URL: pbUrl,
       PORT: String(serverPort),
+      ...(operator
+        ? {
+            DBRAINX_ADMIN_EMAIL: operator.email,
+            DBRAINX_ADMIN_PASSWORD: operator.password,
+          }
+        : {}),
     });
   }
   await ready(`${serverUrl}/health`);
@@ -269,6 +350,7 @@ try {
     "node_tags",
     "files",
     "users",
+    "automations",
   ]) {
     const result = await fetch(
       `${pbUrl}/api/collections/${collection}/records`,
@@ -277,6 +359,28 @@ try {
     assert.equal(
       (await result.json()).items.length,
       0,
+      `${collection} anonymous list`,
+    );
+  }
+  // The execution tables are superuser-only, so an anonymous caller is refused
+  // outright instead of being handed an empty page.
+  for (const collection of [
+    "event_log",
+    "event_deliveries",
+    "operation_runs",
+    "plugins",
+    "plugin_grants",
+    "plugin_secrets",
+    "automation_scope",
+    "scheduled_jobs",
+  ]) {
+    const result = await fetch(
+      `${pbUrl}/api/collections/${collection}/records`,
+    );
+    assert.equal(result.status, 403, `${collection} anonymous list`);
+    assert.match(
+      (await result.json()).message ?? "",
+      /Only superusers/,
       `${collection} anonymous list`,
     );
   }
@@ -494,18 +598,109 @@ try {
   });
   const aw = client(alice.token, wa.id),
     bw = client(bob.token, wb.id);
-  const node = await aw.node.add.mutate({ nodeType: "text" });
+  // `operation.invoke` is the write entry: the target names what the operation
+  // acts on, and the body carries nothing about identity or workspace.
+  const addCorrelation = `smoke-node-add-${Date.now()}`;
+  const added = await aw.operation.invoke.mutate({
+    operationId: "node.add",
+    target: { kind: "workspace", workspaceId: wa.id },
+    input: { nodeType: "text" },
+    correlationId: addCorrelation,
+  });
+  const node = added.node;
+  assert.equal(added.operationId, "node.add");
+  assert.equal(added.correlationId, addCorrelation);
   assert.equal(node.workspaceId, wa.id);
-  // The semantic is attached after creation: the create body no longer carries
-  // one, so this pins that the unchanged update path still selects it.
-  await a.node.update.mutate({ id: node.id, updates: { semanticId: semantic.id } });
+  assert.equal(node.nodeType, "text");
+  // The reply carries the reloaded record, so the fields below are read back
+  // from storage after the write instead of echoing the operation body.
+  const titled = await aw.operation.invoke.mutate({
+    operationId: "node.setTitle",
+    target: { kind: "node", nodeId: node.id },
+    input: { title: "smoke title" },
+  });
+  assert.equal(titled.node.title, "smoke title");
+  // `updatedAt` is left out on purpose. This PocketBase build gives a base
+  // collection only the fields its migration declares, and `nodes` declares no
+  // `created`/`updated` columns, so `Node.create` stamps the current time on
+  // every read and two reads of one record never agree. Pinning equality needs
+  // that column; see the task 36 evidence file.
+  const reread = await a.node.getById.query({ id: node.id });
+  assert.deepEqual(
+    {
+      id: reread.id,
+      title: reread.title,
+      semanticId: reread.semanticId,
+      stateData: reread.stateData,
+      isPinned: reread.isPinned,
+    },
+    {
+      id: titled.node.id,
+      title: titled.node.title,
+      semanticId: titled.node.semanticId,
+      stateData: titled.node.stateData,
+      isPinned: titled.node.isPinned,
+    },
+    "operation.invoke answers with the stored record",
+  );
+  assert.ok(Number.isFinite(Date.parse(titled.node.updatedAt)));
+  // The semantic is attached after creation: this pins that
+  // `node.setSemanticId` selects it and the read path agrees.
+  const selected = await aw.operation.invoke.mutate({
+    operationId: "node.setSemanticId",
+    target: { kind: "node", nodeId: node.id },
+    input: { semanticId: semantic.id },
+  });
+  assert.equal(selected.node.semanticId, semantic.id);
   assert.equal(
     (await a.node.getById.query({ id: node.id })).semanticId,
     semantic.id,
   );
+  const positioned = await aw.operation.invoke.mutate({
+    operationId: "node.setStateData",
+    target: { kind: "node", nodeId: node.id },
+    input: { stateData: { client: { x: 12, y: -8 }, server: {} } },
+  });
+  assert.deepEqual(positioned.node.stateData, {
+    client: { x: 12, y: -8 },
+    server: {},
+  });
+  const pinned = await aw.operation.invoke.mutate({
+    operationId: "node.pin",
+    target: { kind: "node", nodeId: node.id },
+    input: {},
+  });
+  assert.equal(pinned.node.isPinned, true);
+  // The old `node.add` body carried `title`; the operation schema closes its
+  // input, so the extra field is refused instead of silently stripped.
+  await assert.rejects(
+    aw.operation.invoke.mutate({
+      operationId: "node.add",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: { nodeType: "text", title: "legacy payload" },
+    }),
+    (error) => {
+      assert.equal(error.data?.code, "BAD_REQUEST");
+      assert.match(error.message, /^SCHEMA_INVALID:/);
+      return true;
+    },
+  );
+  console.log(
+    "PASS operation.invoke node.add/setTitle/setSemanticId/setStateData/pin and strict input rejection",
+  );
   assert.equal(await b.node.getById.query({ id: node.id }), null);
   await assert.rejects(b.node.delete.mutate({ id: node.id }));
-  const target = await aw.node.add.mutate({ nodeType: "text" });
+  const target = await aw.operation.invoke
+    .mutate({
+      operationId: "node.add",
+      target: { kind: "workspace", workspaceId: wa.id },
+      input: { nodeType: "text" },
+    })
+    .then((result) => result.node);
+  // Edges still go through the old endpoint: `edge.create` is registered by
+  // plan todo 35, which is not in this change, so switching here would make the
+  // smoke red for a reason outside todo 36. The old endpoint stays callable
+  // until todo 44 removes it.
   const edge = await a.edge.add.mutate({
     id: "tmp_edge", from: node.id, to: target.id,
     direction: "forward", semanticId: "", workspaceId: wa.id,
@@ -527,7 +722,14 @@ try {
   }));
   console.log("PASS untyped edge creation, semantic selection/clearing and workspace isolation");
   await new Promise((resolve) => setTimeout(resolve, 400));
-  assert.ok(eventsA.some((e) => e.eventType === "NodeCreated"));
+  const createdEvent = eventsA.find((e) => e.eventType === "NodeCreated");
+  assert.ok(createdEvent, "the live stream carries NodeCreated");
+  // The stream carries the envelope now, not only the invalidation signal.
+  assert.equal(createdEvent.workspaceId, wa.id);
+  assert.equal(typeof createdEvent.eventId, "string");
+  assert.ok(createdEvent.eventId.length > 0);
+  assert.equal(typeof createdEvent.workspaceSequence, "number");
+  assert.match(createdEvent.cursor, /^[0-9a-z]+\.[A-Za-z0-9_-]+$/);
   assert.equal(
     eventsB.filter((event) => event.metadata?.workspaceId === wa.id).length,
     0,
@@ -617,6 +819,86 @@ try {
   console.log(
     "PASS cross-user node denial, event isolation, viewer permissions and membership revocation",
   );
+  // The counter fixture is a type the host did not know before: create it, run
+  // its own operation, and read the number back from the stored record.
+  const counterCreated = await aw.operation.invoke.mutate({
+    operationId: "node.add",
+    target: { kind: "workspace", workspaceId: wa.id },
+    input: { nodeType: "counter" },
+  });
+  const counterNodeId = counterCreated.node.id;
+  assert.equal(counterCreated.node.nodeType, "counter");
+  assert.deepEqual(counterCreated.node.content, { value: 0 });
+  const counterOperations = await aw.operation.list.query({
+    nodeType: "counter",
+  });
+  assert.ok(
+    counterOperations.some((operation) => operation.id === "counter.increment"),
+    "operation.list offers the fixture operation for a counter node",
+  );
+  const counterSink = eventSink();
+  const counterStream = aw.event.onEvent.subscribe(undefined, {
+    onData: (event) => counterSink.push(event),
+    onError: (error) => counterSink.fail(error),
+  });
+  const incremented = await aw.operation.invoke.mutate({
+    operationId: "counter.increment",
+    target: { kind: "node", nodeId: counterNodeId },
+    input: { by: 2 },
+  });
+  assert.deepEqual(incremented.node.content, { value: 2 });
+  assert.deepEqual(
+    (await a.node.getById.query({ id: counterNodeId })).content,
+    { value: 2 },
+  );
+  assert.equal(counterSink.failure, undefined);
+  const counterUpdates = counterSink.events.filter(
+    (event) =>
+      event.eventType === "NodeUpdated" && event.aggregateId === counterNodeId,
+  );
+  assert.equal(
+    counterUpdates.length,
+    1,
+    "counter.increment publishes exactly one NodeUpdated event",
+  );
+  counterStream.unsubscribe();
+  console.log(
+    "PASS counter fixture end to end through operation.invoke (value 0 -> 2, one event)",
+  );
+  if (!process.env.DBRAINX_SMOKE_SERVER_URL) {
+    // A cursor subscription replays what the log holds after that position and
+    // then continues live. The log only exists when this run created the
+    // operator account above; an externally supplied server decides that
+    // itself, so the check is skipped there instead of guessed.
+    const lastSeen = counterSink.events[counterSink.events.length - 1];
+    assert.ok(lastSeen?.cursor, "a live event carries a cursor");
+    const replayed = eventSink();
+    const replayStream = aw.event.onEvent.subscribe(
+      { cursor: lastSeen.cursor },
+      {
+        onData: (event) => replayed.push(event),
+        onError: (error) => replayed.fail(error),
+      },
+    );
+    const resumed = replayed.waitFor(
+      (event) =>
+        event.eventType === "NodeUpdated" && event.aggregateId === counterNodeId,
+      "replay continuation",
+    );
+    await aw.operation.invoke.mutate({
+      operationId: "node.unpin",
+      target: { kind: "node", nodeId: counterNodeId },
+      input: {},
+    });
+    await resumed;
+    assert.equal(
+      replayed.events.some((event) => event.eventId === lastSeen.eventId),
+      false,
+      "a cursor does not replay the event it points at",
+    );
+    replayStream.unsubscribe();
+    console.log("PASS event stream cursor replay and live continuation");
+  }
   const freshAnon = client();
   const [la, lb] = await Promise.all(
     ["alice", "bob"].map((name) =>

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@plugin/builtin": "workspace:*",
+    "@plugin/counter": "workspace:*",
     "@workspace/adapter-front": "workspace:*",
     "@workspace/application": "workspace:*",
     "@workspace/domain": "workspace:*",

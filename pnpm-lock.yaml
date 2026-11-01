@@ -189,6 +189,9 @@ importers:
       '@plugin/builtin':
         specifier: workspace:*
         version: link:../../plugins/builtin
+      '@plugin/counter':
+        specifier: workspace:*
+        version: link:../../plugins/counter
       '@workspace/adapter-front':
         specifier: workspace:*
         version: link:../../backend/adapter-front

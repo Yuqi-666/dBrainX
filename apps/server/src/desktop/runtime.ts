@@ -13,6 +13,7 @@ import PocketBase from "pocketbase";
 import { AppContainer, appRouter, createContext, createWSServer } from "@workspace/adapter-front";
 import { allowedFileRequest, allowedOrigin, sessionPath } from "./security";
 import { createServerNodeTypeRegistry } from "../node-type-registry";
+import { createServerOperationRegistry } from "../operation-registry";
 import { handleUploadRequest, isUploadPath, startUploadSweeper } from "../upload/routes";
 
 const runtimeDir = dirname(fileURLToPath(import.meta.url));
@@ -136,6 +137,9 @@ async function main() {
   }
   await AppContainer.initialize(pbUrl, {
     nodeTypeRegistry: createServerNodeTypeRegistry(),
+    operationRegistry: createServerOperationRegistry(
+      () => AppContainer.getInstance().nodeCommandService,
+    ),
   });
   // The upload pipeline writes to the local PocketBase from this process with
   // raw `node:http` (a 2 GiB multipart body cannot go through `fetch`), where
