@@ -50,6 +50,7 @@ import type { NodeCoverContribution } from "@workspace/ui/components/preview-blo
 import { translate } from "@workspace/ui/lib/i18n/runtime";
 
 import { docText } from "./node-content/doc-normalize";
+import { builtinAttributeFields } from "./attribute-fields";
 
 /** The manifest id this entry registers under (`plugins/builtin/plugin.json`). */
 export const builtinPluginId = "dbrainx.builtin";
@@ -129,6 +130,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       type: "image",
       pluginId: builtinPluginId,
       label: translate("Image"),
+      attributes: { fields: builtinAttributeFields.image },
       icon: ImageIcon,
       editor: lazyOf<NodeContentViewProps<ImageNodeData>>(() =>
         import("./node-content/image-node-content").then((module) => ({
@@ -150,6 +152,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       type: "pdf",
       pluginId: builtinPluginId,
       label: "PDF",
+      attributes: { fields: builtinAttributeFields.pdf },
       icon: FileType,
       editor: lazyOf<NodeContentViewProps<PdfNodeData>>(() =>
         import("./node-content/pdf-node-content").then((module) => ({
@@ -172,6 +175,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       type: "video",
       pluginId: builtinPluginId,
       label: translate("Video"),
+      attributes: { fields: builtinAttributeFields.video },
       icon: Video,
       editor: lazyOf<NodeContentViewProps<VideoNodeData>>(() =>
         import("./node-content/video-node-content").then((module) => ({
@@ -194,6 +198,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       type: "audio",
       pluginId: builtinPluginId,
       label: translate("Audio"),
+      attributes: { fields: builtinAttributeFields.audio },
       icon: Volume,
       editor: lazyOf<NodeContentViewProps<AudioNodeData>>(() =>
         import("./node-content/audio-node-content").then((module) => ({
@@ -218,6 +223,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       type: "webpage",
       pluginId: builtinPluginId,
       label: translate("Webpage"),
+      attributes: { fields: builtinAttributeFields.webpage },
       icon: Globe,
       editor: lazyOf<NodeContentViewProps<WebpageNodeData>>(() =>
         import("./node-content/webpage-node-content").then((module) => ({
@@ -235,6 +241,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       type: "website",
       pluginId: builtinPluginId,
       label: translate("Website"),
+      attributes: { fields: builtinAttributeFields.website },
       icon: Globe,
       editor: lazyOf<NodeContentViewProps<WebsiteNodeData>>(() =>
         import("./node-content/website-node-content").then((module) => ({
@@ -257,6 +264,7 @@ export const builtinNodeContentDescriptors: readonly BuiltinNodeContentDescripto
       type: "collection",
       pluginId: builtinPluginId,
       label: translate("Collection"),
+      attributes: { fields: builtinAttributeFields.collection },
       icon: Folder,
       editor: lazyOf<NodeContentViewProps<CollectionNodeData>>(() =>
         import("./node-content/collection-node-content").then((module) => ({

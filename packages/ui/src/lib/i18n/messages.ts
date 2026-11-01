@@ -1297,6 +1297,30 @@ export const messages: Record<string, { "zh-CN": string; en: string }> = {
     "zh-CN": "封面",
     en: "Cover",
   },
+  时间轴: {
+    "zh-CN": "时间轴",
+    en: "Timeline",
+  },
+  "输入封面URL...": {
+    "zh-CN": "输入封面URL...",
+    en: "Enter a cover URL...",
+  },
+  可选: {
+    "zh-CN": "可选",
+    en: "optional",
+  },
+  "该类型未注册属性面板": {
+    "zh-CN": "该类型未注册属性面板",
+    en: "No attribute panel is registered for this node type",
+  },
+  "在媒体侧栏中编辑": {
+    "zh-CN": "在媒体侧栏中编辑",
+    en: "Edit in the media sidebar",
+  },
+  "属性改动将在引擎接线后保存": {
+    "zh-CN": "属性改动将在引擎接线后保存",
+    en: "Attribute edits are saved once the engine is wired",
+  },
   点击添加: {
     "zh-CN": "点击添加",
     en: "Click to add",

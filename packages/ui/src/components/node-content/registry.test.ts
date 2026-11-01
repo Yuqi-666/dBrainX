@@ -27,6 +27,17 @@ import {
   resolveNodeTypeIcon,
   resolveNodeTypeLabel,
 } from "../../lib/node-type-display.ts";
+import {
+  attributeFieldPatch,
+  attributeFieldsOf,
+  attributeTimelineCount,
+  emitAttributeOperation,
+  isNodeTypeRegistered,
+  readAttributeValue,
+  resetAttributeOperationSink,
+  resolveAttributeFields,
+  setAttributeOperationSink,
+} from "../../lib/node-attribute-fields.ts";
 
 function NullContent() {
   return null;
@@ -120,4 +131,130 @@ test("a descriptor with a blank label falls back to the raw id", () => {
   });
 
   assert.equal(resolveNodeTypeLabel("display.blank"), "display.blank");
+});
+
+const attributeFields = [
+  {
+    field: "url",
+    label: "Content URL",
+    kind: "url",
+    placeholder: "Enter a content URL...",
+  },
+  {
+    field: "coverUrl",
+    label: "Cover",
+    kind: "cover",
+    optional: true,
+    operationId: "video.setCover",
+  },
+  {
+    field: "timestamps",
+    label: "Timeline",
+    kind: "timeline",
+    optional: true,
+    operationId: "video.timeline.add",
+  },
+] as const;
+
+test("the panel renders the fields the descriptor contributes, in order", () => {
+  registerNodeContent({
+    ...descriptorOf("plugin.attributes", "attributes.declared"),
+    attributes: { fields: attributeFields },
+  });
+
+  const resolved = resolveAttributeFields("attributes.declared");
+
+  assert.deepEqual(
+    resolved.map((field) => field.field),
+    ["url", "coverUrl", "timestamps"],
+  );
+  assert.deepEqual(
+    resolved.map((field) => field.label),
+    ["Content URL", "Cover", "Timeline"],
+  );
+  assert.deepEqual(
+    resolved.map((field) => field.optional === true),
+    [false, true, true],
+  );
+  assert.deepEqual(
+    resolved.map((field) => field.operationId),
+    [undefined, "video.setCover", "video.timeline.add"],
+  );
+});
+
+test("an unregistered type contributes no fields and never throws", () => {
+  assert.equal(isNodeTypeRegistered("attributes.unregistered"), false);
+  assert.doesNotThrow(() => resolveAttributeFields("attributes.unregistered"));
+  assert.deepEqual(resolveAttributeFields("attributes.unregistered"), []);
+});
+
+test("a registered type may contribute no field at all", () => {
+  registerNodeContent({
+    ...descriptorOf("plugin.attributes", "attributes.empty"),
+    attributes: { fields: [] },
+  });
+
+  assert.equal(isNodeTypeRegistered("attributes.empty"), true);
+  assert.deepEqual(resolveAttributeFields("attributes.empty"), []);
+});
+
+test("a component attribute contribution is not a field list", () => {
+  const Panel = NullContent as unknown as ComponentType<NodeContentViewProps>;
+  registerNodeContent({
+    ...descriptorOf("plugin.attributes", "attributes.component"),
+    attributes: Panel,
+  });
+
+  assert.deepEqual(resolveAttributeFields("attributes.component"), []);
+  assert.deepEqual(attributeFieldsOf(undefined), []);
+  assert.deepEqual(attributeFieldsOf({ fields: "nope" }), []);
+});
+
+test("a dotted field reads and patches inside content only", () => {
+  const content = { filterConfig: { collectionType: "cards" } };
+
+  assert.equal(
+    readAttributeValue(content, "filterConfig.collectionType"),
+    "cards",
+  );
+  assert.equal(readAttributeValue(content, "filterConfig.missing"), undefined);
+  assert.equal(readAttributeValue(content, "missing.deep.path"), undefined);
+  assert.equal(readAttributeValue(null, "url"), undefined);
+  assert.equal(readAttributeValue(content, "__proto__"), undefined);
+  assert.deepEqual(attributeFieldPatch("filterConfig.collectionType", "ordered"), {
+    filterConfig: { collectionType: "ordered" },
+  });
+  assert.deepEqual(attributeFieldPatch("url", "/files/a.mp4"), {
+    url: "/files/a.mp4",
+  });
+});
+
+test("timeline entries are counted, never invented", () => {
+  assert.equal(attributeTimelineCount(undefined), 0);
+  assert.equal(attributeTimelineCount({ length: 3 }), 0);
+  assert.equal(attributeTimelineCount([{ type: "note" }, { type: "subtitle" }]), 2);
+});
+
+test("one edit raises one operation intent with the field's operation id", () => {
+  const raised: unknown[] = [];
+  setAttributeOperationSink((intent) => raised.push(intent));
+  try {
+    emitAttributeOperation({
+      nodeId: "node-1",
+      operationId: "node.setAbstract",
+      field: "abstract",
+      value: "摘要",
+    });
+  } finally {
+    resetAttributeOperationSink();
+  }
+
+  assert.deepEqual(raised, [
+    {
+      nodeId: "node-1",
+      operationId: "node.setAbstract",
+      field: "abstract",
+      value: "摘要",
+    },
+  ]);
 });

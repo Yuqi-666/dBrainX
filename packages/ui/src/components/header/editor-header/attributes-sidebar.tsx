@@ -6,32 +6,27 @@ import { useI18n } from "@workspace/ui/lib/i18n";
 import { useState } from "react";
 import { cn } from "@workspace/ui/lib/utils";
 import { useDataStore, useUIStore } from "@workspace/store";
-import { useGraph } from "@workspace/hooks";
-import { NodeService } from "@workspace/services";
+import { NodeTagService } from "@workspace/services";
 import {
   AlignLeft,
   Clock,
   Database,
   FileText,
-  Globe,
   History,
-  LayoutGrid,
   LinkIcon,
   Plus,
   Tag,
   Type,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { EdgeData, NodeData, NodeTagId } from "@workspace/interfaces";
-import { Input } from "@workspace/ui/components/ui/input";
+import type {
+  EdgeData,
+  NodeData,
+  NodeTag,
+  NodeTagId,
+} from "@workspace/interfaces";
+import type { NodeAttributeField } from "@workspace/plugin-sdk/ui";
 import { Textarea } from "@workspace/ui/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +37,18 @@ import { Popover, PopoverTrigger } from "@workspace/ui/components/ui/popover";
 import { NodeTagSelector } from "@workspace/ui/components/selector/node-tag-selector";
 import { TagPill } from "@workspace/ui/components/tag/tag-pill";
 import { NodeSemanticSelector } from "@workspace/ui/components/selector/node-semantic-selector";
-import { useNodeContentWriter } from "@workspace/ui/components/node-content/use-node-content-writer";
+import { AttributeFieldsHost } from "@workspace/ui/components/plugin-ui/attribute-fields-host";
+import { emitAttributeOperation } from "@workspace/ui/lib/node-attribute-fields";
+
+/** Colors a new tag starts with, matching the ones `useGraph` used to pick. */
+const TAG_COLORS = [
+  "#3B82F6",
+  "#10B981",
+  "#8B5CF6",
+  "#F59E0B",
+  "#EF4444",
+  "#EC4899",
+];
 
 interface AttributesSidebarProps {
   className?: string;
@@ -178,122 +184,95 @@ function MetadataTabContent({
   const nodeSemanticsMap = useDataStore((state) => state.nodeSemantics);
   const allSemantics = Array.from(nodeSemanticsMap.values());
 
+  const [abstractDraft, setAbstractDraft] = useState<string | null>(null);
+
   const handleAbstractChange = (value: string) => {
-    void NodeService.upsert(nodeId, { abstract: value }, { debounce: true });
+    setAbstractDraft(value);
+    // TODO(engine: wire in 39): node.setAbstract
+    emitAttributeOperation({
+      nodeId,
+      operationId: "node.setAbstract",
+      field: "abstract",
+      value,
+    });
   };
 
   const handleSemanticIdChange = (value: string) => {
-    void NodeService.upsert(nodeId, { semanticId: value }, { debounce: true });
+    // TODO(engine: wire in 39): node.setSemanticId
+    emitAttributeOperation({
+      nodeId,
+      operationId: "node.setSemanticId",
+      field: "semanticId",
+      value,
+    });
   };
 
   const nodeTagsMap = useDataStore((state) => state.nodeTags);
   const allTags = Array.from(nodeTagsMap.values());
 
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
-  const { onCreateTag, onDeleteTag } = useGraph();
 
   const selectedSemantic = node.semanticId
     ? allSemantics.find((s) => s.id === node.semanticId)
     : undefined;
 
   const handleToggleTag = (tagId: NodeTagId) => {
-    const currentTags = node.tags || [];
-    if (currentTags.includes(tagId)) {
-      void NodeService.upsert(
-        nodeId,
-        { tags: currentTags.filter((t) => t !== tagId) },
-        { debounce: true },
-      );
-    } else {
-      void NodeService.upsert(
-        nodeId,
-        { tags: [...currentTags, tagId] },
-        { debounce: true },
-      );
-    }
-  };
-
-  const handleDeleteTag = (tagId: NodeTagId) => {
-    const currentTags = node.tags || [];
-    void NodeService.upsert(
+    const applied = (node.tags || []).includes(tagId);
+    // TODO(engine: wire in 39): node.addTag / node.removeTag
+    emitAttributeOperation({
       nodeId,
-      { tags: currentTags.filter((t) => t !== tagId) },
-      { debounce: true },
-    );
-  };
-
-  /**
-   * Content writes go through the shared writer: it merges each patch into the
-   * **live** `content` and serializes the upserts. Building a whole `content`
-   * object here from this render's `node.content` snapshot (the old behaviour)
-   * wiped every sibling half — `annotations`, a video's `timestamps` — on a
-   * single 内容链接 edit.
-   */
-  const { liveContent, patchContent } = useNodeContentWriter<
-    Record<string, unknown>
-  >(nodeId, node.nodeType, node.content as unknown as Record<string, unknown>);
-
-  const handleContentUrlChange = (field: string, value: string) => {
-    patchContent({ [field]: value } as Record<string, unknown>);
-  };
-
-  const handleCollectionTypeChange = (value: string) => {
-    if (node.nodeType !== "collection") return;
-    const newCollectionType = value as "ordered" | "unordered" | "cards";
-    // The filter config is its own half of `content`, so read the live value and
-    // merge into it rather than replacing it with this render's copy.
-    const current = liveContent();
-    patchContent({
-      filterConfig: {
-        ...(current.filterConfig as Record<string, unknown>),
-        collectionType: newCollectionType,
-      },
+      operationId: applied ? "node.removeTag" : "node.addTag",
+      field: "tags",
+      value: tagId,
     });
   };
 
-  // Helper to get content url based on node type. A webpage node references its
-  // stored document the same way a PDF node does.
-  const getContentUrl = () => {
-    if (!node.content) return "";
-    switch (node.nodeType) {
-      case "video":
-      case "audio":
-      case "image":
-      case "pdf":
-      case "webpage":
-        return (node.content as { url?: string }).url || "";
-      case "website":
-        return (node.content as { url?: string }).url || "";
-      default:
-        return "";
+  const handleDeleteTag = async (tagId: NodeTagId) => {
+    try {
+      await NodeTagService.delete(tagId);
+    } catch (error) {
+      console.error("Failed to delete tag:", error);
     }
   };
 
-  const getContentUrlField = () => {
-    switch (node.nodeType) {
-      case "video":
-      case "audio":
-      case "image":
-      case "pdf":
-      case "webpage":
-      case "website":
-        return "url";
-      default:
-        return "";
+  const handleRemoveTag = (tagId: NodeTagId) => {
+    // TODO(engine: wire in 39): node.removeTag
+    emitAttributeOperation({
+      nodeId,
+      operationId: "node.removeTag",
+      field: "tags",
+      value: tagId,
+    });
+  };
+
+  const handleCreateTag = async (name: string): Promise<NodeTag | null> => {
+    const tagName = name.trim();
+    if (!tagName) return null;
+    try {
+      const tag = await NodeTagService.upsert({
+        id: `tmp_${tagName.toLowerCase().replace(/\s+/g, "-")}`,
+        name: tagName,
+        color: TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)],
+      });
+      return (tag as NodeTag) ?? null;
+    } catch (error) {
+      console.error("Failed to create tag:", error);
+      return null;
     }
   };
 
-  const showContentUrl =
-    node.nodeType === "video" ||
-    node.nodeType === "audio" ||
-    node.nodeType === "image" ||
-    node.nodeType === "pdf" ||
-    node.nodeType === "webpage" ||
-    node.nodeType === "website";
-
-  const showFaviconUrl = node.nodeType === "website";
-
-  const showCollectionType = node.nodeType === "collection";
+  const handleAttributeFieldChange = (
+    field: NodeAttributeField,
+    value: string,
+  ) => {
+    // TODO(engine: wire in 39): NodeService.invoke(field.operationId, target, input)
+    emitAttributeOperation({
+      nodeId,
+      operationId: field.operationId,
+      field: field.field,
+      value,
+    });
+  };
 
   return (
     <div className="space-y-4 text-sm">
@@ -356,7 +335,7 @@ function MetadataTabContent({
                   key={tagId}
                   tag={tag}
                   tagId={tagId}
-                  onRemove={() => handleDeleteTag(tagId)}
+                  onRemove={() => handleRemoveTag(tagId)}
                 />
               );
             })}
@@ -378,8 +357,8 @@ function MetadataTabContent({
           <NodeTagSelector
             appliedTagIds={node.tags || []}
             onToggleTag={handleToggleTag}
-            onDeleteTag={onDeleteTag}
-            onCreateTag={onCreateTag}
+            onDeleteTag={handleDeleteTag}
+            onCreateTag={handleCreateTag}
           />
         </Popover>
       </div>
@@ -388,69 +367,27 @@ function MetadataTabContent({
       <div className="space-y-1.5">
         <FieldLabel icon={AlignLeft}>{t("摘要")}</FieldLabel>
         <Textarea
-          value={node.abstract || ""}
+          value={abstractDraft ?? node.abstract ?? ""}
           onChange={(e) => handleAbstractChange(e.target.value)}
           placeholder={t("输入摘要...")}
           className="min-h-24 resize-none text-xs leading-relaxed"
         />
       </div>
 
-      {/* Editable: Content URL (for relevant node types) */}
-      {showContentUrl && (
-        <div className="space-y-1.5">
-          <FieldLabel icon={LinkIcon}>{t("内容链接")}</FieldLabel>
-          <Input
-            value={getContentUrl()}
-            onChange={(e) =>
-              handleContentUrlChange(getContentUrlField(), e.target.value)
-            }
-            placeholder={
-              node.nodeType === "website"
-                ? t("输入网站地址...")
-                : t("输入内容URL...")
-            }
-            className="h-8 text-xs"
-          />
-        </div>
-      )}
+      {/* Descriptor-driven: the fields the node type's plugin contributes */}
+      <AttributeFieldsHost
+        key={`${node.id}:${node.nodeType}`}
+        type={node.nodeType}
+        content={node.content}
+        onFieldChange={handleAttributeFieldChange}
+      />
 
-      {/* Editable: Favicon URL (website only) */}
-      {showFaviconUrl && (
-        <div className="space-y-1.5">
-          <FieldLabel icon={Globe}>{t("网站图标")}</FieldLabel>
-          <Input
-            value={(node.content as { faviconUrl?: string })?.faviconUrl || ""}
-            onChange={(e) =>
-              handleContentUrlChange("faviconUrl", e.target.value)
-            }
-            placeholder={t("输入网站图标URL...")}
-            className="h-8 text-xs"
-          />
-        </div>
-      )}
-
-      {/* Editable: Collection Type (collection only) */}
-      {showCollectionType && (
-        <div className="space-y-1.5">
-          <FieldLabel icon={LayoutGrid}>{t("集合类型")}</FieldLabel>
-          <Select
-            value={
-              (node as { collectionType?: string }).collectionType ||
-              "unordered"
-            }
-            onValueChange={handleCollectionTypeChange}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder={t("选择集合类型")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ordered">{t("有序")}</SelectItem>
-              <SelectItem value="unordered">{t("无序")}</SelectItem>
-              <SelectItem value="cards">{t("卡片")}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      <p
+        data-attribute-operations-pending=""
+        className="text-[11px] leading-relaxed text-muted-foreground/70"
+      >
+        {t("属性改动将在引擎接线后保存")}
+      </p>
 
       {/* Read-only: Metadata footer */}
       <div className="space-y-2.5 border-t border-border pt-4">

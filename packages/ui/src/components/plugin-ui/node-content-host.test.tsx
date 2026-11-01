@@ -23,6 +23,7 @@ import type {
 
 import { registerNodeContent } from "../node-content/registry.ts";
 import { NodeContentHost } from "./node-content-host.tsx";
+import { AttributeFieldsHost } from "./attribute-fields-host.tsx";
 import {
   resolveNodeTypeIcon,
   resolveNodeTypeLabel,
@@ -223,4 +224,69 @@ test("a consumer renders a registered type's label and icon, and degrades for an
   );
 
   await unmount();
+});
+
+test("the attribute panel draws the fields a descriptor contributes", () => {
+  registerNodeContent({
+    ...descriptorOf("attr.registered", NullContent),
+    attributes: {
+      fields: [
+        { field: "url", label: "Content URL", kind: "url" },
+        { field: "coverUrl", label: "Cover", kind: "cover", optional: true },
+        {
+          field: "timestamps",
+          label: "Timeline",
+          kind: "timeline",
+          optional: true,
+        },
+      ],
+    },
+  });
+
+  const html = renderToStaticMarkup(
+    <AttributeFieldsHost
+      type="attr.registered"
+      content={{
+        url: "/files/a.mp4",
+        timestamps: [{ type: "note" }, { type: "subtitle" }],
+      }}
+    />,
+  );
+
+  assert.match(html, /data-attribute-field="url"/);
+  assert.match(html, /data-attribute-field="coverUrl"/);
+  assert.match(html, /data-attribute-field="timestamps"/);
+  assert.match(html, /Content URL/);
+  assert.match(html, /Timeline/);
+  assert.match(html, /value="\/files\/a\.mp4"/);
+  assert.match(html, /2 条记录/);
+  assert.doesNotMatch(html, /data-attribute-fields-empty/);
+});
+
+test("an unregistered type renders an empty attribute panel with a notice", () => {
+  let html = "";
+
+  assert.doesNotThrow(() => {
+    html = renderToStaticMarkup(
+      <AttributeFieldsHost type="attr.unregistered" content={{}} />,
+    );
+  });
+
+  assert.match(html, /data-attribute-fields-empty=""/);
+  assert.match(html, /attr\.unregistered/);
+  assert.match(html, /该类型未注册属性面板/);
+  assert.doesNotMatch(html, /data-attribute-field=/);
+});
+
+test("a registered type that contributes no field renders nothing", () => {
+  registerNodeContent({
+    ...descriptorOf("attr.empty", NullContent),
+    attributes: { fields: [] },
+  });
+
+  const html = renderToStaticMarkup(
+    <AttributeFieldsHost type="attr.empty" content={{}} />,
+  );
+
+  assert.equal(html, "");
 });
