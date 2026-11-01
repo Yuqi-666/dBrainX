@@ -85,6 +85,7 @@ export const testFiles = [
   "backend/domain/src/models/node-type/registry.test.ts",
   "backend/domain/src/models/node/node-entity.test.ts",
   "backend/domain/src/models/plugin/capability.test.ts",
+  "backend/domain/src/models/plugin/repository-contract.test.ts",
   "backend/domain/src/models/workspace/name.test.ts",
   "backend/infrastructure/src/database/mappers/node.mapper.test.ts",
   "backend/infrastructure/src/database/request-scope.test.ts",
