@@ -8,6 +8,9 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.4"
+  },
   "devDependencies": {
     "typescript": "^5.0.0",
     "@types/node": "^25.1.0"

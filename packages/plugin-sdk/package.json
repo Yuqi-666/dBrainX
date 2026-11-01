@@ -8,11 +8,23 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.4",
+    "@workspace/domain": "workspace:*",
+    "@workspace/interfaces": "workspace:*",
+    "@workspace/utils": "workspace:*"
+  },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^25.1.0"
+    "@types/node": "^25.1.0",
+    "@types/react": "^19.2.10",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "^5.0.0"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./ui": "./src/ui.ts",
+    "./types": "./src/types.ts",
+    "./server": "./src/server.ts"
   }
 }

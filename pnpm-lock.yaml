@@ -347,6 +347,10 @@ importers:
         version: 5.9.3
 
   backend/application:
+    dependencies:
+      '@cfworker/json-schema':
+        specifier: ^4.1.4
+        version: 4.1.4
     devDependencies:
       '@types/node':
         specifier: ^25.1.0
@@ -887,10 +891,32 @@ importers:
         version: 5.9.3
 
   packages/plugin-sdk:
+    dependencies:
+      '@cfworker/json-schema':
+        specifier: ^4.1.4
+        version: 4.1.4
+      '@workspace/domain':
+        specifier: workspace:*
+        version: link:../../backend/domain
+      '@workspace/interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
+      '@workspace/utils':
+        specifier: workspace:*
+        version: link:../utils
     devDependencies:
       '@types/node':
         specifier: ^25.1.0
         version: 25.3.5
+      '@types/react':
+        specifier: ^19.2.10
+        version: 19.2.14
+      '@workspace/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@workspace/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
@@ -1047,7 +1073,7 @@ importers:
         version: 4.0.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       shadcn:
         specifier: ^4.0.2
-        version: 4.0.2(@types/node@25.3.5)(typescript@5.9.3)
+        version: 4.0.2(@cfworker/json-schema@4.1.4)(@types/node@25.3.5)(typescript@5.9.3)
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
@@ -1112,6 +1138,10 @@ importers:
         version: 5.9.3
 
   plugins/builtin:
+    dependencies:
+      '@cfworker/json-schema':
+        specifier: ^4.1.4
+        version: 4.1.4
     devDependencies:
       '@types/node':
         specifier: ^25.1.0
@@ -1340,6 +1370,9 @@ packages:
   '@bramus/specificity@2.4.3':
     resolution: {integrity: sha512-0GEz8qJWokkUVYQYRukmkSHIFNoBH8QTreeHrAFbvz1XFYc3Y+puhMs8PQ5x8GNugiC2l5jvDBXKLbBIByeSBw==}
     hasBin: true
+
+  '@cfworker/json-schema@4.1.4':
+    resolution: {integrity: sha512-20rPE8EX0dSg6JGOVe31HpqsLYZTDSlcFJZA5mpZqQxcZ71vh/SXCMX+UuHO1mMcZBDKeb752z+3L8IWa+0Svg==}
 
   '@chevrotain/cst-dts-gen@11.0.3':
     resolution: {integrity: sha512-BvIKpRLeS/8UbfxXxgC33xOumsacaeCKAjAeLyOn7Pcp95HiRbrpl14S+9vaZLolnbssPIUuiUd8IvgkRyt6NQ==}
@@ -8871,6 +8904,8 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
+  '@cfworker/json-schema@4.1.4': {}
+
   '@chevrotain/cst-dts-gen@11.0.3':
     dependencies:
       '@chevrotain/gast': 11.0.3
@@ -9801,7 +9836,7 @@ snapshots:
       node-pty: 1.1.0
       semver: 7.8.5
 
-  '@modelcontextprotocol/sdk@1.27.1(zod@3.25.76)':
+  '@modelcontextprotocol/sdk@1.27.1(@cfworker/json-schema@4.1.4)(zod@3.25.76)':
     dependencies:
       '@hono/node-server': 1.19.11(hono@4.12.5)
       ajv: 8.18.0
@@ -9820,6 +9855,8 @@ snapshots:
       raw-body: 3.0.2
       zod: 3.25.76
       zod-to-json-schema: 3.25.1(zod@3.25.76)
+    optionalDependencies:
+      '@cfworker/json-schema': 4.1.4
     transitivePeerDependencies:
       - supports-color
 
@@ -15810,7 +15847,7 @@ snapshots:
 
   setprototypeof@1.2.0: {}
 
-  shadcn@4.0.2(@types/node@25.3.5)(typescript@5.9.3):
+  shadcn@4.0.2(@cfworker/json-schema@4.1.4)(@types/node@25.3.5)(typescript@5.9.3):
     dependencies:
       '@antfu/ni': 25.0.0
       '@babel/core': 7.29.0
@@ -15818,7 +15855,7 @@ snapshots:
       '@babel/plugin-transform-typescript': 7.28.6(@babel/core@7.29.0)
       '@babel/preset-typescript': 7.28.5(@babel/core@7.29.0)
       '@dotenvx/dotenvx': 1.54.1
-      '@modelcontextprotocol/sdk': 1.27.1(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.27.1(@cfworker/json-schema@4.1.4)(zod@3.25.76)
       '@types/validate-npm-package-name': 4.0.2
       browserslist: 4.28.1
       commander: 14.0.3
