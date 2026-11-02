@@ -22,10 +22,52 @@ import type { JsonSchema, OperationDefinition } from "@workspace/plugin-sdk";
 import { defineNodeType, defineOperationDefinition } from "@workspace/plugin-sdk";
 
 import { counterPluginId } from "../plugin-id.ts";
+import {
+  acmeNodeTypes,
+  acmeOperations,
+  acmeTriggers,
+} from "./automation.ts";
 import { counterSchedules, counterTickOperation } from "./tick.ts";
 
 export { counterPluginId };
 export { counterSchedules, counterTickOperation, COUNTER_TICK_INTERVAL_MS } from "./tick.ts";
+export {
+  ACME_A_FIRED,
+  ACME_B_EXECUTED,
+  ACME_DEFAULT_SCRIPT_NAME,
+  ACME_SCRIPT_FAILED,
+  ACME_SCRIPT_INVALID,
+  ACME_SCRIPT_MAX_BYTES,
+  ACME_TARGET_REQUIRED,
+  ACME_TRIGGER_EDGE_SEMANTIC,
+  AcmeAutomationError,
+  acmeAFire,
+  acmeAFireOperation,
+  acmeANodeType,
+  acmeBRun,
+  acmeBRunOperation,
+  acmeBNodeType,
+  acmeBTrigger,
+  acmeHandlers,
+  acmeNodeTypes,
+  acmeOperations,
+  acmeTriggers,
+  createAcmeAContent,
+  createAcmeBContent,
+  sandboxErrorCode,
+  sandboxExec,
+  sandboxWriteFile,
+  validateScript,
+} from "./automation.ts";
+export type {
+  AcmeAContent,
+  AcmeBContent,
+  AcmeContext,
+  AcmeLastRun,
+  AcmeSandboxCommand,
+  AcmeSandboxExecResult,
+  AcmeSandboxProxy,
+} from "./automation.ts";
 
 /** The whole persisted payload: the counter's current value. */
 export interface CounterContent {
@@ -78,9 +120,19 @@ export const counterIncrementOperation: OperationDefinition =
 export const operations: readonly OperationDefinition[] = [
   counterIncrementOperation,
   counterTickOperation,
+  ...acmeOperations,
 ];
 
-export const nodeTypes = [counterNodeType];
+export const nodeTypes = [counterNodeType, ...acmeNodeTypes];
+
+/**
+ * The triggers the counter fixture contributes (`acme.b.on-a-fired`).
+ *
+ * The host registers them with the full definition, so the description of the
+ * route (`edge-follow` on `acme.triggers`) is data the publisher reads and the
+ * scenario asserts, not documentation in this comment.
+ */
+export const triggers = acmeTriggers;
 
 /**
  * The increment rule the bound handler calls: add `by` to the current value.

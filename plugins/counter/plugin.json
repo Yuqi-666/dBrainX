@@ -8,10 +8,58 @@
   "uiEntry": "./ui/index.ts",
   "dependencies": [],
   "nodeTypes": [
-    "counter"
+    "counter",
+    "acme.a",
+    "acme.b"
   ],
-  "permissions": [],
-  "checksum": "sha256:d209e2508e3b7a489ed680a4875dc9b9b76bb49d516a0922a501a92c473126de",
+  "events": [
+    "acme.*"
+  ],
+  "permissions": [
+    {
+      "capability": "sandbox.exec",
+      "scope": [
+        "executable=python3"
+      ],
+      "reason": "acme.b.run executes the node's script with python3"
+    },
+    {
+      "capability": "sandbox.fs.read",
+      "scope": [
+        "path=nodes/*"
+      ],
+      "reason": "acme.b.run reads the node sandbox directory it writes"
+    },
+    {
+      "capability": "sandbox.fs.write",
+      "scope": [
+        "path=nodes/*"
+      ],
+      "reason": "acme.b.run writes nodes/<B>/script.py before executing it"
+    },
+    {
+      "capability": "node.write",
+      "scope": [
+        "nodeType=acme.b"
+      ],
+      "reason": "acme.b.run writes content.lastRun back to the node"
+    },
+    {
+      "capability": "event.emit",
+      "scope": [
+        "eventType=*"
+      ],
+      "reason": "acme.a.fire emits acme.a.fired and acme.b.run emits acme.b.executed"
+    },
+    {
+      "capability": "event.subscribe",
+      "scope": [
+        "eventType=acme.*"
+      ],
+      "reason": "the acme.b.on-a-fired trigger listens to acme.a.fired"
+    }
+  ],
+  "checksum": "sha256:7f028db06a3031e35235e1152c8405cd1ee8470c312ceebad53b82e67c1268fa",
   "publicKeyId": "dbrainx.test-key",
-  "signature": "ed25519:PJ7e55q/CFJw1wbMsQ72XzhfjqSxwiee3bZIz0xJmjXpBos3SrpJ+4IKsHLRM2VOWFGdraWF9dPA4ROFLag1Cg=="
+  "signature": "ed25519:Y756tMuZoL0rk1bJIc2gDhczqKMBI5rQJJj5QbSgjkVwdfXBoh7DZPO7ZQw7JRYCXfzwyGKeiZ2/lqlEXxCVDA=="
 }

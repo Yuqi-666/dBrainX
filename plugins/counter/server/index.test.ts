@@ -33,7 +33,18 @@ import {
   incrementCounter,
   nodeTypes,
   operations,
+  triggers,
 } from "./index.ts";
+import {
+  ACME_A_FIRED,
+  ACME_B_EXECUTED,
+  ACME_SCRIPT_MAX_BYTES,
+  ACME_TRIGGER_EDGE_SEMANTIC,
+  acmeAFireOperation,
+  acmeBRunOperation,
+  acmeBTrigger,
+  validateScript,
+} from "./automation.ts";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -45,11 +56,11 @@ test("declares the counter type and its increment operation", () => {
   assert.equal(counterPluginId, "dbrainx.counter");
   assert.deepEqual(
     nodeTypes.map((definition) => definition.type),
-    ["counter"],
+    ["counter", "acme.a", "acme.b"],
   );
   assert.deepEqual(
     operations.map((definition) => definition.id),
-    ["counter.increment", "counter.tick"],
+    ["counter.increment", "counter.tick", "acme.a.fire", "acme.b.run"],
   );
   assert.deepEqual([...counterNodeType.operations], ["counter.increment", "counter.tick"]);
   assert.deepEqual(
@@ -104,7 +115,7 @@ test("the manifest reader discovers the counter type and its operation", async (
 
   const counter = plugins.find((plugin) => plugin.id === "dbrainx.counter");
   assert.ok(counter);
-  assert.deepEqual(counter.nodeTypeIds, ["counter"]);
+  assert.deepEqual(counter.nodeTypeIds, ["counter", "acme.a", "acme.b"]);
   assert.equal(counter.ui, "@plugin/counter/ui");
   assert.equal(counter.nodeTypes, "./server/index.ts");
   assert.ok(counter.nodeTypesPath);
@@ -130,6 +141,59 @@ test("the generated UI map imports both plugins and matches the file on disk", a
     rendered,
     "regenerate with `node scripts/generate-plugin-ui.mjs`",
   );
+});
+
+test("the A/B automation fixtures declare one trigger over the acme.triggers edge", () => {
+  assert.equal(acmeAFireOperation.id, "acme.a.fire");
+  assert.deepEqual(acmeAFireOperation.appliesTo, { nodeTypes: ["acme.a"] });
+  assert.equal(acmeAFireOperation.idempotent, false);
+
+  assert.equal(acmeBRunOperation.id, "acme.b.run");
+  assert.deepEqual(acmeBRunOperation.appliesTo, { nodeTypes: ["acme.b"] });
+  assert.deepEqual([...acmeBRunOperation.requiredCapabilities], [
+    "node.write",
+    "event.emit",
+  ]);
+
+  assert.deepEqual(triggers.map((trigger) => trigger.id), ["acme.b.on-a-fired"]);
+  assert.equal(acmeBTrigger.event, ACME_A_FIRED);
+  assert.equal(acmeBTrigger.operation, "acme.b.run");
+  assert.deepEqual(acmeBTrigger.route, {
+    kind: "edge-follow",
+    from: "event.source",
+    direction: "forward",
+    edgeSemantic: ACME_TRIGGER_EDGE_SEMANTIC,
+  });
+  assert.deepEqual(acmeBTrigger.target, { kind: "node-type", nodeType: "acme.b" });
+  assert.deepEqual(acmeBTrigger.input, { sourceNodeId: "$event.aggregateId" });
+});
+
+test("a malformed script body is refused with ACME_SCRIPT_INVALID", () => {
+  const refusal = (script: unknown) => {
+    try {
+      validateScript(script);
+      return null;
+    } catch (error) {
+      assert.ok(error instanceof Error);
+      return error.message;
+    }
+  };
+
+  assert.equal(validateScript("print('ok')\n"), "print('ok')\n");
+  for (const bad of ["", "   ", 42, null, { script: "x" }, ["x"]]) {
+    const message = refusal(bad);
+    assert.ok(message !== null);
+    assert.match(message, /ACME_SCRIPT_INVALID/);
+  }
+  const oversized = "x".repeat(ACME_SCRIPT_MAX_BYTES + 1);
+  assert.match(String(refusal(oversized)), /ACME_SCRIPT_INVALID/);
+  assert.doesNotThrow(() => validateScript("x".repeat(ACME_SCRIPT_MAX_BYTES)));
+});
+
+test("acme.b.run and acme.a.fire name the host-bound exports", () => {
+  assert.equal(acmeAFireOperation.handler, "plugin:dbrainx.counter#acmeAFire");
+  assert.equal(acmeBRunOperation.handler, "plugin:dbrainx.counter#acmeBRun");
+  assert.equal(ACME_B_EXECUTED, "acme.b.executed");
 });
 
 test("the counter UI entry registers one descriptor under the counter plugin", () => {
