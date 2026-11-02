@@ -110,6 +110,7 @@ export const testFiles = [
   "backend/application/src/engine/scheduler.test.ts",
   "backend/application/src/engine/event-dispatch.test.ts",
   "backend/application/src/engine/run-log.test.ts",
+  "backend/application/src/engine/scope-closure.test.ts",
   "backend/application/src/events/event-metadata.test.ts",
   "backend/domain/src/contract-compile.test.ts",
   "backend/domain/src/event-bus/envelope.test.ts",
