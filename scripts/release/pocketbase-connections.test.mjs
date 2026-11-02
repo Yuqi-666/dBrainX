@@ -79,7 +79,8 @@ test("loopback APIs preserve the cookie hostname; remote and container APIs use 
 test("stored file paths resolve once through the current web or desktop gateway", () => {
   for (const baseUrl of ["https://example.test/pb", "http://127.0.0.1:1111/session/def"]) {
     const upload = load("packages/api-client/src/upload.ts", {}, {
-      "@workspace/store": {}, react: {}, "./auth/session": {},
+      "@workspace/store": {}, react: {}, "./auth/session": {}, "./active-workspace.ts": { activeWorkspaceId: () => undefined },
+      "./trpc/connection-params.ts": { WORKSPACE_HEADER: "x-workspace-id" },
       "@workspace/utils/upload": uploadContract,
       "./pocketbase-client": { getPocketbaseClient: () => ({ baseUrl }) },
     });

@@ -11,8 +11,8 @@ import {
 } from "@workspace/utils/upload";
 import { getPocketbaseClient } from "./pocketbase-client";
 import { readAuthSessionToken } from "./auth/session";
-import { activeWorkspaceId } from "./active-workspace";
-import { WORKSPACE_HEADER } from "./trpc/connection-params";
+import { activeWorkspaceId } from "./active-workspace.ts";
+import { WORKSPACE_HEADER } from "./trpc/connection-params.ts";
 
 /**
  * Size limits, re-exported from the frozen shared contract.

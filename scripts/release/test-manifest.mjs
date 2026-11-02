@@ -72,6 +72,7 @@ export const testFiles = [
   "pb/node-timestamps.test.mjs",
 
   // Shared package tests that need no DOM or browser globals.
+  "packages/api-client/src/trpc/connection-params.test.ts",
   "packages/api-client/src/trpc/event-convergence.test.ts",
   "packages/hooks/src/graph-gestures.test.mjs",
   "packages/plugin-sdk/src/define-operation.test.ts",

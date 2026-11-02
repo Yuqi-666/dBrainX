@@ -42,6 +42,8 @@ function uploader(platform, cookie) {
       if (id === "@workspace/utils/upload") return uploadContract;
       if (id === "react") return {};
       if (id === "./pocketbase-client") return { getPocketbaseClient: () => sdk };
+      if (id === "./trpc/connection-params.ts") return { WORKSPACE_HEADER: "x-workspace-id" };
+      if (id === "./active-workspace.ts") return { activeWorkspaceId: () => "workspace" };
       if (id === "./auth/session") return { readAuthSessionToken: () => {
         const previous = globalThis.document;
         globalThis.document = document;

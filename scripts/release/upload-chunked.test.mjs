@@ -54,6 +54,8 @@ const SOURCE_DIR = fileURLToPath(new URL("../../packages/api-client/src/", impor
 /** The client modules this test loads; everything else is a stub. */
 const LOCAL_MODULES = new Map([
   ["./upload", "upload.ts"],
+  ["./active-workspace.ts", "active-workspace.ts"],
+  ["./trpc/connection-params.ts", "trpc/connection-params.ts"],
   ["./upload-chunked", "upload-chunked.ts"],
   ["./backend-urls", "backend-urls.ts"],
 ]);

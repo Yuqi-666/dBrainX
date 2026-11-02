@@ -16,10 +16,10 @@ import {
   decodeJwtPayload,
   readAuthSessionToken,
 } from "../auth/session";
-import { activeWorkspaceId } from "../active-workspace";
+import { activeWorkspaceId } from "../active-workspace.ts";
 import { resolveBackendUrls } from "../backend-urls";
 import { getDesktopBackend } from "../desktop-backend";
-import { connectionParamsOf } from "./connection-params";
+import { connectionParamsOf } from "./connection-params.ts";
 
 const isDesktop = process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop";
 
