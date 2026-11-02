@@ -795,6 +795,13 @@ export async function createAcmeChain(options = {}) {
         nodes.write(nodeId, patch.content);
       },
       emit: async (eventType, payload, emitOptions) => {
+        // Chain metadata is host-owned (§4.5.2): the production worker context
+        // calls `emit(eventType, payload)` and the handler never supplies ids.
+        // The event that caused this one is the stored event that dispatched
+        // the run, which the handler cannot see, so the host reads it from the
+        // run row; the handler's `causationId` is only a fallback.
+        const run =
+          context.runId === undefined ? null : await runs.findById(context.runId);
         const stored = await handles.publisher.publish({
           eventType,
           aggregateType: "node",
@@ -802,7 +809,7 @@ export async function createAcmeChain(options = {}) {
           workspaceId: context.workspaceId,
           payload,
           correlationId: emitOptions.correlationId,
-          causationId: emitOptions.causationId,
+          causationId: run?.eventId ?? emitOptions.causationId,
           producer: context.actor,
           cascadeDepth: emitOptions.cascadeDepth,
         });
@@ -960,6 +967,7 @@ export async function createAcmeChain(options = {}) {
         if (event === null) return null;
         return {
           eventId: event.eventId,
+          correlationId: event.correlationId,
           eventType: event.eventType,
           aggregateType: event.aggregateType,
           aggregateId: event.aggregateId,

@@ -205,7 +205,8 @@ test("auto: the real host mode decides between a real run and a named refusal", 
     assert.equal(fired.length, 1);
     assert.equal(fired[0].aggregateId, A_NODE_ID);
     assert.equal(fired[0].correlationId, intent);
-    assert.equal(b.correlationId, fired[0].eventId, "B's correlation id is the causing event");
+    assert.equal(b.correlationId, fired[0].correlationId, "B's correlation id is the intent's");
+    assert.equal(a.correlationId, b.correlationId, "both runs of the cascade share one correlation id");
 
     const bContent = chain.nodes.get(B_NODE_ID).content;
     const b2Content = chain.nodes.get(B2_NODE_ID).content;
@@ -314,7 +315,7 @@ test("fake backend: B's script is written, executed and reported end to end", as
 
     const executed = eventsOf(chain, "acme.b.executed");
     assert.equal(executed.length, 1);
-    assert.equal(executed[0].correlationId, eventsOf(chain, "acme.a.fired")[0].eventId);
+    assert.equal(executed[0].correlationId, eventsOf(chain, "acme.a.fired")[0].correlationId);
     assert.equal(executed[0].causationId, eventsOf(chain, "acme.a.fired")[0].eventId);
     assert.equal(executed[0].cascadeDepth, 1);
 
