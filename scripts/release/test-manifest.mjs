@@ -105,6 +105,7 @@ export const testFiles = [
   "backend/application/src/commands/node/node-command.service.test.ts",
   "backend/application/src/commands/operation/edge-view-operations.test.ts",
   "backend/application/src/commands/operation/operation.service.test.ts",
+  "backend/application/src/commands/workspace/workspace-command.service.test.ts",
   "backend/application/src/engine/capability-gateway-grants.test.ts",
   "backend/application/src/engine/capability-gateway.test.ts",
   "backend/application/src/engine/rate-limiter.test.ts",
