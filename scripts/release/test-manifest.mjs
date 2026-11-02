@@ -92,7 +92,8 @@ export const testFiles = [
   "plugins/counter/server/index.test.ts",
   "plugins/counter/server/monitor.test.ts",
 
-  // Backend tests. These construct their own fakes; none needs PocketBase.
+  // Backend tests. Some spawn their own isolated PocketBase; none needs a live service.
+  "backend/adapter-front/src/di/event-runtime.test.ts",
   "backend/adapter-front/src/di/plugin-lifecycle.test.ts",
   "backend/adapter-front/src/di/plugin-workers.test.ts",
   "backend/adapter-front/src/di/sandbox-runtime.test.ts",
