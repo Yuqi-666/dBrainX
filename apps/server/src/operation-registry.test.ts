@@ -12,7 +12,7 @@
  * named code instead of running nothing.
  */
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { after, test } from "node:test";
 
 import type {
   CreateNodeCommand,
@@ -31,6 +31,13 @@ import {
   createLivePluginRegistries,
   createPluginHost,
 } from "../../../backend/plugin-host/src/index.ts";
+import type {
+  PluginHost,
+  WorkerCapabilityTable,
+} from "../../../backend/plugin-host/src/index.ts";
+import {
+  acmeHandlers,
+} from "../../../plugins/counter/server/index.ts";
 import {
   OPERATION_NOT_IMPLEMENTED,
   createCounterOperationHandlers,
@@ -140,24 +147,80 @@ const IMAGE_UPLOAD: StoredAttachment = {
   hlsUrl: "",
 };
 
+/** Every host a test composed; the worker threads must be closed by the run. */
+const hosts: PluginHost[] = [];
+
+after(async () => {
+  await Promise.all(hosts.map((host) => host.shutdown()));
+});
+
+/** The worker ports `acme.b.run` reaches, in order, with a fake sandbox. */
+function workerCapabilities(calls: string[]): WorkerCapabilityTable {
+  return {
+    "sandbox.writeFile": async () => {
+      calls.push("sandbox.writeFile");
+      return {
+        path: { path: "nodes/node_1/script.py" },
+        sha256: "digest",
+        size: 1,
+      };
+    },
+    "sandbox.exec": async () => {
+      calls.push("sandbox.exec");
+      return {
+        stdout: "hello\n",
+        stderr: "",
+        exitCode: 0,
+        timedOut: false,
+        killed: false,
+        durationMs: 1,
+        outputTruncated: false,
+      };
+    },
+    "node.write": async () => {
+      calls.push("node.write");
+      return undefined;
+    },
+    "event.emit": async () => {
+      calls.push("event.emit");
+      return { eventId: "event_1" };
+    },
+  };
+}
+
 /** Load the shipped packages through the host, exactly as `index.ts` does. */
 async function served(
   port: NodeOperationPort,
   options: {
     readonly attachments?: AttachmentReaderProvider;
     readonly graph?: GraphOperationPortProvider;
+    readonly capabilities?: WorkerCapabilityTable;
   } = {},
 ) {
-  const packages = await createShippedPluginPackages({
-    builtin: createServerOperationHandlers(
-      () => port,
-      options.graph ?? graphStub(),
-      options.attachments ?? (() => attachmentReader(null)),
-    ),
-    counter: createCounterOperationHandlers(() => port),
+  const packages = await createShippedPluginPackages(
+    {
+      builtin: createServerOperationHandlers(
+        () => port,
+        options.graph ?? graphStub(),
+        options.attachments ?? (() => attachmentReader(null)),
+      ),
+      counter: createCounterOperationHandlers(() => port),
+    },
+    // The shipped server passes the counter fixture's exports to the worker;
+    // the registry test must compose the same shape or it proves less than the
+    // process it is modelling.
+    { counter: Object.keys(acmeHandlers()) },
+  );
+  const host = createPluginHost({
+    packages,
+    workers: {
+      capabilities: options.capabilities ?? {},
+      timeoutMs: 5_000,
+      startupTimeoutMs: 10_000,
+    },
   });
-  const host = createPluginHost({ packages });
   await host.loadAll();
+  hosts.push(host);
   const live = createLivePluginRegistries(host);
   return { host, live, registry: live.operations, nodeTypes: live.nodeTypes };
 }
@@ -214,6 +277,35 @@ test("loads the shipped packages through the host and binds every listed operati
     (error: unknown) =>
       (error as { code?: string }).code === OPERATION_NOT_IMPLEMENTED,
   );
+});
+
+test("the served registry runs acme.b.run in the counter worker and reaches the sandbox", async () => {
+  const calls: string[] = [];
+  const { port } = recorder();
+  const { registry } = await served(port, {
+    capabilities: workerCapabilities(calls),
+  });
+
+  // Before the worker binding this resolved to OperationNotImplementedError.
+  // The worker handler runs the fixture's real write -> exec -> write -> emit
+  // sequence; the fake ports record it in order.
+  const output = await registry.resolve("acme.b.run")(
+    { sourceNodeId: "node_a" },
+    nodeContext({ script: "print('hello')\n" }),
+  );
+
+  assert.deepEqual(output, {
+    nodeId: "node_1",
+    exitCode: 0,
+    stdout: "hello\n",
+    scriptPath: "nodes/node_1/script.py",
+  });
+  assert.deepEqual(calls, [
+    "sandbox.writeFile",
+    "sandbox.exec",
+    "node.write",
+    "event.emit",
+  ]);
 });
 
 test("node.add takes the workspace and actor from the context, never from input", async () => {

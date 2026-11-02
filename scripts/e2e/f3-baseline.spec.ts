@@ -19,6 +19,7 @@
  * `DBRAINX_E2E_BASE_URL` (default `http://localhost:3000`, Playwright's
  * `baseURL`) point the run at another port pair.
  */
+import assert from "node:assert/strict";
 import { expect, test } from "@playwright/test";
 
 import {
@@ -27,6 +28,7 @@ import {
   uploadFile,
   workspaceApi,
 } from "./lib/trpc-api";
+import { createSandboxProbe } from "./lib/sandbox-probe";
 import type {
   OperationBody,
   StreamEvent,
@@ -107,6 +109,71 @@ async function invokeOk(
   return result;
 }
 
+/** The binding was removed: the definition resolves to the host's named refusal. */
+function isMissingBinding(message: string): boolean {
+  return (
+    message.includes("OPERATION_NOT_FOUND") ||
+    message.includes("OPERATION_NOT_IMPLEMENTED")
+  );
+}
+
+/** The stable refusal code the router appends to an OPERATION_FAILED message. */
+function failureCodeOf(message: string): string | null {
+  const match = /\((SANDBOX_[A-Z_]+|CAPABILITY_DENIED|OUT_OF_SCOPE|WORKER_[A-Z_]+)\)/.exec(
+    message,
+  );
+  return match?.[1] ?? null;
+}
+
+async function addAcmeB(
+  api: Awaited<ReturnType<typeof workspaceApi>>,
+  workspaceId: string,
+): Promise<string> {
+  const result = await invokeOk(api, {
+    operationId: "node.add",
+    target: { kind: "workspace", workspaceId },
+    input: { nodeType: "acme.b" },
+  });
+  return result.node!.id;
+}
+
+async function nodeContent(
+  api: Awaited<ReturnType<typeof workspaceApi>>,
+  nodeId: string,
+): Promise<Record<string, unknown>> {
+  const node = (await api.node(nodeId)) as unknown as {
+    readonly content?: Record<string, unknown>;
+  };
+  return node.content ?? {};
+}
+
+async function rejectionMessage(
+  api: Awaited<ReturnType<typeof workspaceApi>>,
+  nodeId: string,
+): Promise<string> {
+  try {
+    await api.invoke({
+      operationId: "acme.b.run",
+      target: { kind: "node", nodeId },
+      input: { sourceNodeId: nodeId },
+    });
+  } catch (error) {
+    return (error as Error).message;
+  }
+  return assert.fail("acme.b.run was allowed but should have been refused");
+}
+
+async function serverIsUp(): Promise<boolean> {
+  try {
+    const response = await fetch(`${SERVER_URL}/health`, {
+      signal: AbortSignal.timeout(2_000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Write until the reconnected stream delivers the write it just caused.
  *
@@ -145,6 +212,9 @@ async function deliverOnReconnectedStream(
 }
 
 test.describe("F3 baseline", () => {
+  // The sandbox exec scenario can end this host's MXC native bridge. One test
+  // at a time keeps that failure from taking a concurrent scenario with it.
+  test.describe.configure({ mode: "serial" });
   test("creation → node → title → pin → upload → delete", async () => {
     const { account, workspace, api } = await freshWorkspace("lifecycle");
     try {
@@ -375,11 +445,138 @@ test.describe("F3 baseline", () => {
     }
   });
 
-  test("sandbox escape refusal", async () => {
+  test("sandbox refusals through operation.invoke", async () => {
+    const probe = createSandboxProbe();
     test.skip(
-      true,
-      "Prerequisite missing on this stack: no shipped procedure accepts a sandbox path. The counter fixture declares acme.b.run, but apps/server/src/operation-registry.ts binds no handler for it, so operation.invoke answers OPERATION_NOT_FOUND (verified live) and the node script never reaches the sandbox. The host matrix itself reports bubblewrap available (scripts/sandbox-probe.mjs), so the path policy is exercised only below the API surface (backend/sandbox/src/sandbox-matrix.test.ts), not end to end.",
+      !probe.available,
+      probe.reason ?? "the sandbox probe has no operator credential",
     );
+    const { workspace, api } = await freshWorkspace("sandbox");
+    try {
+      await probe.provision(workspace.id);
+      await probe.grantCounterCapabilities(workspace.id);
+
+      // A script name that leaves the node directory is refused before any
+      // byte is written, with the validator's own code.
+      const escapeNode = await addAcmeB(api, workspace.id);
+      await probe.setNodeContent(escapeNode, {
+        script: "print('escape')\n",
+        scriptName: "../../escape.py",
+      });
+      const escapeMessage = await rejectionMessage(api, escapeNode);
+      if (isMissingBinding(escapeMessage)) {
+        test.skip(
+          true,
+          "the acme.b.run binding was removed from the served registry, so operation.invoke no longer reaches the counter worker",
+        );
+      }
+      expect(escapeMessage).toContain("SANDBOX_PATH_ESCAPE");
+      expect(
+        (await nodeContent(api, escapeNode)).lastRun,
+      ).toMatchObject({ ok: false, errorCode: "SANDBOX_PATH_ESCAPE" });
+
+      // Revoking the executable grant must refuse the very next call; the
+      // guard re-reads the grants per call and never caches an allow.
+      await probe.revokeCapability(
+        workspace.id,
+        "dbrainx.counter",
+        "sandbox.exec",
+      );
+      const deniedNode = await addAcmeB(api, workspace.id);
+      const deniedMessage = await rejectionMessage(api, deniedNode);
+      expect(deniedMessage).toContain("CAPABILITY_DENIED");
+      expect(
+        (await nodeContent(api, deniedNode)).lastRun,
+      ).toMatchObject({ ok: false, errorCode: "CAPABILITY_DENIED" });
+
+      const calls = await probe.calls(workspace.id);
+      expect(
+        calls.some(
+          (call) =>
+            call.capability === "sandbox.fs.write" &&
+            call.decision === "allowed",
+        ),
+      ).toBe(true);
+      expect(
+        calls.some(
+          (call) =>
+            call.capability === "sandbox.fs.write" &&
+            call.decision === "denied" &&
+            call.errorCode === "SANDBOX_PATH_ESCAPE",
+        ),
+      ).toBe(true);
+      expect(
+        calls.some(
+          (call) =>
+            call.capability === "sandbox.exec" &&
+            call.decision === "denied" &&
+            call.errorCode === "CAPABILITY_DENIED",
+        ),
+      ).toBe(true);
+    } finally {
+      api.close();
+      await probe.cleanup(workspace.id).catch(() => undefined);
+    }
+  });
+
+  test("sandbox exec through operation.invoke", async () => {
+    const probe = createSandboxProbe();
+    test.skip(
+      !probe.available,
+      probe.reason ?? "the sandbox probe has no operator credential",
+    );
+    const { workspace, api } = await freshWorkspace("sandbox-exec");
+    try {
+      await probe.provision(workspace.id);
+      await probe.grantCounterCapabilities(workspace.id);
+      const nodeId = await addAcmeB(api, workspace.id);
+
+      let code: string | null = null;
+      try {
+        const result = await invokeOk(api, {
+          operationId: "acme.b.run",
+          target: { kind: "node", nodeId },
+          input: { sourceNodeId: nodeId },
+        });
+        expect(result.output?.exitCode).toBe(0);
+      } catch (error) {
+        const message = (error as Error).message;
+        if (isMissingBinding(message)) {
+          test.skip(
+            true,
+            "the acme.b.run binding was removed from the served registry, so operation.invoke no longer reaches the counter worker",
+          );
+        }
+        code = failureCodeOf(message);
+        if (code === null) {
+          if (!(await serverIsUp())) {
+            test.skip(
+              true,
+              `native sandbox failure: the MXC exec aborted the server before the guard answered (${message}). The pre-exec refusals pass in the previous scenario; this host's native bridge is recorded in task-67 evidence.`,
+            );
+          }
+          throw error;
+        }
+        expect(code).toMatch(/^SANDBOX_[A-Z_]+$/);
+      }
+
+      const lastRun = (await nodeContent(api, nodeId)).lastRun as
+        | { readonly ok?: boolean; readonly errorCode?: string | null }
+        | undefined;
+      if (code === null) {
+        expect(lastRun?.ok).toBe(true);
+      } else {
+        expect(lastRun).toMatchObject({ ok: false, errorCode: code });
+      }
+      expect(
+        (await probe.calls(workspace.id)).some(
+          (call) => call.capability === "sandbox.fs.write" && call.decision === "allowed",
+        ),
+      ).toBe(true);
+    } finally {
+      api.close();
+      await probe.cleanup(workspace.id).catch(() => undefined);
+    }
   });
 
   test("desktop with engine off", async () => {

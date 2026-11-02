@@ -11,6 +11,13 @@
  * build does not implement yet, which are bound to a named refusal instead of
  * being omitted and failing the whole enable.
  *
+ * The split is not "package A is in-process, package B is not": the counter
+ * fixture's `counter.*` operations are application code and stay in this table,
+ * while its `acme.*` operations are plugin exports the host runs in the
+ * package's worker (plan items 79/80). `createCounterOperationHandlers` leaves
+ * those to the worker; when a process composes no worker boundary the fallback
+ * below names the missing implementation instead of silently running nothing.
+ *
  * `counter.increment` applies the fixture's own rule to the node content the
  * executor loaded and writes the result through the node command service,
  * which publishes the one `NodeUpdated` event of the call.
@@ -140,11 +147,13 @@ function counterTickHandler(): OperationHandler {
 }
 
 /**
- * The handlers the counter fixture binds.
+ * The handlers the counter fixture binds in the host process.
  *
- * The fixture also declares the `acme.*` automation operations; their host
- * ports arrive with the worker boundary, so {@link bindOperationHandlers}
- * binds them to {@link OperationNotImplementedError} until then.
+ * The fixture also declares the `acme.*` automation operations. Those are
+ * plugin exports, not application code: `createShippedPluginPackages` receives
+ * them through `workerOperations` and the host replaces the fallback with the
+ * worker handler once the package is prepared. A process that composes no
+ * worker boundary keeps the named refusal, which is the honest answer.
  */
 export function createCounterOperationHandlers(
   nodes: NodeOperationPortProvider,
