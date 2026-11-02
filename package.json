@@ -17,6 +17,7 @@
     "release:version": "node scripts/release/version.mjs",
     "test:release": "node --experimental-strip-types --test --test-isolation=none scripts/release/run-release-tests.mjs",
     "smoke:server": "node scripts/release/server-smoke.mjs",
+    "sandbox:real": "node scripts/release/sandbox-real.mjs",
     "lint:gate": "node scripts/release/lint-gate.mjs",
     "test:ui": "node scripts/run-ui-tests.mjs",
     "test:e2e": "playwright test --config scripts/e2e/playwright.config.ts"
