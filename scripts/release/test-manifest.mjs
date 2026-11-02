@@ -178,6 +178,7 @@ export const testFiles = [
   // Server and desktop entry points that run without PocketBase.
   "apps/server/src/desktop/security.test.ts",
   "apps/server/src/desktop/upgrade-backup.test.ts",
+  "apps/server/src/engine/config.test.ts",
   "apps/server/src/engine/maintenance.test.ts",
   "apps/server/src/engine/worker.test.ts",
   "apps/server/src/operation-contract.test.ts",

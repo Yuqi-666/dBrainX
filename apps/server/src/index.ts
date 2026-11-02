@@ -18,6 +18,7 @@ import { startBuiltinGrantSeeding } from "./plugin-runtime";
 import { TRPC_PATH, sameOrigin } from "./origin";
 import {
   describeEngineConfig,
+  engineRuntimeOptions,
   loadEngineConfig,
 } from "./engine/config";
 import { EngineWorker } from "./engine/worker";
@@ -76,21 +77,7 @@ async function main() {
   });
   await AppContainer.initialize(PB_URL, {
     pluginPackages,
-    engine: {
-      enabled: engineConfig.enabled,
-      owner: engineConfig.owner,
-      schedulerLimit: engineConfig.scheduler.limit,
-      schedulerLeaseMs: engineConfig.scheduler.leaseMs,
-      dispatchLimit: engineConfig.dispatch.limit,
-      dispatchLeaseMs: engineConfig.dispatch.leaseMs,
-      dispatchMaxAttempts: engineConfig.dispatch.maxAttempts,
-      dispatchConcurrency: engineConfig.dispatch.concurrency,
-      maintenance: {
-        eventRetentionMs: engineConfig.maintenance.eventRetentionMs,
-        sandboxIdleMs: engineConfig.maintenance.sandboxIdleMs,
-        batchSize: engineConfig.maintenance.batchSize,
-      },
-    },
+    engine: engineRuntimeOptions(engineConfig),
   });
   const app = AppContainer.getInstance();
   // Sessions outlive the request that opened them, so something has to collect

@@ -124,7 +124,7 @@ Server 进程需要 `DBRAINX_ADMIN_EMAIL` 以及 `DBRAINX_ADMIN_PASSWORD` 或 `D
 | `DBRAINX_ENGINE_IDLE_BACKOFF_MS` | `1000` | 未认领到工作的 tick 之后的首次暂停。每次空转翻倍。 |
 | `DBRAINX_ENGINE_IDLE_BACKOFF_MAX_MS` | `30000` | 空转暂停的上限。 |
 | `DBRAINX_ENGINE_DRAIN_MS` | `30000` | 停机等待在途运行的时间。截止时仍有运行时，进程以 1 退出。 |
-| `DBRAINX_ENGINE_CONCURRENCY` | `2` | 每 tick 的任务并发，以及每 dispatch tick 的工作区分桶数。 |
+| `DBRAINX_ENGINE_CONCURRENCY` | `2` | 一个 tick 同时运行的任务派发数，以及一个 dispatch tick 处理的工区分桶数。启动时读取一次，改动后需重启。 |
 | `DBRAINX_ENGINE_LEASE_MS` | `30000` | 投递与任务的租约。 |
 | `DBRAINX_ENGINE_CLAIM_LIMIT` | `20` | 一次投递认领可取的记录数。 |
 | `DBRAINX_ENGINE_JOB_LIMIT` | `10` | 一个 tick 可认领的任务数。 |

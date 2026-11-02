@@ -2,6 +2,8 @@
 
 import { hostname } from "node:os";
 
+import type { AppContainerEngineOptions } from "@workspace/adapter-front";
+
 /**
  * The served engine's knobs (plan item 65), all environment-driven.
  *
@@ -85,6 +87,34 @@ export function loadEngineConfig(
       eventRetentionMs: readInt("DBRAINX_ENGINE_EVENT_RETENTION_MS", 604_800_000, env, 60_000),
       sandboxIdleMs: readInt("DBRAINX_ENGINE_SANDBOX_IDLE_MS", 604_800_000, env, 60_000),
       batchSize: readInt("DBRAINX_ENGINE_CLEANUP_BATCH", 100, env, 1),
+    },
+  };
+}
+
+/**
+ * The engine block `apps/server` hands to the container.
+ *
+ * Every knob is copied here, so a setting printed at startup cannot be one the
+ * composition root forgot to pass: `schedulerConcurrency` was declared, printed
+ * and never read until this mapping existed (plan item 93).
+ */
+export function engineRuntimeOptions(
+  config: EngineConfig,
+): AppContainerEngineOptions {
+  return {
+    enabled: config.enabled,
+    owner: config.owner,
+    schedulerLimit: config.scheduler.limit,
+    schedulerLeaseMs: config.scheduler.leaseMs,
+    schedulerConcurrency: config.scheduler.concurrency,
+    dispatchLimit: config.dispatch.limit,
+    dispatchLeaseMs: config.dispatch.leaseMs,
+    dispatchMaxAttempts: config.dispatch.maxAttempts,
+    dispatchConcurrency: config.dispatch.concurrency,
+    maintenance: {
+      eventRetentionMs: config.maintenance.eventRetentionMs,
+      sandboxIdleMs: config.maintenance.sandboxIdleMs,
+      batchSize: config.maintenance.batchSize,
     },
   };
 }

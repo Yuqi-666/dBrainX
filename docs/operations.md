@@ -124,7 +124,7 @@ Without the credential the line says `[engine] not composed: ...`, `run.engineSt
 | `DBRAINX_ENGINE_IDLE_BACKOFF_MS` | `1000` | First pause after a tick that claimed nothing. It doubles per idle tick. |
 | `DBRAINX_ENGINE_IDLE_BACKOFF_MAX_MS` | `30000` | The upper bound of the idle pause. |
 | `DBRAINX_ENGINE_DRAIN_MS` | `30000` | How long a shutdown waits for in-flight runs. The process exits 1 when the deadline expires with work still running. |
-| `DBRAINX_ENGINE_CONCURRENCY` | `2` | Job firings per tick, and workspace buckets per dispatch tick. |
+| `DBRAINX_ENGINE_CONCURRENCY` | `2` | Job firings one tick runs at once, and workspace buckets one dispatch tick drains. Read once at start-up; change it with a restart. |
 | `DBRAINX_ENGINE_LEASE_MS` | `30000` | The delivery and job lease. |
 | `DBRAINX_ENGINE_CLAIM_LIMIT` | `20` | Delivery rows one claim may take. |
 | `DBRAINX_ENGINE_JOB_LIMIT` | `10` | Jobs one tick may claim. |
