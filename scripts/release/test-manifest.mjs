@@ -23,6 +23,7 @@
 /** Repo-relative paths of the test files the CI gate runs, in review order. */
 export const testFiles = [
   // Script tests: development, policy, and release automation.
+  "scripts/e2e/acme-a-b-chain.mjs",
   "scripts/lib/dev-gateway.test.mjs",
   "scripts/lib/dev-ports.test.mjs",
   "scripts/lib/pdfjs-assets.test.mjs",
@@ -108,6 +109,7 @@ export const testFiles = [
   "backend/application/src/engine/sandbox-guard.test.ts",
   "backend/application/src/engine/operation-executor.test.ts",
   "backend/application/src/engine/scheduler.test.ts",
+  "backend/application/src/engine/engine-dispatcher.test.ts",
   "backend/application/src/engine/event-dispatch.test.ts",
   "backend/application/src/engine/run-log.test.ts",
   "backend/application/src/engine/scope-closure.test.ts",
@@ -166,6 +168,7 @@ export const testFiles = [
   // Server and desktop entry points that run without PocketBase.
   "apps/server/src/desktop/security.test.ts",
   "apps/server/src/desktop/upgrade-backup.test.ts",
+  "apps/server/src/engine/worker.test.ts",
   "apps/server/src/operation-contract.test.ts",
   "apps/server/src/operation-registry.test.ts",
   "apps/server/src/origin.test.ts",
