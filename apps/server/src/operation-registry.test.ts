@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * The host binding: definitions from the plugin packages, handlers from the
- * application layer.
+ * The host composition: definitions from the plugin packages, handlers from
+ * the application layer, served through the snapshot the plugin host swaps.
  *
- * The registry is what `operation.invoke` reads, so these cases assert the two
- * properties that make an empty or half-bound registry impossible to miss
- * again: every operation it lists can actually run, and an operation it does
- * not bind answers `OPERATION_NOT_FOUND` instead of running nothing.
+ * The registry is what `operation.invoke` reads, so these cases assert the
+ * properties that make an empty or half-bound registry impossible to miss: a
+ * shipped package loads through the host, every operation it lists can be
+ * resolved, the counter fixture is present without a static definition list in
+ * the registry, and an operation this build does not implement refuses with a
+ * named code instead of running nothing.
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -25,7 +27,18 @@ import type {
 } from "../../../backend/domain/src/ports/stored-attachment.ts";
 import { createExecutionScope } from "../../../backend/domain/src/models/plugin/capability.ts";
 import type { OperationContext } from "../../../backend/domain/src/ports/operation-context.ts";
-import { createServerOperationRegistry } from "./operation-registry.ts";
+import {
+  createLivePluginRegistries,
+  createPluginHost,
+} from "../../../backend/plugin-host/src/index.ts";
+import {
+  OPERATION_NOT_IMPLEMENTED,
+  createCounterOperationHandlers,
+  createServerOperationHandlers,
+  type AttachmentReaderProvider,
+  type GraphOperationPortProvider,
+} from "./operation-registry.ts";
+import { createShippedPluginPackages } from "./plugin-packages.ts";
 
 interface Recorded {
   readonly created: CreateNodeCommand[];
@@ -54,6 +67,23 @@ function recorder(): { port: NodeOperationPort; recorded: Recorded } {
       },
     },
   };
+}
+
+function graphStub(): GraphOperationPortProvider {
+  const edge = { id: "edge_1" };
+  const view = { id: "view_1" };
+  return () => ({
+    edges: {
+      createEdge: async () => edge,
+      updateEdge: async () => edge,
+      deleteEdge: async () => undefined,
+    },
+    views: {
+      createView: async () => view,
+      updateView: async () => view,
+      deleteView: async () => undefined,
+    },
+  });
 }
 
 function nodeContext(content: unknown = {}): OperationContext {
@@ -90,10 +120,54 @@ function workspaceContext(): OperationContext {
   };
 }
 
-test("binds every listed operation and refuses the ones this build cannot run", () => {
-  const { port } = recorder();
-  const registry = createServerOperationRegistry(() => port);
+function attachmentReader(
+  facts: StoredAttachment | null,
+): IStoredAttachmentReader {
+  return { find: async () => facts };
+}
 
+const IMAGE_UPLOAD: StoredAttachment = {
+  id: "rec_upload_1",
+  url: "/api/files/files/rec_upload_1/photo_a1.png",
+  fileName: "photo.png",
+  fileSize: 2048,
+  mimeType: "image/png",
+  pageCount: 0,
+  width: 640,
+  height: 480,
+  duration: 0,
+  coverUrl: "",
+  hlsUrl: "",
+};
+
+/** Load the shipped packages through the host, exactly as `index.ts` does. */
+async function served(
+  port: NodeOperationPort,
+  options: {
+    readonly attachments?: AttachmentReaderProvider;
+    readonly graph?: GraphOperationPortProvider;
+  } = {},
+) {
+  const packages = await createShippedPluginPackages({
+    builtin: createServerOperationHandlers(
+      () => port,
+      options.graph ?? graphStub(),
+      options.attachments ?? (() => attachmentReader(null)),
+    ),
+    counter: createCounterOperationHandlers(() => port),
+  });
+  const host = createPluginHost({ packages });
+  await host.loadAll();
+  const live = createLivePluginRegistries(host);
+  return { host, live, registry: live.operations, nodeTypes: live.nodeTypes };
+}
+
+test("loads the shipped packages through the host and binds every listed operation", async () => {
+  const { port } = recorder();
+  const { registry, nodeTypes, live } = await served(port);
+
+  assert.ok(live.revision() > 0);
+  assert.ok(registry.list().length > 0);
   for (const definition of registry.list()) {
     assert.notEqual(
       registry.get(definition.id),
@@ -116,37 +190,35 @@ test("binds every listed operation and refuses the ones this build cannot run", 
     "website.setFavicon",
     "collection.setFilter",
     "webpage.replaceDocument",
+    "counter.increment",
+    "counter.tick",
   ]) {
     assert.notEqual(registry.get(operationId), undefined, operationId);
   }
-  assert.ok(registry.get("counter.increment"));
-  // The four attach operations resolve a stored upload, so they are only bound
-  // when the host composes a reader for them.
-  for (const operationId of [
-    "image.attachFile",
-    "pdf.attachFile",
-    "video.attachFile",
-    "audio.attachFile",
-  ]) {
-    assert.equal(registry.get(operationId), undefined, operationId);
-  }
-  assert.throws(
-    () => registry.resolve("text.setDocument"),
-    (error: unknown) =>
-      error instanceof Error && error.name === "OperationRegistryError",
-  );
+  // The counter fixture reached the snapshot without a definition list in
+  // `apps/server`; its type and operation are the same ones `node-type.list`
+  // and `operation.list` answer from.
+  assert.ok(nodeTypes.get("counter"));
   const forCounter = registry
     .listForNodeType("counter")
     .map((definition) => definition.id);
   assert.ok(forCounter.includes("counter.increment"));
   assert.ok(forCounter.includes("node.setTitle"));
   assert.ok(!forCounter.includes("node.add"));
-  assert.ok(!forCounter.includes("text.setDocument"));
+
+  await assert.rejects(
+    registry.resolve("text.setDocument")(
+      { document: { type: "doc", content: [] }, expectedVersion: 1 },
+      nodeContext(),
+    ),
+    (error: unknown) =>
+      (error as { code?: string }).code === OPERATION_NOT_IMPLEMENTED,
+  );
 });
 
 test("node.add takes the workspace and actor from the context, never from input", async () => {
   const { port, recorded } = recorder();
-  const registry = createServerOperationRegistry(() => port);
+  const { registry } = await served(port);
 
   const output = await registry.resolve("node.add")(
     { nodeType: "counter", workspaceId: "ws_other", userId: "user_mallory" },
@@ -166,7 +238,7 @@ test("node.add takes the workspace and actor from the context, never from input"
 
 test("a metadata operation writes one patch and shares the run's correlation id", async () => {
   const { port, recorded } = recorder();
-  const registry = createServerOperationRegistry(() => port);
+  const { registry } = await served(port);
 
   await registry.resolve("node.setTitle")({ title: "Edited" }, nodeContext());
 
@@ -177,7 +249,7 @@ test("a metadata operation writes one patch and shares the run's correlation id"
 
 test("counter.increment applies the fixture rule to the reloaded snapshot", async () => {
   const { port, recorded } = recorder();
-  const registry = createServerOperationRegistry(() => port);
+  const { registry } = await served(port);
 
   const output = await registry.resolve("counter.increment")(
     { by: 5 },
@@ -195,33 +267,11 @@ test("counter.increment applies the fixture rule to the reloaded snapshot", asyn
   ]);
 });
 
-function attachmentReader(
-  facts: StoredAttachment | null,
-): IStoredAttachmentReader {
-  return { find: async () => facts };
-}
-
-const IMAGE_UPLOAD: StoredAttachment = {
-  id: "rec_upload_1",
-  url: "/api/files/files/rec_upload_1/photo_a1.png",
-  fileName: "photo.png",
-  fileSize: 2048,
-  mimeType: "image/png",
-  pageCount: 0,
-  width: 640,
-  height: 480,
-  duration: 0,
-  coverUrl: "",
-  hlsUrl: "",
-};
-
 test("an attach reads the stored upload instead of the client's address", async () => {
   const { port, recorded } = recorder();
-  const registry = createServerOperationRegistry(
-    () => port,
-    undefined,
-    () => attachmentReader(IMAGE_UPLOAD),
-  );
+  const { registry } = await served(port, {
+    attachments: () => attachmentReader(IMAGE_UPLOAD),
+  });
   assert.notEqual(registry.get("image.attachFile"), undefined);
 
   await registry.resolve("image.attachFile")(
@@ -237,6 +287,7 @@ test("an attach reads the stored upload instead of the client's address", async 
         fileSize: 2048,
         width: 640,
         height: 480,
+        source: "local",
       },
       userId: "user_alice",
       correlationId: "corr_1",
@@ -246,11 +297,7 @@ test("an attach reads the stored upload instead of the client's address", async 
 
 test("an attach refuses an upload the reader cannot resolve", async () => {
   const { port, recorded } = recorder();
-  const registry = createServerOperationRegistry(
-    () => port,
-    undefined,
-    () => attachmentReader(null),
-  );
+  const { registry } = await served(port);
 
   await assert.rejects(
     registry.resolve("pdf.attachFile")(
@@ -264,7 +311,7 @@ test("an attach refuses an upload the reader cannot resolve", async () => {
 
 test("a tag write adds and removes one value of the stored list", async () => {
   const { port, recorded } = recorder();
-  const registry = createServerOperationRegistry(() => port);
+  const { registry } = await served(port);
   const context = { ...nodeContext(), node: { ...nodeContext().node!, tags: ["tag_a"] } };
 
   await registry.resolve("node.addTag")({ tag: "tag_b" }, context);
@@ -279,7 +326,7 @@ test("a tag write adds and removes one value of the stored list", async () => {
 
 test("node.delete runs the command with the run's correlation id", async () => {
   const { port, recorded } = recorder();
-  const registry = createServerOperationRegistry(() => port);
+  const { registry } = await served(port);
 
   assert.deepEqual(await registry.resolve("node.delete")({}, nodeContext()), {});
   assert.deepEqual(recorded.deleted, [
