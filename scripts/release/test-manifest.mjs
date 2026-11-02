@@ -106,6 +106,7 @@ export const testFiles = [
   "backend/application/src/engine/capability-gateway.test.ts",
   "backend/application/src/engine/rate-limiter.test.ts",
   "backend/application/src/engine/sandbox-guard.test.ts",
+  "backend/application/src/engine/operation-executor.test.ts",
   "backend/application/src/engine/scheduler.test.ts",
   "backend/application/src/engine/event-dispatch.test.ts",
   "backend/application/src/events/event-metadata.test.ts",
