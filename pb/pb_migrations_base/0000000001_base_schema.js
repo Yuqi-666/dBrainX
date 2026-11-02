@@ -691,6 +691,8 @@ migrate(
           { name: "triggerIds", type: "json" },
           { name: "maxDepth", type: "number", min: 1 },
           { name: "enabled", type: "bool" },
+          { name: "created", type: "autodate", onCreate: true },
+          { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
         ],
         indexes: [
           "CREATE INDEX idx_automations_workspace ON automations (workspaceId)",

@@ -240,8 +240,14 @@ async function installRelease(root, changeScript = "0000000011_dynamic_engine.js
   for (const name of await readdir(pbBaseDir)) {
     await copyFile(join(pbBaseDir, name), join(runDir, name));
   }
-  if (changeScript) {
-    await copyFile(join(pbChangesDir, changeScript), join(runDir, changeScript));
+  const scripts =
+    changeScript === null
+      ? []
+      : Array.isArray(changeScript)
+        ? changeScript
+        : [changeScript];
+  for (const name of scripts) {
+    await copyFile(join(pbChangesDir, name), join(runDir, name));
   }
   return { dataDir: join(root, "data"), runDir };
 }
@@ -391,9 +397,9 @@ ${FIXTURE_NODES}
 `;
 
 /** Brings a database born from the current base back to the pre-0011 shape. */
-async function rewindToLegacyShape(database) {
+async function rewindToLegacyShape(database, steps = 1) {
   migrateOk(database, ["up"]);
-  migrateOk(database, ["down", "1"], "y\n");
+  migrateOk(database, ["down", String(steps)], "y\n");
 }
 
 const EXPECTED_CONTENT = {
@@ -657,7 +663,10 @@ test("0011 refuses duplicate (workspaceId, semanticId) pairs and names the recor
 
 test("a fresh database and an upgraded database share the same schema", async () => {
   const root = await mkdtemp(join(tmpdir(), "dbrainx-pb-0011-compare-"));
-  const upgraded = await installRelease(root);
+  const upgraded = await installRelease(root, [
+    "0000000011_dynamic_engine.js",
+    "0000000014_automation_timestamps.js",
+  ]);
   const fresh = { dataDir: join(root, "fresh-data"), runDir: join(root, "fresh-run") };
   try {
     // Fresh: only the base of this release, exactly what a new install runs.
@@ -667,8 +676,10 @@ test("a fresh database and an upgraded database share the same schema", async ()
     }
     migrateOk(fresh, ["up"]);
 
-    // Upgraded: the pre-0011 shape of an installed database, then 0011 alone.
-    await rewindToLegacyShape(upgraded);
+    // Upgraded: the pre-0011 shape of an installed database, then the change
+    // scripts this test installs (0011 rebuilds the engine tables; 0014 adds
+    // the automation timestamps to a table 0011 recreates).
+    await rewindToLegacyShape(upgraded, 2);
     await writeFile(join(upgraded.runDir, "0000000010_fixtures.js"), FIXTURE_SCRIPT);
     migrateOk(upgraded, ["up"]);
 

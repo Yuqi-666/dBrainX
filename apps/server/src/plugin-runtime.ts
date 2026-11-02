@@ -52,8 +52,10 @@ export interface PluginPolicyProbeResult {
 }
 
 /**
- * Authorizes one granted and one ungranted plugin call through the real gate.
+ * Checks one granted and one ungranted plugin call through the real gate.
  *
+ * `check`, not `authorize`: a startup probe must not write two run rows per
+ * workspace (one of them never completed, because a probe executes nothing).
  * Throws when the granted call is not allowed or the ungranted one is not a
  * refusal, so a caller that only logs the line has actually verified both.
  */
@@ -78,7 +80,7 @@ export async function probePluginGrantPolicy(input: {
     input: {},
   };
 
-  await input.gateway.authorize(invocation, {
+  await input.gateway.check(invocation, {
     actor: { kind: "plugin", pluginId: input.grantedPluginId },
     workspaceId: input.workspaceId,
     scope,
@@ -87,7 +89,7 @@ export async function probePluginGrantPolicy(input: {
 
   let denied = "";
   try {
-    await input.gateway.authorize(invocation, {
+    await input.gateway.check(invocation, {
       actor: { kind: "plugin", pluginId: UNGRANTED_PLUGIN_ID },
       workspaceId: input.workspaceId,
       scope,

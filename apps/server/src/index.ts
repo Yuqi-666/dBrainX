@@ -18,6 +18,11 @@ import { createBuiltinPluginPackage } from "./plugin-packages";
 import { startBuiltinGrantSeeding } from "./plugin-runtime";
 import { TRPC_PATH, sameOrigin } from "./origin";
 import {
+  describeEngineConfig,
+  loadEngineConfig,
+} from "./engine/config";
+import { EngineWorker } from "./engine/worker";
+import {
   handleUploadRequest,
   isUploadPath,
   startUploadSweeper,
@@ -47,6 +52,8 @@ async function databaseReady(): Promise<boolean> {
 async function main() {
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535)
     throw new Error("Invalid PORT");
+  const engineConfig = loadEngineConfig();
+  console.log(describeEngineConfig(engineConfig));
   for (let attempt = 0; !(await databaseReady()); attempt++) {
     if (attempt >= 30) throw new Error("PocketBase did not become ready");
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -70,11 +77,38 @@ async function main() {
       attachments,
     ),
     ...(builtinPackage === undefined ? {} : { pluginPackages: [builtinPackage] }),
+    engine: {
+      enabled: engineConfig.enabled,
+      owner: engineConfig.owner,
+      schedulerLimit: engineConfig.scheduler.limit,
+      schedulerLeaseMs: engineConfig.scheduler.leaseMs,
+      dispatchLimit: engineConfig.dispatch.limit,
+      dispatchLeaseMs: engineConfig.dispatch.leaseMs,
+      dispatchMaxAttempts: engineConfig.dispatch.maxAttempts,
+      dispatchConcurrency: engineConfig.dispatch.concurrency,
+    },
   });
+  const app = AppContainer.getInstance();
   // Sessions outlive the request that opened them, so something has to collect
   // the abandoned ones.
-  startUploadSweeper(() => AppContainer.getInstance().uploadCommandService);
-  startBuiltinGrantSeeding(AppContainer.getInstance());
+  startUploadSweeper(() => app.uploadCommandService);
+  startBuiltinGrantSeeding(app);
+  const engineWorker =
+    app.engine === null
+      ? null
+      : new EngineWorker({
+          config: engineConfig,
+          scheduler: app.engine.scheduler,
+          dispatcher: app.engine.dispatcher,
+        });
+  if (engineWorker === null) {
+    console.log(
+      "[engine] not composed: this process has no PocketBase operator credential " +
+        "(DBRAINX_ADMIN_EMAIL plus DBRAINX_ADMIN_PASSWORD or DBRAINX_ADMIN_PASSWORD_FILE)",
+    );
+  } else {
+    app.engineControl.attach(engineWorker);
+  }
   const server = createServer((req, res) => {
     if (req.url === "/health" && req.method === "GET") {
       void databaseReady().then((ready) =>
@@ -187,21 +221,40 @@ async function main() {
   });
   console.log(`[server] ready on port ${PORT}`);
   let stopping = false;
+  let exitCode = 0;
   const shutdown = () => {
-    if (stopping) return;
+    if (stopping) {
+      console.log("[server] shutdown already in progress");
+      return;
+    }
     stopping = true;
-    handler.broadcastReconnectNotification();
-    wss.clients.forEach((client) => client.close(1001));
-    const deadline = setTimeout(() => {
-      wss.clients.forEach((client) => client.terminate());
-      process.exit(1);
-    }, 5000);
-    wss.close(() =>
-      server.close(() => {
-        clearTimeout(deadline);
-        process.exit(0);
-      }),
-    );
+    void (async () => {
+      if (engineWorker !== null) {
+        const drain = await engineWorker.stop();
+        if (!drain.drained) {
+          exitCode = 1;
+          console.error(
+            `[server] shutdown: drain deadline expired with work still running after ${drain.waitedMs}ms`,
+          );
+        }
+        console.log(
+          `[server] shutdown: engine ${drain.drained ? "drained" : "did not drain"} in ${drain.waitedMs}ms`,
+        );
+      }
+      handler.broadcastReconnectNotification();
+      wss.clients.forEach((client) => client.close(1001));
+      const deadline = setTimeout(() => {
+        wss.clients.forEach((client) => client.terminate());
+        process.exit(exitCode === 0 ? 1 : exitCode);
+      }, 5000);
+      deadline.unref();
+      wss.close(() =>
+        server.close(() => {
+          clearTimeout(deadline);
+          process.exit(exitCode);
+        }),
+      );
+    })();
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);

@@ -63,7 +63,8 @@ The development launcher `scripts/dev-pocketbase.mjs` prepares the run directory
 It passes `--dir`, `--migrationsDir`, and `--hooksDir`, and it sets `--automigrate=0`.
 The working directory of the shell therefore does not change the target database.
 
-The highest released change migration is `0000000013_sandbox.js`; the next schema change starts at `0014`.
+The highest released change migration is `0000000014_automation_timestamps.js`; the next schema change starts at `0015`.
+`0014` adds `created` / `updated` to `automations`: the edge hook compares an automation's `updated` against its closure's `recomputedAt`, and a base collection has no implicit timestamp pair (the same fact `0012` recorded for nodes and edges).
 
 ## Rules
 
