@@ -5,6 +5,36 @@ import { createReadStream } from "node:fs";
 import { open, readFile, readdir, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
+/** MXC ships per-architecture helpers; the package is the unit the desktop ships. */
+export const MXC_PACKAGE_PREFIX = "node_modules/@microsoft/mxc-sdk/";
+
+/** Native container format, independent of the architecture inside it. */
+export async function nativeBinaryFormat(path) {
+  const handle = await open(path, "r");
+  const bytes = Buffer.alloc(4);
+  try {
+    await handle.read(bytes, 0, bytes.length, 0);
+  } finally {
+    await handle.close();
+  }
+  if (bytes[0] === 0x7f && bytes[1] === 0x45 && bytes[2] === 0x4c && bytes[3] === 0x46)
+    return "elf";
+  if (bytes[0] === 0x4d && bytes[1] === 0x5a) return "pe";
+  // Mach-O appears in both byte orders, thin and universal.
+  const thin = new Set([0xfeedface, 0xfeedfacf]);
+  const fat = new Set([0xcafebabe, 0xcafebabf]);
+  const be = bytes.readUInt32BE(0);
+  const le = bytes.readUInt32LE(0);
+  if (thin.has(be) || thin.has(le) || fat.has(be) || fat.has(le))
+    return "mach-o";
+  return undefined;
+}
+
+/** The one native format a build host can execute. */
+export function nativeFormatForPlatform(platform = process.platform) {
+  return { linux: "elf", darwin: "mach-o", win32: "pe" }[platform];
+}
+
 export function pocketbaseVersion(output) {
   return output.trim().match(/^pocketbase(?:\.exe)? version (\S+)$/)?.[1];
 }
@@ -94,16 +124,7 @@ export async function writeRuntimeManifest(
     }
   }
   await walk(destination);
-  const databaseInputs = Object.entries(hashes).filter(
-    ([name]) =>
-      name.startsWith("pb_migrations_base/") ||
-      name.startsWith("pb_migrations_changes/") ||
-      name === "pocketbase-migrations.mjs" ||
-      /^pocketbase(?:\.exe)?$/.test(name),
-  );
-  const fingerprint = createHash("sha256")
-    .update(JSON.stringify({ version, databaseInputs }))
-    .digest("hex");
+  const fingerprint = runtimeFingerprint(version, hashes);
   await writeFile(
     join(destination, "runtime-manifest.json"),
     JSON.stringify(
@@ -121,4 +142,81 @@ export async function writeRuntimeManifest(
       2,
     ),
   );
+}
+
+/**
+ * The upgrade fingerprint: what a device would lose if the runtime changed.
+ *
+ * The database inputs decide migrations; the MXC package decides which sandbox
+ * engine is installed. An asset swap must force the pre-upgrade backup and the
+ * release-state update even when the database files are byte-identical.
+ */
+export function runtimeFingerprint(version, hashes) {
+  const entries = Object.entries(hashes);
+  const databaseInputs = entries.filter(
+    ([name]) =>
+      name.startsWith("pb_migrations_base/") ||
+      name.startsWith("pb_migrations_changes/") ||
+      name === "pocketbase-migrations.mjs" ||
+      /^pocketbase(?:\.exe)?$/.test(name),
+  );
+  const mxcInputs = entries.filter(([name]) =>
+    name.startsWith(MXC_PACKAGE_PREFIX),
+  );
+  return createHash("sha256")
+    .update(JSON.stringify({ version, databaseInputs, mxcInputs }))
+    .digest("hex");
+}
+
+/**
+ * Prove a written manifest still describes the tree beside it.
+ *
+ * A runtime that was mutated after packaging must fail here instead of shipping
+ * a fingerprint that no longer names what the device will run.
+ */
+export async function verifyRuntimeManifest(destination) {
+  const manifest = JSON.parse(
+    await readFile(join(destination, "runtime-manifest.json"), "utf8"),
+  );
+  const actual = new Map();
+  async function walk(dir, prefix = "") {
+    for (const entry of (await readdir(dir, { withFileTypes: true })).sort(
+      (a, b) => a.name.localeCompare(b.name),
+    )) {
+      const name = `${prefix}${entry.name}`;
+      if (entry.isDirectory()) await walk(join(dir, entry.name), `${name}/`);
+      else if (entry.isFile() && name !== "runtime-manifest.json")
+        actual.set(name, join(dir, entry.name));
+    }
+  }
+  await walk(destination);
+  const declared = manifest.hashes ?? {};
+  const unlisted = [...actual.keys()].filter((name) => !(name in declared));
+  const absent = Object.keys(declared).filter((name) => !actual.has(name));
+  const changed = [];
+  for (const [name, path] of actual) {
+    if (name in declared && (await hashFile(path)) !== declared[name])
+      changed.push(name);
+  }
+  if (unlisted.length || absent.length || changed.length) {
+    const parts = [];
+    if (changed.length)
+      parts.push(
+        `${changed.length} changed (${changed.slice(0, 5).join(", ")}${changed.length > 5 ? ", ..." : ""})`,
+      );
+    if (unlisted.length)
+      parts.push(
+        `${unlisted.length} not listed (${unlisted.slice(0, 5).join(", ")}${unlisted.length > 5 ? ", ..." : ""})`,
+      );
+    if (absent.length)
+      parts.push(
+        `${absent.length} listed but missing (${absent.slice(0, 5).join(", ")}${absent.length > 5 ? ", ..." : ""})`,
+      );
+    throw new Error(`runtime-manifest.json is stale: ${parts.join("; ")}`);
+  }
+  if (manifest.fingerprint !== runtimeFingerprint(manifest.version, declared))
+    throw new Error(
+      "runtime-manifest.json is stale: its fingerprint does not describe its hashes",
+    );
+  return { files: actual.size, fingerprint: manifest.fingerprint };
 }

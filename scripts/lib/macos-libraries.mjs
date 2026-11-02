@@ -4,6 +4,23 @@ import { execFileSync } from "node:child_process";
 import { chmod, copyFile, mkdir, realpath } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { basename, dirname, join, relative, resolve } from "node:path";
+/**
+ * Entitlements a packaged Mach-O target needs.
+ *
+ * `node` runs the JS engine and the canvas addon, so it keeps the JIT and
+ * executable-memory exceptions. MXC's `mxc-exec-mac` launcher is an ordinary
+ * hardened-runtime executable: giving it JIT rights would widen the sandbox it
+ * exists to enforce. Every native target is still signed and timestamped below.
+ */
+const SIGNING_ENTITLEMENTS = new Map([
+  ["node", "node-entitlements.plist"],
+]);
+
+/** The entitlements file for one packaged target, relative to `release/`. */
+export function macSigningEntitlements(target) {
+  return SIGNING_ENTITLEMENTS.get(basename(target));
+}
+
 // otool -L lists LC_ID_DYLIB as well as dependencies. Prebuilt .node files may
 // retain their original build machine's ID, which need not exist on this host.
 export function macLibraryMetadata(libraries, commands) {
@@ -119,23 +136,25 @@ export async function bundleMacLibraries(
       await inspect(source, target);
     }
   }
-  // install_name_tool invalidates existing signatures. Re-sign with the release
-  // identity if configured, otherwise use ad-hoc signatures for local builds.
+  // install_name_tool invalidates existing signatures. Re-sign every packaged
+  // Mach-O target — node, the MXC launcher and its dylib, and every collected
+  // library — with the release identity if configured, otherwise ad-hoc.
   for (const target of [...new Set([...seen.values(), ...extraSignTargets])].sort((a, b) => b.length - a.length)) {
+    const entitlements = macSigningEntitlements(target);
     execFileSync("codesign", [
       "--force",
       "--sign",
       process.env.APPLE_SIGNING_IDENTITY || "-",
       "--options",
       "runtime",
-      ...(basename(target) === "node"
-        ? [
+      ...(entitlements === undefined
+        ? []
+        : [
             "--entitlements",
             fileURLToPath(
-              new URL("../release/node-entitlements.plist", import.meta.url),
+              new URL(`../release/${entitlements}`, import.meta.url),
             ),
-          ]
-        : []),
+          ]),
       ...(process.env.APPLE_SIGNING_IDENTITY ? ["--timestamp"] : []),
       target,
     ]);

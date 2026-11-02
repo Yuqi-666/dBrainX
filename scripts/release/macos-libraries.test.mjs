@@ -2,7 +2,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { macLibraryMetadata } from "../lib/macos-libraries.mjs";
+import { macLibraryMetadata, macSigningEntitlements } from "../lib/macos-libraries.mjs";
 
 test("canvas's original build ID is not a library dependency", () => {
   const id = "/Users/runner/work/canvas/canvas/target/aarch64-apple-darwin/release/deps/libcanvas.dylib";
@@ -13,4 +13,23 @@ test("canvas's original build ID is not a library dependency", () => {
   assert.deepEqual(result.rpaths, ["@loader_path/lib"]);
   // Executables have no LC_ID_DYLIB: keep all their real dependencies.
   assert.equal(macLibraryMetadata(output, "").dependencies.length, 3);
+});
+
+test("MXC's macOS launcher is signed without the node JIT entitlements", () => {
+  assert.equal(
+    macSigningEntitlements("runtime/node"),
+    "node-entitlements.plist",
+  );
+  assert.equal(
+    macSigningEntitlements(
+      "runtime/node_modules/@microsoft/mxc-sdk/bin/arm64/mxc-exec-mac",
+    ),
+    undefined,
+  );
+  assert.equal(
+    macSigningEntitlements(
+      "runtime/node_modules/@microsoft/mxc-sdk/bin/arm64/libmxc_ffi.dylib",
+    ),
+    undefined,
+  );
 });

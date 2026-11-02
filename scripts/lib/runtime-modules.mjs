@@ -3,6 +3,7 @@
 import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
 import {
+  chmod,
   cp,
   mkdir,
   readFile,
@@ -12,6 +13,34 @@ import {
   stat,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import {
+  nativeBinaryFormat,
+  nativeFormatForPlatform,
+} from "./runtime-manifest.mjs";
+
+/**
+ * Keep only helpers this host can execute.
+ *
+ * MXC ships every backend's binaries in each `bin/<arch>` directory: a Linux
+ * package still holds Windows PE and macOS Mach-O helpers. Copying them all
+ * bloats the installer and makes the macOS signing pass meet binaries it
+ * cannot sign. Non-native files (SPDX manifests, licenses) stay.
+ */
+export async function pruneMcxBinaries(binDir, platform = process.platform) {
+  const wanted = nativeFormatForPlatform(platform);
+  for (const entry of await readdir(binDir, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const path = join(binDir, entry.name);
+    const format = await nativeBinaryFormat(path);
+    if (format === undefined) continue;
+    if (format !== wanted) {
+      await rm(path, { force: true });
+      continue;
+    }
+    // Installed packages keep the executable bit; a rewrite must not drop it.
+    await chmod(path, 0o755);
+  }
+}
 
 /** Walk up from a resolved entry point to the directory that holds its package.json. */
 async function packageDirectory(entry) {
@@ -67,24 +96,12 @@ export async function prepareModules(root, _staging, destination) {
     // MXC ships both bin/<arch> trees and node-pty ships every platform's
     // prebuilds; the runtime only loads the one for this machine.
     if (name === "@microsoft/mxc-sdk") {
-      const ffi = {
-        linux: "libmxc_ffi.so",
-        darwin: "libmxc_ffi.dylib",
-        win32: "mxc_ffi.dll",
-      }[process.platform];
       for (const foreign of ["arm64", "x64"].filter((value) => value !== arch))
         await rm(join(target, "bin", foreign), {
           recursive: true,
           force: true,
         });
-      // A foreign-format FFI library cannot load here, and the macOS bundler
-      // runs `otool` on every native file, which cannot read a Linux ELF.
-      for (const file of await readdir(join(target, "bin", arch)))
-        if (
-          /^(?:libmxc_ffi\.(?:so|dylib)|mxc_ffi\.dll)$/.test(file) &&
-          file !== ffi
-        )
-          await rm(join(target, "bin", arch, file), { force: true });
+      await pruneMcxBinaries(join(target, "bin", arch));
     }
     if (name === "node-pty")
       for (const prebuild of await readdir(join(target, "prebuilds")))

@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { selectSignedTargets } from './signing-targets.mjs';
+import { isWindowsSignableFile } from '../lib/windows-signing.mjs';
 
 const targets = ['linux-x64', 'win32-x64', 'darwin-x64', 'darwin-arm64'];
 
@@ -24,4 +25,18 @@ test('desktop targets are skipped according to their own missing signing secrets
   assert.deepEqual(selectSignedTargets(targets, secrets), {
     selected: ['linux-x64', 'darwin-x64', 'darwin-arm64'], skipped: ['win32-x64'],
   });
+});
+
+test('Windows signing covers MXC executables, its DLLs, and addons', () => {
+  for (const name of [
+    'wxc-exec.exe',
+    'wxc-windows-sandbox-daemon.exe',
+    'wslcsdk.dll',
+    'mxc_ffi.dll',
+    'koffi.node',
+  ])
+    assert.equal(isWindowsSignableFile(name), true, name);
+  // Foreign-format helpers are pruned before this pass, and text never signs.
+  for (const name of ['mxc-exec-mac', 'lxc-exec', 'unix-test-proxy', 'package.json'])
+    assert.equal(isWindowsSignableFile(name), false, name);
 });

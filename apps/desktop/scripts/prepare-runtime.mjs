@@ -3,7 +3,10 @@
 /** Prepare on the target platform: native libraries and executables cannot be cross-copied. */
 import { signWindowsRuntime } from "../../../scripts/lib/windows-signing.mjs";
 import {
+  nativeBinaryFormat,
+  nativeFormatForPlatform,
   verifyBinaries,
+  verifyRuntimeManifest,
   writeRuntimeManifest,
 } from "../../../scripts/lib/runtime-manifest.mjs";
 import { bundleMacLibraries } from "../../../scripts/lib/macos-libraries.mjs";
@@ -91,24 +94,22 @@ try {
     }
   }
   await collect(join(destination, "node_modules"));
-  // MXC keeps its FFI library under bin/<arch> instead of a .node addon. Treat
-  // it as a native file so macOS bundling and the Linux library scan cover it.
-  // Only this platform's library qualifies: macOS bundling runs `otool` on
-  // every entry, which cannot read a Linux ELF.
+  // MXC keeps its FFI library and helper executables under bin/<arch> instead
+  // of a .node addon. Treat this host's native files as native assets so the
+  // Linux dependency scan, the macOS otool/signing pass and the manifest cover
+  // them. Foreign formats were pruned while the package was copied.
   const mxcBin = join(
     destination,
     "node_modules/@microsoft/mxc-sdk/bin",
     process.arch === "arm64" ? "arm64" : "x64",
   );
-  const mxcLibrary =
-    process.platform === "linux"
-      ? /\.so$/
-      : process.platform === "darwin"
-        ? /\.dylib$/
-        : undefined;
-  if (mxcLibrary)
-    for (const name of await readdir(mxcBin))
-      if (mxcLibrary.test(name)) nativeFiles.push(join(mxcBin, name));
+  const nativeFormat = nativeFormatForPlatform();
+  for (const entry of await readdir(mxcBin, { withFileTypes: true }))
+    if (
+      entry.isFile() &&
+      (await nativeBinaryFormat(join(mxcBin, entry.name))) === nativeFormat
+    )
+      nativeFiles.push(join(mxcBin, entry.name));
   if (process.platform === "linux") {
     await mkdir(join(destination, "lib"));
     const libraries = new Map();
@@ -161,7 +162,11 @@ try {
     });
   }
   await writeRuntimeManifest(root, destination, versions, modules);
-  console.log(`Desktop backend prepared: ${process.platform}/${process.arch}`);
+  const verified = await verifyRuntimeManifest(destination);
+  console.log(
+    `Desktop backend prepared: ${process.platform}/${process.arch}, ` +
+      `${verified.files} resources match ${verified.fingerprint.slice(0, 12)}`,
+  );
 } finally {
   await rm(staging, { recursive: true, force: true });
 }

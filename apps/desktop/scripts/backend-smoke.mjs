@@ -160,6 +160,18 @@ try {
   const workspace = await client.workspace.provisionDefault.mutate();
   assert.equal(workspace.ownerId, user.id);
   const workspaceId = workspace.id;
+  // Writes name their workspace on the connection, never in the body, so the
+  // smoke reconnects once the default workspace exists.
+  ws.close();
+  ws = createWSClient({
+    url: descriptor.trpc,
+    connectionParams: {
+      token: descriptor.token,
+      sourceId: "smoke-client",
+      "x-workspace-id": workspaceId,
+    },
+  });
+  client = createTRPCClient({ links: [wsLink({ client: ws, transformer: superjson })] });
   assert.equal((await client.workspace.listByUser.query({})).length, 1);
   console.log("STEP workspace models");
   const views = await client.view.listByWorkspace.query({ workspaceId });

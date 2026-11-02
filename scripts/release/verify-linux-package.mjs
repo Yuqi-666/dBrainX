@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { binaryArchitecture, hashFile } from "../lib/runtime-manifest.mjs";
+import { binaryArchitecture, hashFile, runtimeFingerprint } from "../lib/runtime-manifest.mjs";
 assert.equal(process.platform, "linux");
 const root = process.cwd();
 const release = JSON.parse(await readFile("scripts/release/release.json"));
@@ -35,6 +35,11 @@ async function smoke(extracted, name, allowElfTransforms) {
   );
   assert.equal(manifest.version, release.version);
   assert.equal(manifest.commit, process.env.DBRAINX_GIT_SHA ?? "local");
+  assert.equal(
+    manifest.fingerprint,
+    runtimeFingerprint(manifest.version, manifest.hashes),
+    "Runtime manifest fingerprint does not describe its hashes",
+  );
   let transformed = 0;
   for (const [file, hash] of Object.entries(manifest.hashes)) {
     assert.ok(
@@ -47,6 +52,8 @@ async function smoke(extracted, name, allowElfTransforms) {
       allowElfTransforms &&
         (/^(node|ffmpeg|ffprobe)$/.test(file) ||
           file.startsWith("lib/") ||
+          (file.startsWith("node_modules/@microsoft/mxc-sdk/bin/") &&
+            /(?:\.(?:so|dylib|dll)$|\/(?:lxc-exec|unix-test-proxy|mxc-exec-mac)$)/.test(file)) ||
           file.endsWith(".node")),
       `Unexpected packaged resource mutation: ${file}`,
     );

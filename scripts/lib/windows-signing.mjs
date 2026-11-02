@@ -3,6 +3,16 @@
 import { readdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
+
+/**
+ * Native files Windows must sign: the shell's executables, every `.node`
+ * addon, and MXC's `wxc-exec.exe` / `wslcsdk.dll` / `mxc_ffi.dll` set.
+ * Extensionless ELF and Mach-O helpers were pruned before signing runs.
+ */
+export function isWindowsSignableFile(name) {
+  return /\.(exe|dll|node)$/i.test(name);
+}
+
 export async function signWindowsRuntime(directory) {
   if (process.platform !== "win32" || !process.env.DBRAINX_WINDOWS_THUMBPRINT)
     return;
@@ -22,7 +32,7 @@ export async function signWindowsRuntime(directory) {
     for (const entry of await readdir(dir, { withFileTypes: true })) {
       const path = join(dir, entry.name);
       if (entry.isDirectory()) await sign(path);
-      else if (/\.(exe|dll|node)$/i.test(entry.name)) {
+      else if (isWindowsSignableFile(entry.name)) {
         execFileSync(
           signtool,
           [
