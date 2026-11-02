@@ -20,7 +20,7 @@
     "sandbox:real": "node scripts/release/sandbox-real.mjs",
     "lint:gate": "node scripts/release/lint-gate.mjs",
     "test:ui": "node scripts/run-ui-tests.mjs",
-    "test:e2e": "playwright test --config scripts/e2e/playwright.config.ts"
+    "test:e2e": "node scripts/e2e/run.mjs"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
