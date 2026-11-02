@@ -297,6 +297,14 @@ export interface AcmeContext {
   readonly node?: { readonly id: string; readonly content: unknown };
   readonly correlationId: string;
   readonly runId?: string;
+  /**
+   * The event this run was dispatched for; the cause of anything it emits.
+   *
+   * Absent for a run no event started (a job or a manual call), where causation
+   * is `null`. It is not the correlation id: that id names the whole intent and
+   * is shared by every run of the chain.
+   */
+  readonly eventId?: string;
   readonly sandbox: AcmeSandboxProxy;
   writeNode(nodeId: string, patch: { readonly content: unknown }): Promise<void>;
   emit(
@@ -578,7 +586,7 @@ export async function acmeBRun(
     },
     {
       correlationId: context.correlationId,
-      causationId: context.correlationId,
+      causationId: context.eventId ?? null,
       cascadeDepth: 1,
     },
   );

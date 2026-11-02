@@ -13,7 +13,8 @@
     "acme.b"
   ],
   "events": [
-    "acme.*"
+    "acme.*",
+    "counter.*"
   ],
   "permissions": [
     {
@@ -40,9 +41,9 @@
     {
       "capability": "node.write",
       "scope": [
-        "nodeType=acme.b"
+        "nodeType=*"
       ],
-      "reason": "acme.b.run writes content.lastRun back to the node"
+      "reason": "acme.b.run writes content.lastRun and the monitor fixture writes its cursor, sample and notifications"
     },
     {
       "capability": "event.emit",
@@ -54,12 +55,13 @@
     {
       "capability": "event.subscribe",
       "scope": [
-        "eventType=acme.*"
+        "eventType=acme.*",
+        "eventType=counter.*"
       ],
-      "reason": "the acme.b.on-a-fired trigger listens to acme.a.fired"
+      "reason": "acme.b.on-a-fired listens to acme.a.fired and counter.notifier.on-threshold listens to the monitor event"
     }
   ],
-  "checksum": "sha256:7f028db06a3031e35235e1152c8405cd1ee8470c312ceebad53b82e67c1268fa",
+  "checksum": "sha256:ac43d9703e13e920c43e965c7d56c801121fa245da25c9894f83b7db61793bfd",
   "publicKeyId": "dbrainx.test-key",
-  "signature": "ed25519:Y756tMuZoL0rk1bJIc2gDhczqKMBI5rQJJj5QbSgjkVwdfXBoh7DZPO7ZQw7JRYCXfzwyGKeiZ2/lqlEXxCVDA=="
+  "signature": "ed25519:nzrGf3+7SiOu9knhzxs66xoLHWG2LRkermA59M4RTHWdujLhNoAgIKIApl/C8rzf/tpgev+FuQY10a1YxxfqBQ=="
 }

@@ -68,6 +68,38 @@ export type {
   AcmeSandboxExecResult,
   AcmeSandboxProxy,
 } from "./automation.ts";
+export {
+  COUNTER_METRIC_THRESHOLD_CROSSED,
+  MONITOR_ALERT_EDGE_SEMANTIC,
+  MONITOR_DEFAULT_CHANNEL,
+  MONITOR_INVALID,
+  MONITOR_SAMPLE_INTERVAL_MS,
+  MonitorFixtureError,
+  NOTIFY_INVALID,
+  counterMonitorTick,
+  counterNotify,
+  createMonitorContent,
+  createNotifierContent,
+  monitorHandlers,
+  monitorNodeTypes,
+  monitorOperations,
+  monitorSchema,
+  monitorTickOperation,
+  monitorTriggers,
+  monitorNodeType,
+  notifierNodeType,
+  notifierSchema,
+  notifierTrigger,
+  notifyOperation,
+} from "./monitor.ts";
+export type {
+  MonitorContent,
+  MonitorContext,
+  MonitorErrorCode,
+  MonitorNotification,
+  MonitorTrigger,
+  NotifierContent,
+} from "./monitor.ts";
 
 /** The whole persisted payload: the counter's current value. */
 export interface CounterContent {
