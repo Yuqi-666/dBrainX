@@ -300,15 +300,18 @@ function applyOperationResult(
     GRAPH_OPERATIONS as Record<string, GraphOperationDefinition | undefined>
   )[operationId];
   const store = useDataStore.getState();
+  // The delivery this reply represents. The store orders two snapshots of one
+  // server version by it, so a result and the event it caused converge.
+  const identity = result.eventIds.at(-1) ?? result.correlationId;
 
   if (result.node !== undefined) {
-    store.upsertNode(result.node as unknown as NodeData);
+    store.upsertNode(result.node as unknown as NodeData, identity);
   }
   if (result.edge !== undefined) {
-    store.upsertEdge(result.edge as unknown as EdgeData);
+    store.upsertEdge(result.edge as unknown as EdgeData, identity);
   }
   if (result.view !== undefined) {
-    store.upsertView(result.view as unknown as View);
+    store.upsertView(result.view as unknown as View, identity);
   }
   if (definition === undefined || definition.effect !== "delete") return;
 

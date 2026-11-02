@@ -16,6 +16,7 @@ import type {
   View,
   ViewId,
 } from "@workspace/interfaces";
+import { isNewerSnapshot, type SnapshotOrder } from "./snapshot-order";
 
 export interface EntityDiff<TData, TId> {
   added: TData[];
@@ -30,6 +31,32 @@ export interface Diff {
   nodeTags: EntityDiff<NodeTag, NodeTagId>;
   edgeSemantics: EntityDiff<EdgeSemantic, EdgeSemanticId>;
   views: EntityDiff<View, ViewId>;
+}
+
+const entityKey = (kind: "node" | "edge" | "view", id: string): string =>
+  `${kind}:${id}`;
+
+/** Records the delivery that produced the snapshot now in the store. */
+function recordIdentity(
+  identities: Map<string, string>,
+  key: string,
+  identity: string | undefined,
+): Map<string, string> {
+  if (identity === undefined || identities.get(key) === identity) {
+    return identities;
+  }
+  const next = new Map(identities);
+  next.set(key, identity);
+  return next;
+}
+
+/** True when a snapshot may replace the copy held for the same entity. */
+function acceptsSnapshot(
+  exists: boolean,
+  incoming: SnapshotOrder,
+  applied: SnapshotOrder,
+): boolean {
+  return !exists || isNewerSnapshot(incoming, applied);
 }
 
 const createEmptyDiff = (): Diff => ({
@@ -55,6 +82,12 @@ export interface DataStore {
 
   diff: Diff;
   clearDiff: () => void;
+
+  /**
+   * The delivery identity last applied to each entity (`node:<id>`, and so on),
+   * so two snapshots of one server version can still be ordered.
+   */
+  snapshotIdentities: Map<string, string>;
 
   // ==================== Lifecycle / bulk load ====================
   reset: () => void;
@@ -84,17 +117,17 @@ export interface DataStore {
   deleteEdgeSemantic: (id: EdgeSemanticId) => void;
 
   // -- Nodes --
-  upsertNode: (node: NodeData) => void;
+  upsertNode: (node: NodeData, identity?: string) => void;
   upsertNodes: (nodes: NodeData[]) => void;
   deleteNode: (id: NodeId) => void;
 
   // -- Edges --
-  upsertEdge: (edge: EdgeData) => void;
+  upsertEdge: (edge: EdgeData, identity?: string) => void;
   upsertEdges: (edges: EdgeData[]) => void;
   deleteEdge: (id: EdgeId) => void;
 
   // -- Views --
-  upsertView: (view: View) => void;
+  upsertView: (view: View, identity?: string) => void;
   upsertViews: (views: View[]) => void;
   deleteView: (id: ViewId) => void;
 
@@ -124,6 +157,7 @@ export const useDataStore = create<DataStore>()(
       edges: new Map(),
       views: new Map(),
       diff: createEmptyDiff(),
+      snapshotIdentities: new Map(),
 
       // 清空 Diff 的方法
       clearDiff: () => { set({ diff: createEmptyDiff() }) },
@@ -138,6 +172,7 @@ export const useDataStore = create<DataStore>()(
           edges: new Map(),
           views: new Map(),
           diff: createEmptyDiff(),
+          snapshotIdentities: new Map(),
         }),
 
       loadWorkspaceData: (data) =>
@@ -145,10 +180,42 @@ export const useDataStore = create<DataStore>()(
           const { nodes = [], edges = [], views = [], nodeSemantics = [], nodeTags = [], edgeSemantics = [] } = data;
 
           const newNodes = new Map(state.nodes);
-          for (const n of nodes) newNodes.set(n.id, n);
+          for (const n of nodes) {
+            const existing = newNodes.get(n.id);
+            if (
+              acceptsSnapshot(
+                existing !== undefined,
+                { updatedAt: n.updatedAt },
+                {
+                  updatedAt: existing?.updatedAt,
+                  identity: state.snapshotIdentities.get(
+                    entityKey("node", n.id),
+                  ),
+                },
+              )
+            ) {
+              newNodes.set(n.id, n);
+            }
+          }
 
           const newEdges = new Map(state.edges);
-          for (const e of edges) newEdges.set(e.id, e);
+          for (const e of edges) {
+            const existing = newEdges.get(e.id);
+            if (
+              acceptsSnapshot(
+                existing !== undefined,
+                { updatedAt: e.updatedAt },
+                {
+                  updatedAt: existing?.updatedAt,
+                  identity: state.snapshotIdentities.get(
+                    entityKey("edge", e.id),
+                  ),
+                },
+              )
+            ) {
+              newEdges.set(e.id, e);
+            }
+          }
 
           const newViews = new Map(state.views);
           for (const v of views) newViews.set(v.id, v);
@@ -375,9 +442,22 @@ export const useDataStore = create<DataStore>()(
       },
 
       // ==================== Node Actions ====================
-      upsertNode: (node) => {
+      upsertNode: (node, identity) => {
         set((state) => {
+          const key = entityKey("node", node.id);
           const existed = state.nodes.has(node.id);
+          if (
+            !acceptsSnapshot(
+              existed,
+              { updatedAt: node.updatedAt, identity },
+              {
+                updatedAt: state.nodes.get(node.id)?.updatedAt,
+                identity: state.snapshotIdentities.get(key),
+              },
+            )
+          ) {
+            return state;
+          }
           const newNodes = new Map(state.nodes);
           newNodes.set(node.id, node);
 
@@ -390,7 +470,15 @@ export const useDataStore = create<DataStore>()(
             },
           };
 
-          return { nodes: newNodes, diff: newDiff };
+          return {
+            nodes: newNodes,
+            diff: newDiff,
+            snapshotIdentities: recordIdentity(
+              state.snapshotIdentities,
+              key,
+              identity,
+            ),
+          };
         });
       },
 
@@ -400,6 +488,21 @@ export const useDataStore = create<DataStore>()(
           const added: NodeData[] = [];
           const updated: NodeData[] = [];
           for (const n of nodes) {
+            const existing = newNodes.get(n.id);
+            if (
+              !acceptsSnapshot(
+                existing !== undefined,
+                { updatedAt: n.updatedAt },
+                {
+                  updatedAt: existing?.updatedAt,
+                  identity: state.snapshotIdentities.get(
+                    entityKey("node", n.id),
+                  ),
+                },
+              )
+            ) {
+              continue;
+            }
             if (newNodes.has(n.id)) {
               updated.push(n);
             } else {
@@ -407,6 +510,7 @@ export const useDataStore = create<DataStore>()(
             }
             newNodes.set(n.id, n);
           }
+          if (added.length === 0 && updated.length === 0) return state;
 
           const newDiff: Diff = {
             ...state.diff,
@@ -446,15 +550,34 @@ export const useDataStore = create<DataStore>()(
               removed: [...state.diff.nodes.removed, id],
             },
           };
+          const newIdentities = new Map(state.snapshotIdentities);
+          newIdentities.delete(entityKey("node", id));
 
-          return { nodes: newNodes, diff: newDiff };
+          return {
+            nodes: newNodes,
+            diff: newDiff,
+            snapshotIdentities: newIdentities,
+          };
         });
       },
 
       // ==================== Edge Actions ====================
-      upsertEdge: (edge) => {
+      upsertEdge: (edge, identity) => {
         set((state) => {
+          const key = entityKey("edge", edge.id);
           const existed = state.edges.has(edge.id);
+          if (
+            !acceptsSnapshot(
+              existed,
+              { updatedAt: edge.updatedAt, identity },
+              {
+                updatedAt: state.edges.get(edge.id)?.updatedAt,
+                identity: state.snapshotIdentities.get(key),
+              },
+            )
+          ) {
+            return state;
+          }
           const newEdges = new Map(state.edges);
           newEdges.set(edge.id, edge);
 
@@ -467,7 +590,15 @@ export const useDataStore = create<DataStore>()(
             },
           };
 
-          return { edges: newEdges, diff: newDiff };
+          return {
+            edges: newEdges,
+            diff: newDiff,
+            snapshotIdentities: recordIdentity(
+              state.snapshotIdentities,
+              key,
+              identity,
+            ),
+          };
         });
       },
 
@@ -477,6 +608,21 @@ export const useDataStore = create<DataStore>()(
           const added: EdgeData[] = [];
           const updated: EdgeData[] = [];
           for (const e of edges) {
+            const existing = newEdges.get(e.id);
+            if (
+              !acceptsSnapshot(
+                existing !== undefined,
+                { updatedAt: e.updatedAt },
+                {
+                  updatedAt: existing?.updatedAt,
+                  identity: state.snapshotIdentities.get(
+                    entityKey("edge", e.id),
+                  ),
+                },
+              )
+            ) {
+              continue;
+            }
             if (newEdges.has(e.id)) {
               updated.push(e);
             } else {
@@ -484,6 +630,7 @@ export const useDataStore = create<DataStore>()(
             }
             newEdges.set(e.id, e);
           }
+          if (added.length === 0 && updated.length === 0) return state;
 
           const newDiff: Diff = {
             ...state.diff,
@@ -513,15 +660,31 @@ export const useDataStore = create<DataStore>()(
               removed: [...state.diff.edges.removed, id],
             },
           };
+          const newIdentities = new Map(state.snapshotIdentities);
+          newIdentities.delete(entityKey("edge", id));
 
-          return { edges: newEdges, diff: newDiff };
+          return {
+            edges: newEdges,
+            diff: newDiff,
+            snapshotIdentities: newIdentities,
+          };
         });
       },
 
       // ==================== View Actions ====================
-      upsertView: (view) => {
+      upsertView: (view, identity) => {
         set((state) => {
+          const key = entityKey("view", view.id);
           const existed = state.views.has(view.id);
+          if (
+            !acceptsSnapshot(
+              existed,
+              { identity },
+              { identity: state.snapshotIdentities.get(key) },
+            )
+          ) {
+            return state;
+          }
           const newViews = new Map(state.views);
           newViews.set(view.id, view);
 
@@ -534,7 +697,15 @@ export const useDataStore = create<DataStore>()(
             },
           };
 
-          return { views: newViews, diff: newDiff };
+          return {
+            views: newViews,
+            diff: newDiff,
+            snapshotIdentities: recordIdentity(
+              state.snapshotIdentities,
+              key,
+              identity,
+            ),
+          };
         });
       },
 
@@ -544,6 +715,19 @@ export const useDataStore = create<DataStore>()(
           const added: View[] = [];
           const updated: View[] = [];
           for (const v of views) {
+            if (
+              !acceptsSnapshot(
+                newViews.has(v.id),
+                {},
+                {
+                  identity: state.snapshotIdentities.get(
+                    entityKey("view", v.id),
+                  ),
+                },
+              )
+            ) {
+              continue;
+            }
             if (newViews.has(v.id)) {
               updated.push(v);
             } else {
@@ -551,6 +735,7 @@ export const useDataStore = create<DataStore>()(
             }
             newViews.set(v.id, v);
           }
+          if (added.length === 0 && updated.length === 0) return state;
 
           const newDiff: Diff = {
             ...state.diff,
@@ -580,8 +765,14 @@ export const useDataStore = create<DataStore>()(
               removed: [...state.diff.views.removed, id],
             },
           };
+          const newIdentities = new Map(state.snapshotIdentities);
+          newIdentities.delete(entityKey("view", id));
 
-          return { views: newViews, diff: newDiff };
+          return {
+            views: newViews,
+            diff: newDiff,
+            snapshotIdentities: newIdentities,
+          };
         });
       },
 

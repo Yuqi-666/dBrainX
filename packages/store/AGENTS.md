@@ -17,6 +17,7 @@ It exports six stores and their types: `useDataStore`, `useUIStore`, `useAuthSto
 | Path | Content |
 | --- | --- |
 | `src/dataStore.ts` | Nodes, edges, views, node semantics, edge semantics, and tags. It publishes an `EntityDiff` with added, updated, and removed entries. |
+| `src/snapshot-order.ts` | The ordering rule for server snapshots: `updatedAt` decides, the delivery identity breaks a tie, and an identity-less delivery is a read of the server's current record. |
 | `src/uiStore.ts` | The interface state: context menu, main view, sidebar mode, island panel, the node delete/clear disposition dialog, and the remount token for the uncontrolled Tiptap editors |
 | `src/authStore.ts` | The current user. It uses the persist middleware. |
 | `src/workspaceStore.ts` | The workspaces as a map, `currentWorkspaceId`, and a `reset` action |
@@ -27,6 +28,11 @@ It exports six stores and their types: `useDataStore`, `useUIStore`, `useAuthSto
 
 `dataStore` publishes a diff-shaped update.
 `packages/graph` consumes that diff and sends it into its worker, so a store change reaches the renderer without a full reload.
+
+`dataStore` applies only a snapshot that is not older than the one it holds.
+`isNewerSnapshot` compares the server's `updatedAt`, then the delivery identity when two deliveries name the same version; an identity-less delivery is a refetch or a local projection and is applied at an equal version.
+A view has no server version, so its snapshots are ordered by identity alone.
+`snapshotIdentities` records the identity applied per entity, and `reset` clears it.
 
 `sourceIdStore` creates a ULID at load.
 The tRPC client sends it as a connection parameter, and `subscriptions.ts` uses it to drop an event from this same client.

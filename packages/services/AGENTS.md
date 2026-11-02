@@ -43,6 +43,8 @@ The scheduler also rolls back to the snapshot from before the debounce window.
 
 The current write path is `invokeGraphOperation`: one `operation.invoke`, then the canonical `node` / `edge` / `view` snapshot the server reloaded is written to the store. A refusal throws `OperationInvokeError` with the server's code and writes nothing. `NodeService`, `EdgeService`, and `ViewService` expose typed helpers over it. There is no whole-record write left: the routers serve reads only, and a write names its operation.
 
+The reply is applied with its delivery identity (its last event id, or the correlation id), so the store keeps the newer of a result and a later event (`packages/store/src/snapshot-order.ts`).
+
 A service can read as well as write.
 `sync` and `syncByWorkspace` call a query and load the result into the store.
 `listNodesReferencingFile` unions the open store with the nodes the database lists, and `detachFileReferences` applies a deleted file's cleanup to the open nodes after the server hook has fixed the stored records.
