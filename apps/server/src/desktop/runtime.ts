@@ -12,8 +12,11 @@ import { fileURLToPath } from "node:url";
 import PocketBase from "pocketbase";
 import { AppContainer, appRouter, createContext, createWSServer } from "@workspace/adapter-front";
 import { allowedFileRequest, allowedOrigin, sessionPath } from "./security";
-import { createServerNodeTypeRegistry } from "../node-type-registry";
-import { createServerOperationRegistry } from "../operation-registry";
+import {
+  createCounterOperationHandlers,
+  createServerOperationHandlers,
+} from "../operation-registry";
+import { createShippedPluginPackages } from "../plugin-packages";
 import { handleUploadRequest, isUploadPath, startUploadSweeper } from "../upload/routes";
 
 const runtimeDir = dirname(fileURLToPath(import.meta.url));
@@ -135,17 +138,21 @@ async function main() {
     await pb.collection("users").create({ ...identity, passwordConfirm: identity.password, nickname: "本地用户" });
     session = await pb.collection("users").authWithPassword(identity.email, identity.password);
   }
-  await AppContainer.initialize(pbUrl, {
-    nodeTypeRegistry: createServerNodeTypeRegistry(),
-    operationRegistry: createServerOperationRegistry(
-      () => AppContainer.getInstance().nodeCommandService,
-      () => ({
-        edges: AppContainer.getInstance().edgeCommandService,
-        views: AppContainer.getInstance().viewCommandService,
-      }),
-      () => AppContainer.getInstance().storedAttachments,
-    ),
+  const nodeOperations = () => AppContainer.getInstance().nodeCommandService;
+  const graphOperations = () => ({
+    edges: AppContainer.getInstance().edgeCommandService,
+    views: AppContainer.getInstance().viewCommandService,
   });
+  const attachments = () => AppContainer.getInstance().storedAttachments;
+  const pluginPackages = await createShippedPluginPackages({
+    builtin: createServerOperationHandlers(
+      nodeOperations,
+      graphOperations,
+      attachments,
+    ),
+    counter: createCounterOperationHandlers(nodeOperations),
+  });
+  await AppContainer.initialize(pbUrl, { pluginPackages });
   // The upload pipeline writes to the local PocketBase from this process with
   // raw `node:http` (a 2 GiB multipart body cannot go through `fetch`), where
   // the patched global fetch below cannot add the internal header. Handing the

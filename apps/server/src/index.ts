@@ -9,12 +9,11 @@ import {
 } from "@workspace/adapter-front";
 import { verifyToken } from "@workspace/infrastructure";
 import { allowedFileRequest } from "./desktop/security";
-import { createServerNodeTypeRegistry } from "./node-type-registry";
 import {
+  createCounterOperationHandlers,
   createServerOperationHandlers,
-  createServerOperationRegistry,
 } from "./operation-registry";
-import { createBuiltinPluginPackage } from "./plugin-packages";
+import { createShippedPluginPackages } from "./plugin-packages";
 import { startBuiltinGrantSeeding } from "./plugin-runtime";
 import { TRPC_PATH, sameOrigin } from "./origin";
 import {
@@ -67,17 +66,16 @@ async function main() {
     views: AppContainer.getInstance().viewCommandService,
   });
   const attachments = () => AppContainer.getInstance().storedAttachments;
-  const builtinPackage = createBuiltinPluginPackage(
-    createServerOperationHandlers(nodeOperations, graphOperations, attachments),
-  );
-  await AppContainer.initialize(PB_URL, {
-    nodeTypeRegistry: createServerNodeTypeRegistry(),
-    operationRegistry: createServerOperationRegistry(
+  const pluginPackages = await createShippedPluginPackages({
+    builtin: createServerOperationHandlers(
       nodeOperations,
       graphOperations,
       attachments,
     ),
-    ...(builtinPackage === undefined ? {} : { pluginPackages: [builtinPackage] }),
+    counter: createCounterOperationHandlers(nodeOperations),
+  });
+  await AppContainer.initialize(PB_URL, {
+    pluginPackages,
     engine: {
       enabled: engineConfig.enabled,
       owner: engineConfig.owner,

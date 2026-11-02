@@ -1,41 +1,50 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * The operation catalogue this host process serves.
+ * The application-side handlers the shipped plugin packages bind.
  *
- * The definitions come from the plugin packages that ship with the app, exactly
- * as `node-type-registry.ts` seeds the node types: the shared metadata
- * catalogue, the per-type self catalogue, the edge/view catalogue and the
- * counter fixture. The handlers come from the application layer. Binding
- * happens here because a backend layer may not import a plugin package, and a
- * definition without a handler cannot be registered at all — an unbound
- * operation answers `OPERATION_NOT_FOUND` instead of running nothing.
+ * The definitions live in the plugin packages; the handlers live in
+ * `backend/application` and this composition root joins them, because a
+ * backend layer may not import a plugin package. The plugin host refuses an
+ * enable when a declared operation has no handler, so every definition the
+ * package contributes must be bound here — including the operations this
+ * build does not implement yet, which are bound to a named refusal instead of
+ * being omitted and failing the whole enable.
  *
- * Only the operations this build implements are registered, so `operation.list`
- * never offers an operation that would then fail. The per-type self operations
- * this build's editors write through are bound below; the granular ones the UI
- * does not call yet (`video.timeline.add`, `database.updateCell`, …) stay
- * unbound until their handlers land.
+ * `counter.increment` applies the fixture's own rule to the node content the
+ * executor loaded and writes the result through the node command service,
+ * which publishes the one `NodeUpdated` event of the call.
  */
 import { createNodeOperationHandlers } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
 import type { NodeOperationPort } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
 import { createEdgeViewOperationHandlers } from "../../../backend/application/src/commands/operation/edge-view-operation-handlers.ts";
 import type { EdgeViewOperationPorts } from "../../../backend/application/src/commands/operation/edge-view-operation-handlers.ts";
+import type { OperationDefinition } from "../../../backend/domain/src/models/node-type/operation.ts";
+import type { OperationHandler } from "../../../backend/domain/src/ports/operation-handler.ts";
 import type { OperationContext } from "../../../backend/domain/src/ports/operation-context.ts";
 import type { IStoredAttachmentReader } from "../../../backend/domain/src/ports/stored-attachment.ts";
-import { createOperationRegistry } from "../../../backend/domain/src/ports/operation-handler.ts";
-import type {
-  IOperationHandlerRegistry,
-  OperationHandler,
-} from "../../../backend/domain/src/ports/operation-handler.ts";
 import {
+  counterTick,
   incrementCounter,
-  operations as counterOperations,
 } from "../../../plugins/counter/server/index.ts";
 import type { CounterContent } from "../../../plugins/counter/server/index.ts";
-import { operations as builtinOperations } from "../../../plugins/builtin/server/operations.ts";
-import { typeOperations } from "../../../plugins/builtin/server/type-operations.ts";
-import { graphOperations } from "../../../plugins/builtin/server/graph-operations.ts";
+
+/** Stable code of an operation this build declares but does not implement. */
+export const OPERATION_NOT_IMPLEMENTED = "OPERATION_NOT_IMPLEMENTED" as const;
+
+/** A named refusal, so a listed-but-unimplemented operation never runs nothing. */
+export class OperationNotImplementedError extends Error {
+  readonly code = OPERATION_NOT_IMPLEMENTED;
+  readonly operationId: string;
+
+  constructor(operationId: string, handler: string) {
+    super(
+      `operation "${operationId}" is declared by "${handler}" but this process does not implement it yet`,
+    );
+    this.name = "OperationNotImplementedError";
+    this.operationId = operationId;
+  }
+}
 
 /**
  * The node command service, resolved on first use.
@@ -55,9 +64,7 @@ export type GraphOperationPortProvider = () => EdgeViewOperationPorts;
  * The stored upload results the media attach operations read.
  *
  * Resolved on first use like the command services: the reader belongs to the
- * container this registry is an argument of. Without it the four
- * `*.attachFile` operations stay unbound, because a handler that cannot resolve
- * its upload would fail on every call.
+ * container this registry is an argument of.
  */
 export type AttachmentReaderProvider = () => IStoredAttachmentReader;
 
@@ -75,14 +82,30 @@ function lazyAttachments(
   return { find: (attachmentId) => provider().find(attachmentId) };
 }
 
-/**
- * `counter.increment` is the fixture's own rule applied to the node content.
- *
- * The rule (`incrementCounter`) belongs to the plugin package; this binding
- * applies it to the snapshot the executor loaded and writes the result through
- * the node command service, which publishes the one `NodeUpdated` event of the
- * call.
- */
+/** Every operation the builtin package declares, bound to its application handler. */
+export function createServerOperationHandlers(
+  nodes: NodeOperationPortProvider,
+  graph: GraphOperationPortProvider,
+  attachments: AttachmentReaderProvider,
+): Readonly<Record<string, OperationHandler>> {
+  const port = lazyPort(nodes);
+  return {
+    ...createNodeOperationHandlers(port, lazyAttachments(attachments)),
+    ...createEdgeViewOperationHandlers({
+      edges: {
+        createEdge: (command) => graph().edges.createEdge(command),
+        updateEdge: (command) => graph().edges.updateEdge(command),
+        deleteEdge: (command) => graph().edges.deleteEdge(command),
+      },
+      views: {
+        createView: (command) => graph().views.createView(command),
+        updateView: (command) => graph().views.updateView(command),
+        deleteView: (command) => graph().views.deleteView(command),
+      },
+    }),
+  };
+}
+
 function counterIncrement(port: NodeOperationPort): OperationHandler {
   return async (input, context: OperationContext) => {
     if (context.target.kind !== "node" || context.node === undefined) {
@@ -107,57 +130,51 @@ function counterIncrement(port: NodeOperationPort): OperationHandler {
   };
 }
 
-/**
- * The handlers this process binds, by operation id.
- *
- * Split out of the registry so the plugin host can be handed the same bindings
- * the registry serves — the host's snapshot builder needs one handler per
- * definition and must not import the application layer to get it.
- */
-export function createServerOperationHandlers(
-  nodes: NodeOperationPortProvider,
-  graph?: GraphOperationPortProvider,
-  attachments?: AttachmentReaderProvider,
-): Readonly<Record<string, OperationHandler>> {
-  const port = lazyPort(nodes);
-  return {
-    ...createNodeOperationHandlers(
-      port,
-      attachments === undefined ? undefined : lazyAttachments(attachments),
-    ),
-    ...(graph === undefined
-      ? {}
-      : createEdgeViewOperationHandlers({
-          edges: {
-            createEdge: (command) => graph().edges.createEdge(command),
-            updateEdge: (command) => graph().edges.updateEdge(command),
-            deleteEdge: (command) => graph().edges.deleteEdge(command),
-          },
-          views: {
-            createView: (command) => graph().views.createView(command),
-            updateView: (command) => graph().views.updateView(command),
-            deleteView: (command) => graph().views.deleteView(command),
-          },
-        })),
-    "counter.increment": counterIncrement(port),
+function counterTickHandler(): OperationHandler {
+  return async (_input, context: OperationContext) => {
+    if (context.target.kind !== "node" || context.node === undefined) {
+      throw new Error("counter.tick needs the node target snapshot");
+    }
+    return counterTick(context.node.content as CounterContent);
   };
 }
 
-export function createServerOperationRegistry(
+/**
+ * The handlers the counter fixture binds.
+ *
+ * The fixture also declares the `acme.*` automation operations; their host
+ * ports arrive with the worker boundary, so {@link bindOperationHandlers}
+ * binds them to {@link OperationNotImplementedError} until then.
+ */
+export function createCounterOperationHandlers(
   nodes: NodeOperationPortProvider,
-  graph?: GraphOperationPortProvider,
-  attachments?: AttachmentReaderProvider,
-): IOperationHandlerRegistry {
-  const handlers = createServerOperationHandlers(nodes, graph, attachments);
-  const registry = createOperationRegistry();
-  for (const definition of [
-    ...builtinOperations,
-    ...typeOperations,
-    ...graphOperations,
-    ...counterOperations,
-  ]) {
-    const handler = handlers[definition.id];
-    if (handler !== undefined) registry.register(definition, handler);
+): Readonly<Record<string, OperationHandler>> {
+  const port = lazyPort(nodes);
+  return {
+    "counter.increment": counterIncrement(port),
+    "counter.tick": counterTickHandler(),
+  };
+}
+
+/**
+ * Bind every definition the package contributes.
+ *
+ * A definition with a real handler keeps it. One without gets a refusal that
+ * names the missing implementation: the host requires a handler per definition
+ * to enable the package, and an invocation must fail loudly rather than run
+ * nothing.
+ */
+export function bindOperationHandlers(
+  definitions: readonly OperationDefinition[],
+  handlers: Readonly<Record<string, OperationHandler>>,
+): Readonly<Record<string, OperationHandler>> {
+  const bound: Record<string, OperationHandler> = {};
+  for (const definition of definitions) {
+    bound[definition.id] =
+      handlers[definition.id] ??
+      (async () => {
+        throw new OperationNotImplementedError(definition.id, definition.handler);
+      });
   }
-  return registry;
+  return bound;
 }

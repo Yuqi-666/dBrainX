@@ -153,6 +153,10 @@ export function startBuiltinGrantSeeding(
           `${outcome.plugin.pluginId} ${PROBE_OPERATION_ID} -> ${probe.granted}; ` +
           `${UNGRANTED_PLUGIN_ID} ${PROBE_OPERATION_ID} -> ${probe.denied}`,
       );
+      const triggers = await container.refreshTriggerContributions();
+      onReport(
+        `[plugin-triggers] workspace ${workspaceId}: ${triggers} trigger(s) registered from the served snapshot`,
+      );
     } catch (error) {
       console.warn(
         `[plugin-grants] workspace ${workspaceId}: seeding failed`,
