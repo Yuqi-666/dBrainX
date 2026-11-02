@@ -22,6 +22,7 @@ import {
   loadEngineConfig,
 } from "./engine/config";
 import { EngineWorker } from "./engine/worker";
+import { EngineMaintenance } from "./engine/maintenance";
 import {
   handleUploadRequest,
   isUploadPath,
@@ -86,6 +87,11 @@ async function main() {
       dispatchLeaseMs: engineConfig.dispatch.leaseMs,
       dispatchMaxAttempts: engineConfig.dispatch.maxAttempts,
       dispatchConcurrency: engineConfig.dispatch.concurrency,
+      maintenance: {
+        eventRetentionMs: engineConfig.maintenance.eventRetentionMs,
+        sandboxIdleMs: engineConfig.maintenance.sandboxIdleMs,
+        batchSize: engineConfig.maintenance.batchSize,
+      },
     },
   });
   const app = AppContainer.getInstance();
@@ -108,6 +114,20 @@ async function main() {
     );
   } else {
     app.engineControl.attach(engineWorker);
+  }
+  const maintenance =
+    app.retention === null
+      ? null
+      : new EngineMaintenance({
+          service: app.retention,
+          config: engineConfig.maintenance,
+        });
+  if (maintenance === null) {
+    console.log("[engine] cleanup is not composed: no retention service");
+  } else if (engineConfig.maintenance.intervalMs === 0) {
+    console.log("[engine] cleanup timer is off; engine.cleanup remains available");
+  } else {
+    maintenance.start();
   }
   const server = createServer((req, res) => {
     if (req.url === "/health" && req.method === "GET") {
@@ -229,6 +249,7 @@ async function main() {
     }
     stopping = true;
     void (async () => {
+      if (maintenance !== null) await maintenance.stop();
       if (engineWorker !== null) {
         const drain = await engineWorker.stop();
         if (!drain.drained) {

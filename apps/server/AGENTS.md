@@ -20,7 +20,7 @@ It contains no business logic.
 | `src/origin.ts` | The same-origin check |
 | `src/upload/routes.ts` | The resumable upload endpoints and the session sweeper, shared by both listeners |
 | `src/desktop/` | The local mode for the desktop app: `runtime.ts`, `security.ts`, `upgrade-backup.ts`, and `pb_hooks/local.pb.js` |
-| `src/engine/` | The worker loop (`worker.ts`) and its environment policy (`config.ts`) |
+| `src/engine/` | The worker loop (`worker.ts`), the retention timer (`maintenance.ts`), and the environment policy (`config.ts`) |
 | `src/*.test.ts` | Tests for the origin check and the desktop security rules |
 | `scripts/build.mjs` | The esbuild bundle step |
 
@@ -36,6 +36,7 @@ At start the server waits up to 30 seconds for `PB_URL/api/health`.
 Then it calls `AppContainer.initialize(PB_URL)` and starts the upload sweeper.
 When the process has the PocketBase operator credential, the container also composes the engine: the scheduler, the event dispatcher, the run ledger and the automation-scope materialiser.
 `src/engine/worker.ts` drives both queues in one cycle, backs off while both are empty, and stops claiming on `SIGINT`/`SIGTERM`; `src/engine/config.ts` reads the `DBRAINX_ENGINE_*` variables and the server waits up to `DBRAINX_ENGINE_DRAIN_MS` for in-flight runs before it exits (exit code 1 if that deadline expires with work still running).
+`src/engine/maintenance.ts` runs the retention job on its own timer, outside the worker loop, one bounded batch per run; the same service answers `engine.metrics` and `engine.cleanup` in `backend/adapter-front`.
 A process without the operator credential composes no engine; `run.engineStatus` reports `available: false` and the desktop settings switch stays disabled.
 It shuts down on `SIGINT` or `SIGTERM`.
 

@@ -15,6 +15,12 @@ const CONFIG: EngineConfig = {
   drainDeadlineMs: 50,
   scheduler: { limit: 10, leaseMs: 30_000, concurrency: 2 },
   dispatch: { limit: 20, leaseMs: 30_000, concurrency: 2, maxAttempts: 5 },
+  maintenance: {
+    intervalMs: 3_600_000,
+    eventRetentionMs: 604_800_000,
+    sandboxIdleMs: 604_800_000,
+    batchSize: 100,
+  },
 };
 
 /** A queue that answers the same claim count forever. */
