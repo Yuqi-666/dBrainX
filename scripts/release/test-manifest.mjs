@@ -24,6 +24,7 @@
 export const testFiles = [
   // Script tests: development, policy, and release automation.
   "scripts/e2e/acme-a-b-chain.mjs",
+  "scripts/e2e/monitor-notify-chain.mjs",
   "scripts/lib/dev-gateway.test.mjs",
   "scripts/lib/dev-ports.test.mjs",
   "scripts/lib/pdfjs-assets.test.mjs",
@@ -88,6 +89,7 @@ export const testFiles = [
   "plugins/builtin/server/operations.test.ts",
   "plugins/builtin/server/type-operations.test.ts",
   "plugins/counter/server/index.test.ts",
+  "plugins/counter/server/monitor.test.ts",
 
   // Backend tests. These construct their own fakes; none needs PocketBase.
   "backend/adapter-front/src/di/plugin-lifecycle.test.ts",
@@ -142,7 +144,9 @@ export const testFiles = [
   "backend/infrastructure/src/event-bus/in-memory-event-bus.test.ts",
   "backend/infrastructure/src/event-publisher/event-publisher.test.ts",
   "backend/infrastructure/src/event-store/pocketbase-event-store.test.ts",
+  "backend/infrastructure/src/repositories/pocketbase-event-delivery.repository.test.ts",
   "backend/infrastructure/src/repositories/pocketbase-plugin-grant.repository.test.ts",
+  "backend/infrastructure/src/repositories/pocketbase-scheduled-job.repository.test.ts",
   "backend/infrastructure/src/sandbox/pocketbase-sandbox-store.test.ts",
   "backend/infrastructure/src/security/plugin-secret-cipher.test.ts",
   "backend/infrastructure/src/security/plugin-secret-store.test.ts",
