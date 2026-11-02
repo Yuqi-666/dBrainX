@@ -23,7 +23,14 @@
  * deployment, with its signature checked by the host.
  */
 import { existsSync } from "node:fs";
-import { cp, mkdtemp, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  realpath,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -51,6 +58,19 @@ const BUILTIN_DIRECTORY_VARIABLE = "DBRAINX_BUILTIN_PLUGIN_DIR";
 export interface ShippedPluginHandlers {
   readonly builtin: Readonly<Record<string, OperationHandler>>;
   readonly counter: Readonly<Record<string, OperationHandler>>;
+}
+
+/**
+ * The operations a shipped package implements in its own `serverEntry`.
+ *
+ * The counter fixture's `acme.*` handlers are plugin code and run in the
+ * worker; its `counter.*` declarations are bound to application handlers and
+ * stay in the host process, because that binding is the container's, not the
+ * plugin module's.
+ */
+export interface ShippedPluginWorkerOperations {
+  readonly builtin?: readonly string[];
+  readonly counter?: readonly string[];
 }
 
 /**
@@ -100,6 +120,7 @@ async function stageShippedPackage(name: string, directory: string): Promise<str
     // checksum skips `node_modules` for the same reason.
     filter: (source) => basename(source) !== "node_modules",
   });
+  await linkRuntimeModules(directory, staged);
   const manifestPath = join(staged, "plugin.json");
   const loaded = await readPluginManifest(staged);
   // A shipped builtin is not a signed install: strip the signature facts a
@@ -118,9 +139,36 @@ async function stageShippedPackage(name: string, directory: string): Promise<str
   return staged;
 }
 
+/**
+ * Give the staged copy the one workspace package its server entry imports.
+ *
+ * The copy lives in the system temp directory, so Node's resolution never
+ * reaches this repository's `node_modules`. A source run therefore links
+ * `@workspace/plugin-sdk` into `<staged>/node_modules`; a built package is a
+ * self-contained bundle and has no bare import to resolve. The link is a real
+ * directory with one symlink inside, not a symlink to `node_modules` itself,
+ * because the checksum walk treats a directory named `node_modules` as skipped
+ * and a symbolic link as an error.
+ */
+async function linkRuntimeModules(
+  sourceDirectory: string,
+  staged: string,
+): Promise<void> {
+  const source = join(sourceDirectory, "node_modules", "@workspace", "plugin-sdk");
+  if (!existsSync(source)) return;
+  const modules = join(staged, "node_modules", "@workspace");
+  await mkdir(modules, { recursive: true });
+  await symlink(
+    await realpath(source),
+    join(modules, "plugin-sdk"),
+    process.platform === "win32" ? "junction" : "dir",
+  );
+}
+
 /** The two shipped packages, in the order grants seeding reads them. */
 export async function createShippedPluginPackages(
   handlers: ShippedPluginHandlers,
+  workerOperations: ShippedPluginWorkerOperations = {},
 ): Promise<readonly PluginPackageSource[]> {
   const packages: PluginPackageSource[] = [];
 
@@ -137,6 +185,9 @@ export async function createShippedPluginPackages(
       nodeTypes: builtinNodeTypes,
       operations: definitions,
       handlers: bindOperationHandlers(definitions, handlers.builtin),
+      ...(workerOperations.builtin === undefined
+        ? {}
+        : { workerOperations: workerOperations.builtin }),
     });
   }
 
@@ -149,6 +200,9 @@ export async function createShippedPluginPackages(
       operations: counterOperations,
       triggers: counterTriggers,
       handlers: bindOperationHandlers(counterOperations, handlers.counter),
+      ...(workerOperations.counter === undefined
+        ? {}
+        : { workerOperations: workerOperations.counter }),
     });
   }
 

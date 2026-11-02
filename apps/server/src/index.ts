@@ -14,6 +14,7 @@ import {
   createServerOperationHandlers,
 } from "./operation-registry";
 import { createShippedPluginPackages } from "./plugin-packages";
+import { acmeHandlers } from "../../../plugins/counter/server/index.ts";
 import { startBuiltinGrantSeeding } from "./plugin-runtime";
 import { TRPC_PATH, sameOrigin } from "./origin";
 import {
@@ -67,14 +68,19 @@ async function main() {
     views: AppContainer.getInstance().viewCommandService,
   });
   const attachments = () => AppContainer.getInstance().storedAttachments;
-  const pluginPackages = await createShippedPluginPackages({
-    builtin: createServerOperationHandlers(
-      nodeOperations,
-      graphOperations,
-      attachments,
-    ),
-    counter: createCounterOperationHandlers(nodeOperations),
-  });
+  const pluginPackages = await createShippedPluginPackages(
+    {
+      builtin: createServerOperationHandlers(
+        nodeOperations,
+        graphOperations,
+        attachments,
+      ),
+      counter: createCounterOperationHandlers(nodeOperations),
+    },
+    // The counter fixture's automation handlers are plugin code: their exports
+    // run in the package's worker, not in this process.
+    { counter: Object.keys(acmeHandlers()) },
+  );
   await AppContainer.initialize(PB_URL, {
     pluginPackages,
     engine: engineRuntimeOptions(engineConfig),
@@ -246,6 +252,13 @@ async function main() {
         console.log(
           `[server] shutdown: engine ${drain.drained ? "drained" : "did not drain"} in ${drain.waitedMs}ms`,
         );
+      }
+      // Plugin workers answer `shutdown` when idle and are terminated when a
+      // handler is still running, so no plugin thread outlives the server.
+      try {
+        await app.shutdownPlugins();
+      } catch (error) {
+        console.warn("[plugin-worker] shutdown failed", error);
       }
       handler.broadcastReconnectNotification();
       wss.clients.forEach((client) => client.close(1001));

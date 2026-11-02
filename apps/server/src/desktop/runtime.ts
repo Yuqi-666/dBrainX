@@ -17,6 +17,7 @@ import {
   createServerOperationHandlers,
 } from "../operation-registry";
 import { createShippedPluginPackages } from "../plugin-packages";
+import { acmeHandlers } from "../../../../plugins/counter/server/index.ts";
 import { handleUploadRequest, isUploadPath, startUploadSweeper } from "../upload/routes";
 
 const runtimeDir = dirname(fileURLToPath(import.meta.url));
@@ -64,6 +65,10 @@ async function freePort(): Promise<number> {
 async function shutdown(code = 0) {
   if (stopping) return;
   stopping = true;
+  // Stop plugin workers before the process exits; a busy one is terminated.
+  if (AppContainer.isInitialized()) {
+    await AppContainer.getInstance().shutdownPlugins().catch(() => undefined);
+  }
   if (pocketbase && pocketbase.exitCode === null) {
     const exited = new Promise<void>(resolve => pocketbase!.once("exit", () => resolve()));
     pocketbase.kill("SIGTERM");
@@ -144,14 +149,17 @@ async function main() {
     views: AppContainer.getInstance().viewCommandService,
   });
   const attachments = () => AppContainer.getInstance().storedAttachments;
-  const pluginPackages = await createShippedPluginPackages({
-    builtin: createServerOperationHandlers(
-      nodeOperations,
-      graphOperations,
-      attachments,
-    ),
-    counter: createCounterOperationHandlers(nodeOperations),
-  });
+  const pluginPackages = await createShippedPluginPackages(
+    {
+      builtin: createServerOperationHandlers(
+        nodeOperations,
+        graphOperations,
+        attachments,
+      ),
+      counter: createCounterOperationHandlers(nodeOperations),
+    },
+    { counter: Object.keys(acmeHandlers()) },
+  );
   await AppContainer.initialize(pbUrl, { pluginPackages });
   // The upload pipeline writes to the local PocketBase from this process with
   // raw `node:http` (a 2 GiB multipart body cannot go through `fetch`), where

@@ -10,7 +10,11 @@ import {
   writeRuntimeManifest,
 } from "../../../scripts/lib/runtime-manifest.mjs";
 import { bundleMacLibraries } from "../../../scripts/lib/macos-libraries.mjs";
-import { bundleBackend } from "../../../scripts/lib/bundle-backend.mjs";
+import {
+  bundleBackend,
+  bundlePluginServerEntries,
+  bundleWorkerEntry,
+} from "../../../scripts/lib/bundle-backend.mjs";
 import { prepareModules } from "../../../scripts/lib/runtime-modules.mjs";
 import { preparePlugins } from "../../../scripts/lib/plugin-packages.mjs";
 import { execFileSync } from "node:child_process";
@@ -75,6 +79,8 @@ try {
   // Plugin manifests and server entries ship beside the backend bundle, like
   // the hooks above; the runtime resolves them relative to its own directory.
   await preparePlugins(root, destination);
+  await bundleWorkerEntry(root, join(destination, "plugin-worker.mjs"));
+  await bundlePluginServerEntries(root, destination);
   for (const [name, path] of Object.entries(binaries)) {
     const target = join(destination, exe(name));
     await copyFile(await realpath(path), target);
