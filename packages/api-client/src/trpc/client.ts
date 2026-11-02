@@ -8,7 +8,7 @@ import {
 } from "@trpc/client";
 import superjson from "superjson";
 import type { AppRouter } from "@workspace/adapter-front";
-import { useSourceIdStore } from "@workspace/store";
+import { useSourceIdStore, useWorkspaceStore } from "@workspace/store";
 import { isTokenExpired } from "pocketbase";
 import {
   setAuthSession,
@@ -16,19 +16,19 @@ import {
   decodeJwtPayload,
   readAuthSessionToken,
 } from "../auth/session";
+import { activeWorkspaceId } from "../active-workspace";
 import { resolveBackendUrls } from "../backend-urls";
 import { getDesktopBackend } from "../desktop-backend";
+import { connectionParamsOf } from "./connection-params";
 
 const isDesktop = process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop";
 
 function getConnectionParams() {
-  const sourceId = useSourceIdStore.getState().getSourceId();
-  const token = isDesktop ? getDesktopBackend().token : readAuthSessionToken();
-  const params: { token?: string; sourceId: string } = { sourceId };
-  if (token) {
-    params.token = token;
-  }
-  return params;
+  return connectionParamsOf({
+    token: isDesktop ? getDesktopBackend().token : readAuthSessionToken(),
+    sourceId: useSourceIdStore.getState().getSourceId(),
+    workspaceId: activeWorkspaceId(),
+  });
 }
 
 const wsClient: TRPCWebSocketClient = createWSClient({
@@ -52,6 +52,18 @@ export const trpcClient = createClient();
 export function reconnectTRPCClient(): void {
   return void wsClient?.close();
 }
+
+/**
+ * A connection declares its workspace in the handshake, and the server keeps
+ * that value for the life of the socket. Switching workspace therefore has to
+ * re-handshake; otherwise the next write would still carry the previous id and
+ * be refused or applied to the wrong workspace.
+ */
+useWorkspaceStore.subscribe((state, previous) => {
+  if (state.currentWorkspaceId !== previous.currentWorkspaceId) {
+    reconnectTRPCClient();
+  }
+});
 
 /**
  * Silently renew the auth token before it lapses.

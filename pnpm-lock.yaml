@@ -463,6 +463,9 @@ importers:
       '@workspace/services':
         specifier: workspace:*
         version: link:../services
+      '@workspace/store':
+        specifier: workspace:*
+        version: link:../store
       '@workspace/utils':
         specifier: workspace:*
         version: link:../utils

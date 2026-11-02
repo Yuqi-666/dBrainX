@@ -410,6 +410,10 @@ function sendRequest(options: RequestOptions): Promise<HttpResponse> {
     }
     const token = authToken();
     if (token) xhr.setRequestHeader("Authorization", token);
+    // The workspace travels in the session body (`workspaceId`), which is what
+    // the upload listener reads. It cannot be a request header here: that
+    // listener's preflight admits only Authorization and Content-Type, so a
+    // custom header would fail the cross-origin preflight of the split stack.
 
     xhr.send(options.body);
   });

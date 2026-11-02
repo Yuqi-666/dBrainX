@@ -11,6 +11,8 @@ import {
 } from "@workspace/utils/upload";
 import { getPocketbaseClient } from "./pocketbase-client";
 import { readAuthSessionToken } from "./auth/session";
+import { activeWorkspaceId } from "./active-workspace";
+import { WORKSPACE_HEADER } from "./trpc/connection-params";
 
 /**
  * Size limits, re-exported from the frozen shared contract.
@@ -367,6 +369,11 @@ const writeAttachment = (write: AttachmentWrite): Promise<IAttachment> => {
         ? pb.authStore?.token
         : readAuthSessionToken();
     if (token) xhr.setRequestHeader("Authorization", token);
+
+    // A PocketBase write is an HTTP write surface too: name the same workspace
+    // the socket named, so a hook or a future owner check can scope the record.
+    const workspaceId = activeWorkspaceId();
+    if (workspaceId) xhr.setRequestHeader(WORKSPACE_HEADER, workspaceId);
 
     xhr.send(formData);
   });

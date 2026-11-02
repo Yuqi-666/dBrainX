@@ -23,6 +23,8 @@ It exports:
 | Path | Content |
 | --- | --- |
 | `src/trpc/client.ts` | The WebSocket tRPC client |
+| `src/trpc/connection-params.ts` | The handshake parameters, including the active workspace |
+| `src/active-workspace.ts` | The workspace the browser session is in, read from `useWorkspaceStore` |
 | `src/trpc/provider.tsx` | The React provider and the `trpc` object |
 | `src/trpc/subscriptions.ts` | The server event subscription |
 | `src/trpc/hooks/useGraph.ts` | The management-face mutation hooks (tags and the two semantic dictionaries) |
@@ -39,8 +41,13 @@ It exports:
 ## Mechanisms
 
 `client.ts` builds one WebSocket client with `wsLink`, `superjson`, and a lazy socket.
-It sends `{ token, sourceId }` as connection parameters.
+It sends `{ token, sourceId, "x-workspace-id" }` as connection parameters.
 In desktop mode the token comes from the desktop backend. Otherwise it comes from the `pb_token` cookie.
+The workspace comes from `useWorkspaceStore`, the one source the uploads read too, and is re-read on every handshake.
+A change of `currentWorkspaceId` closes the socket, so the next operation re-handshakes with the new workspace instead of writing into the previous one.
+The server names its side of this contract in `backend/adapter-front/src/trpc/workspace-context.ts`; a connection without the parameter can read, but every `operation.invoke` is refused with `PRECONDITION_FAILED`.
+A direct PocketBase attachment write also sends the header.
+The resumable upload API names the workspace in the session body instead, because its CORS preflight admits only `Authorization` and `Content-Type`.
 
 `provider.tsx` creates the typed `trpc` object and wraps the React Query provider.
 This package imports `AppRouter` as a type only. All four imports are `import type`, so no runtime edge to `adapter-front` exists.

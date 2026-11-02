@@ -21,6 +21,7 @@
     "@workspace/interfaces": "workspace:*",
     "@workspace/adapter-front": "workspace:*",
     "@workspace/services": "workspace:*",
+    "@workspace/store": "workspace:*",
     "@workspace/utils": "workspace:*"
   },
   "devDependencies": {
