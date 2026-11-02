@@ -335,6 +335,9 @@ importers:
       '@workspace/infrastructure':
         specifier: workspace:*
         version: link:../infrastructure
+      '@workspace/sandbox':
+        specifier: workspace:*
+        version: link:../sandbox
       '@workspace/utils':
         specifier: workspace:*
         version: link:../../packages/utils
