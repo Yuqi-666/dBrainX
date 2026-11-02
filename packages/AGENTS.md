@@ -18,7 +18,8 @@ The aliases `@workspace/*` come from `tsconfig.workspace.json`.
 | `editor` | Tiptap rich-text and block editor | [editor/AGENTS.md](editor/AGENTS.md) |
 | `graph` | Force-mode and flow-mode graph rendering | [graph/AGENTS.md](graph/AGENTS.md) |
 | `hooks` | Shared React hooks. The package exports only `useGraph`. | this file |
-| `interfaces` | The shared data model and API contracts. Types only. | [interfaces/AGENTS.md](interfaces/AGENTS.md) |
+| `interfaces` | The shared data model and API contracts. Almost all types, plus a few shared constants. | [interfaces/AGENTS.md](interfaces/AGENTS.md) |
+| `plugin-sdk` | The plugin author API: `defineNodeType`, `defineOperation`, `defineTrigger`, and the UI contribution types | [plugin-sdk/src/index.ts](plugin-sdk/src/index.ts) |
 | `services` | Client services that wrap tRPC for each graph entity | [services/AGENTS.md](services/AGENTS.md) |
 | `store` | Zustand stores for data, UI, auth, workspace, source, and dashboard | [store/AGENTS.md](store/AGENTS.md) |
 | `ui` | shadcn and Radix components plus the app composition surface | [ui/AGENTS.md](ui/AGENTS.md) |
@@ -26,13 +27,11 @@ The aliases `@workspace/*` come from `tsconfig.workspace.json`.
 | `eslint-config` | Shared ESLint configurations | this file |
 | `typescript-config` | Shared tsconfig files | this file |
 
-`packages/dev` is not a package.
-It holds an old `node_modules` directory and no `package.json`.
-
 ## Dependency direction
 
 The base order is `interfaces`, then `store`, then `services`, then `hooks`. Each layer uses the layers below it.
 `utils` sits below `interfaces`. The feature packages sit above the spine.
+`plugin-sdk` sits below `plugins/*` and uses `domain`, `interfaces`, and `utils`.
 
 Known cycles exist. Do not add another one.
 - `ui` and `editor`
@@ -52,8 +51,8 @@ The two client apps extend `nextjs.json`.
 
 ## Rules
 
-1. Import a shared shape from `interfaces`. Do not declare a second copy.
-2. Keep `interfaces` equal to the backend domain model. `backend/domain` and `backend/application` import these types.
+1. Import a shared shape from `interfaces`. Do not declare a second copy. A node content schema and a plugin's operation definitions live in that plugin package.
+2. Keep the generic node DTO and the API contracts equal to the backend contract. Node types are per plugin, so `interfaces` must not gain a closed type list.
 3. Do not add a cycle between packages.
 4. Export new code through the `exports` field of `package.json`.
 5. Prefer a type-only import when you need types only. A type-only import cannot create a runtime cycle.

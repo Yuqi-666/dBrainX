@@ -23,8 +23,11 @@ The product is in early public development. The source version is in `scripts/re
 | Directory | Content | Read next |
 | --- | --- | --- |
 | `apps/` | The web, desktop, and server programs, plus the marketing submodule | [apps/AGENTS.md](apps/AGENTS.md) |
-| `packages/` | Shared UI, editor, graph, data view, state, client | [packages/AGENTS.md](packages/AGENTS.md) |
+| `packages/` | Shared UI, editor, graph, data view, state, client, and plugin SDK | [packages/AGENTS.md](packages/AGENTS.md) |
 | `backend/` | Domain model, use cases, storage, adapters. A submodule of the private repository `Yuqi-666/dBrainX-backend`. | [backend/AGENTS.md](backend/AGENTS.md) |
+| `backend/plugin-host/` | Manifest gate, trust checks, dependency closure, contribution snapshot, worker bridge | [backend/AGENTS.md](backend/AGENTS.md) |
+| `backend/sandbox/` | MXC execution, path and quota policy, lifecycle | [backend/AGENTS.md](backend/AGENTS.md) |
+| `plugins/` | Plugin packages. Each ships a `plugin.json` manifest plus node types, operations, and UI contributions. | this file |
 | `scripts/` | Development and release automation | [scripts/AGENTS.md](scripts/AGENTS.md) |
 | `pb/` | PocketBase hooks and migrations | [pb/AGENTS.md](pb/AGENTS.md) |
 | `deploy/` | Container, gateway, and deployment templates | [deploy/AGENTS.md](deploy/AGENTS.md) |
@@ -37,12 +40,17 @@ The product is in early public development. The source version is in `scripts/re
 apps/web, apps/desktop  ->  packages/*      shared UI, state, and client code
 apps/web, apps/desktop  ->  apps/server     business calls over tRPC
 apps/server             ->  backend/*       domain, use cases, adapters
+apps/server             ->  plugins/*       reads each plugin.json and its contributions
+apps/server             ->  backend/plugin-host  hands over the packaged plugins
+backend/adapter-front   ->  backend/sandbox  MXC execution through the domain port
 backend/infrastructure  ->  PocketBase      records, files, and identity
 ```
 
 - `apps/web` and `apps/desktop` share `packages/`. Change shared behavior once, then check both apps.
 - `backend/` uses inward dependencies. The domain layer depends on no other backend layer.
 - `backend/adapter-front` owns the tRPC router and the composition root. Start there to trace a request.
+- Only `apps/server` imports `plugins/**` in production code. A test may import a plugin package or fixture directly to exercise it. Backend production code reaches a plugin through `backend/plugin-host` and the domain contracts.
+- `backend/plugin-host` gates manifests and builds the node type and operation registries from enabled plugins. `backend/sandbox` owns MXC execution, and `application/src/engine/sandbox-guard.ts` implements `SandboxPort`.
 - Both apps use PocketBase for entity records, identity, and files. The desktop app runs the shared backend and PocketBase locally.
 
 ## Commands
