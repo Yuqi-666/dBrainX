@@ -22,8 +22,10 @@ import type { JsonSchema, OperationDefinition } from "@workspace/plugin-sdk";
 import { defineNodeType, defineOperationDefinition } from "@workspace/plugin-sdk";
 
 import { counterPluginId } from "../plugin-id.ts";
+import { counterSchedules, counterTickOperation } from "./tick.ts";
 
 export { counterPluginId };
+export { counterSchedules, counterTickOperation, COUNTER_TICK_INTERVAL_MS } from "./tick.ts";
 
 /** The whole persisted payload: the counter's current value. */
 export interface CounterContent {
@@ -51,7 +53,8 @@ export const counterNodeType = defineNodeType<CounterContent>({
   schema: counterSchema,
   defaultContent: createCounterContent,
   display: { label: "Counter", icon: "Hash" },
-  operations: ["counter.increment"],
+  operations: ["counter.increment", "counter.tick"],
+  schedules: counterSchedules,
 });
 
 export const counterIncrementOperation: OperationDefinition =
@@ -72,7 +75,10 @@ export const counterIncrementOperation: OperationDefinition =
     idempotent: false,
   });
 
-export const operations: readonly OperationDefinition[] = [counterIncrementOperation];
+export const operations: readonly OperationDefinition[] = [
+  counterIncrementOperation,
+  counterTickOperation,
+];
 
 export const nodeTypes = [counterNodeType];
 
@@ -88,4 +94,14 @@ export function incrementCounter(
   by?: number,
 ): CounterContent {
   return { value: content.value + (by ?? 1) };
+}
+
+/**
+ * The handler `counter.tick` names. It is a no-op on the content and exists so
+ * the declaration has a binding: a type that declares a schedule or an
+ * operation whose export the host cannot find must be refused at enable, not at
+ * the first firing.
+ */
+export function counterTick(content: CounterContent): CounterContent {
+  return content;
 }

@@ -49,9 +49,13 @@ test("declares the counter type and its increment operation", () => {
   );
   assert.deepEqual(
     operations.map((definition) => definition.id),
-    ["counter.increment"],
+    ["counter.increment", "counter.tick"],
   );
-  assert.deepEqual([...counterNodeType.operations], ["counter.increment"]);
+  assert.deepEqual([...counterNodeType.operations], ["counter.increment", "counter.tick"]);
+  assert.deepEqual(
+    counterNodeType.schedules?.map((schedule) => schedule.operationId),
+    ["counter.tick"],
+  );
 
   const draft = createCounterContent();
   assert.deepEqual(draft, { value: 0 });
