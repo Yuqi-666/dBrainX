@@ -666,6 +666,7 @@ test("a fresh database and an upgraded database share the same schema", async ()
   const upgraded = await installRelease(root, [
     "0000000011_dynamic_engine.js",
     "0000000014_automation_timestamps.js",
+    "0000000015_automation_scope_instant.js",
   ]);
   const fresh = { dataDir: join(root, "fresh-data"), runDir: join(root, "fresh-run") };
   try {
@@ -678,8 +679,9 @@ test("a fresh database and an upgraded database share the same schema", async ()
 
     // Upgraded: the pre-0011 shape of an installed database, then the change
     // scripts this test installs (0011 rebuilds the engine tables; 0014 adds
-    // the automation timestamps to a table 0011 recreates).
-    await rewindToLegacyShape(upgraded, 2);
+    // the automation timestamps to a table 0011 recreates; 0015 makes the
+    // closure stamp writable).
+    await rewindToLegacyShape(upgraded, 3);
     await writeFile(join(upgraded.runDir, "0000000010_fixtures.js"), FIXTURE_SCRIPT);
     migrateOk(upgraded, ["up"]);
 
@@ -694,6 +696,101 @@ test("a fresh database and an upgraded database share the same schema", async ()
     assert.ok(nodes.fields.some((field) => field.name === "typeVersion" && field.type === "number"));
     const eventLog = schemaOf(fresh.dataDir, ["event_log"]).event_log;
     assert.ok(eventLog.fields.some((field) => field.name === "workspaceSequence"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("0015 turns the automation scope stamp into a writable date column", async () => {
+  const root = await mkdtemp(join(tmpdir(), "dbrainx-pb-0015-"));
+  const oldBaseDir = join(root, "old-base");
+  const nextBaseDir = join(root, "next-base");
+  const oldChangesDir = join(root, "old-changes");
+  const nextChangesDir = join(root, "next-changes");
+  for (const dir of [oldBaseDir, nextBaseDir, oldChangesDir, nextChangesDir]) await mkdir(dir);
+  const base = await readFile(join(pbBaseDir, "0000000001_base_schema.js"), "utf8");
+  const currentField = '          { name: "recomputedAt", type: "date" },';
+  assert.ok(base.includes(currentField), "the base declares the writable date column");
+  const oldBase = base.replace(
+    currentField,
+    '          { name: "recomputedAt", type: "autodate", onCreate: true, onUpdate: true },',
+  );
+  await writeFile(join(oldBaseDir, "0000000001_base_schema.js"), oldBase);
+  await writeFile(join(nextBaseDir, "0000000001_base_schema.js"), base);
+  const changeName = "0000000015_automation_scope_instant.js";
+  await copyFile(join(pbChangesDir, changeName), join(nextChangesDir, changeName));
+  const database = {
+    dataDir: join(root, "data"),
+    runDir: join(root, "run"),
+    baseDir: oldBaseDir,
+    changesDir: oldChangesDir,
+  };
+  const stampOf = (dataDir) =>
+    withDatabase(dataDir, (db) =>
+      db.prepare("select recomputedAt from automation_scope where nodeId = 'node-1'").get()
+        .recomputedAt,
+    );
+  const stampType = (dataDir) =>
+    schemaOf(dataDir, ["automation_scope"]).automation_scope.fields
+      .find((field) => field.name === "recomputedAt").type;
+  try {
+    // An installed database: the released shape, with a closure already stored.
+    await prepareMigrations(database);
+    await writeFile(
+      join(database.runDir, "0000000010_scope_row.js"),
+      `migrate((app) => {
+  const scope = app.findCollectionByNameOrId("automation_scope");
+  const record = new Record(scope);
+  record.set("automationId", "auto-1");
+  record.set("nodeId", "node-1");
+  record.set("workspaceId", "ws-1");
+  app.save(record);
+}, (app) => {});
+`,
+    );
+    migrateOk(database, ["up"]);
+    const before = stampOf(database.dataDir);
+    assert.match(before, /^\d{4}-\d{2}-\d{2} /);
+    assert.equal(stampType(database.dataDir), "autodate");
+
+    // The next release adds one change script to the same installed base.
+    await copyFile(join(nextChangesDir, changeName), join(database.runDir, changeName));
+    migrateOk(database, ["up"]);
+    assert.equal(stampType(database.dataDir), "date");
+    assert.equal(stampOf(database.dataDir), before, "the conversion keeps the stored instant");
+
+    // A caller-supplied instant is what the column keeps.
+    await writeFile(
+      join(database.runDir, "0000000016_scope_stamp.js"),
+      `migrate((app) => {
+  const rows = app.findRecordsByFilter("automation_scope", "nodeId = 'node-1'", "", 1, 0);
+  rows[0].set("recomputedAt", "2000-01-01T00:00:00.000Z");
+  app.save(rows[0]);
+}, (app) => {});
+`,
+    );
+    migrateOk(database, ["up"]);
+    assert.equal(stampOf(database.dataDir), "2000-01-01 00:00:00.000Z");
+
+    // A fresh database of this release has exactly the same shape.
+    const fresh = {
+      dataDir: join(root, "fresh-data"),
+      runDir: join(root, "fresh-run"),
+      baseDir: nextBaseDir,
+      changesDir: nextChangesDir,
+    };
+    await prepareMigrations(fresh);
+    migrateOk(fresh, ["up"]);
+    assert.deepEqual(
+      schemaOf(database.dataDir, ["automation_scope"]),
+      schemaOf(fresh.dataDir, ["automation_scope"]),
+    );
+
+    // The rollback restores the autodate shape and keeps the stamp too.
+    const reverted = migrateOk(database, ["down", "2"], "y\n");
+    assert.equal(reverted.status, 0);
+    assert.equal(stampType(database.dataDir), "autodate");
+    assert.equal(stampOf(database.dataDir), "2000-01-01 00:00:00.000Z");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

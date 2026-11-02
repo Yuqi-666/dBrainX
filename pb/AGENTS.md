@@ -63,8 +63,9 @@ The development launcher `scripts/dev-pocketbase.mjs` prepares the run directory
 It passes `--dir`, `--migrationsDir`, and `--hooksDir`, and it sets `--automigrate=0`.
 The working directory of the shell therefore does not change the target database.
 
-The highest released change migration is `0000000014_automation_timestamps.js`; the next schema change starts at `0015`.
+The highest released change migration is `0000000015_automation_scope_instant.js`; the next schema change starts at `0016`.
 `0014` adds `created` / `updated` to `automations`: the edge hook compares an automation's `updated` against its closure's `recomputedAt`, and a base collection has no implicit timestamp pair (the same fact `0012` recorded for nodes and edges).
+`0015` turns `automation_scope.recomputedAt` from an autodate column into a writable `date` column: the server stamp came after the graph read, so a node or edge written during the computation looked older than the closure and the stale set could authorize a run outside the current scope. The service stamps the instant before the read and the repository stores it. PocketBase cannot change a field type in place, so the migration parks the existing stamps in a temporary column and copies them back.
 
 ## Rules
 

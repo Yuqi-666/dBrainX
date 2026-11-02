@@ -705,7 +705,7 @@ migrate(
           { name: "automationId", type: "text", required: true, max: 100 },
           { name: "nodeId", type: "text", required: true, max: 100 },
           { name: "workspaceId", type: "text", required: true, max: 100 },
-          { name: "recomputedAt", type: "autodate", onCreate: true, onUpdate: true },
+          { name: "recomputedAt", type: "date" },
         ],
         indexes: [
           "CREATE UNIQUE INDEX idx_scope_unique ON automation_scope (automationId, nodeId)",
