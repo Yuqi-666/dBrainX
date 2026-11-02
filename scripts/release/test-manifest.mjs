@@ -128,6 +128,7 @@ export const testFiles = [
   "backend/infrastructure/src/event-publisher/event-publisher.test.ts",
   "backend/infrastructure/src/event-store/pocketbase-event-store.test.ts",
   "backend/infrastructure/src/repositories/pocketbase-plugin-grant.repository.test.ts",
+  "backend/infrastructure/src/sandbox/pocketbase-sandbox-store.test.ts",
   "backend/infrastructure/src/security/plugin-secret-cipher.test.ts",
   "backend/infrastructure/src/security/plugin-secret-store.test.ts",
   "backend/infrastructure/src/storage/file-address.test.ts",
@@ -144,6 +145,7 @@ export const testFiles = [
   "backend/plugin-host/src/worker-bridge.test.ts",
   "backend/sandbox/src/mxc-adapter.test.ts",
   "backend/sandbox/src/mxc-support.test.ts",
+  "backend/sandbox/src/sandbox-file-store.test.ts",
   "backend/sandbox/src/sandbox-path.test.ts",
   "backend/sandbox/src/sandbox-policy.test.ts",
 

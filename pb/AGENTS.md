@@ -55,9 +55,15 @@ Both mappers read those columns, and `updated` is the version marker `expectedVe
 The script backfills the rows that already exist with the moment it runs: the historical timestamp was never stored, and PocketBase drops an explicit value for an autodate field on save, so the backfill writes the columns with SQL instead of `record.set`.
 Its down drops both columns.
 
+`0000000013_sandbox.js` creates the three sandbox collections: `sandboxes` (one row per plugin and workspace, unique on `workspaceId` and `pluginId`), `sandbox_files` (unique on `sandboxId` and `path`), and `sandbox_calls` (one row per sandbox decision, carrying `decision` and a named `errorCode`).
+Every rule on all three is `null`, so the API never exposes a sandbox row: `sandboxes.rootPath` is a host path, and `sandbox_calls` is the operator's explanation surface rather than client data.
+The plan named this migration `0012`; that number was already released as `0000000012_node_timestamps.js`, and rule 1 forbids rewriting it, so the sandbox schema takes the next free number.
+A denied sandbox call writes its row before the refusal, so a refusal is never invisible in the log.
 The development launcher `scripts/dev-pocketbase.mjs` prepares the run directory inside the selected data directory before creating the operator account.
 It passes `--dir`, `--migrationsDir`, and `--hooksDir`, and it sets `--automigrate=0`.
 The working directory of the shell therefore does not change the target database.
+
+The highest released change migration is `0000000013_sandbox.js`; the next schema change starts at `0014`.
 
 ## Rules
 

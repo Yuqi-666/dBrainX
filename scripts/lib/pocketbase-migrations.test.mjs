@@ -687,3 +687,113 @@ test("a fresh database and an upgraded database share the same schema", async ()
     await rm(root, { recursive: true, force: true });
   }
 });
+
+const SANDBOX_TABLES = ["sandboxes", "sandbox_files", "sandbox_calls"];
+
+test("0013 creates the sandbox tables, matches the base, and tolerates a partial down", async () => {
+  const root = await mkdtemp(join(tmpdir(), "dbrainx-pb-0013-"));
+  const database = await installRelease(root, "0000000013_sandbox.js");
+  try {
+    // The current base already carries the three sandbox tables. Drop them in a
+    // migration numbered below 0013 so the change script has to create them,
+    // exactly as it does for an installed database that predates this release.
+    await writeFile(
+      join(database.runDir, "0000000010_drop_sandbox.js"),
+      `migrate((app) => {
+  for (const name of ${JSON.stringify(SANDBOX_TABLES)}) {
+    const found = app.findAllCollections().find((row) => row.name === name);
+    if (found) app.delete(found);
+  }
+}, (app) => {});
+`,
+    );
+    migrateOk(database, ["up"]);
+
+    const upgraded = schemaOf(database.dataDir, SANDBOX_TABLES);
+    assert.ok(
+      upgraded.sandboxes.indexes.includes(
+        "CREATE UNIQUE INDEX idx_sandboxes_key ON sandboxes (workspaceId, pluginId)",
+      ),
+    );
+    assert.ok(
+      upgraded.sandbox_files.indexes.includes(
+        "CREATE UNIQUE INDEX idx_sandbox_files_path ON sandbox_files (sandboxId, path)",
+      ),
+    );
+    assert.ok(
+      upgraded.sandbox_files.indexes.includes(
+        "CREATE INDEX idx_sandbox_files_owner ON sandbox_files (ownerNodeId)",
+      ),
+    );
+    assert.ok(
+      upgraded.sandbox_calls.indexes.includes(
+        "CREATE INDEX idx_sandbox_calls_run ON sandbox_calls (runId)",
+      ),
+    );
+    assert.ok(
+      upgraded.sandbox_calls.indexes.includes(
+        "CREATE INDEX idx_sandbox_calls_sandbox ON sandbox_calls (sandboxId, startedAt)",
+      ),
+    );
+    assert.ok(upgraded.sandboxes.columns.includes("rootPath"));
+    assert.ok(upgraded.sandboxes.columns.includes("maxFiles"));
+    assert.ok(upgraded.sandbox_files.columns.includes("sha256"));
+    assert.ok(upgraded.sandbox_calls.columns.includes("decision"));
+    assert.ok(upgraded.sandbox_calls.columns.includes("errorCode"));
+
+    const rules = withDatabase(database.dataDir, (db) =>
+      db
+        .prepare(
+          "select listRule, viewRule, createRule, updateRule, deleteRule from _collections where name = 'sandboxes'",
+        )
+        .get(),
+    );
+    assert.deepEqual(
+      { ...rules },
+      {
+        listRule: null,
+        viewRule: null,
+        createRule: null,
+        updateRule: null,
+        deleteRule: null,
+      },
+      "rootPath stays on the server side",
+    );
+
+    // A fresh database is born from the base alone; both paths must agree.
+    const fresh = {
+      dataDir: join(root, "fresh-data"),
+      runDir: join(root, "fresh-run"),
+    };
+    await mkdir(fresh.runDir, { recursive: true });
+    for (const name of await readdir(pbBaseDir)) {
+      await copyFile(join(pbBaseDir, name), join(fresh.runDir, name));
+    }
+    migrateOk(fresh, ["up"]);
+    assert.deepEqual(
+      schemaOf(fresh.dataDir, SANDBOX_TABLES),
+      upgraded,
+      "the base and the change script create the same sandbox schema",
+    );
+
+    // A run that stopped after creating only two tables still rolls back: the
+    // down probes every collection instead of failing on a missing name.
+    await writeFile(
+      join(database.runDir, "0000000014_drop_calls.js"),
+      `migrate((app) => {
+  const found = app.findAllCollections().find((row) => row.name === "sandbox_calls");
+  if (found) app.delete(found);
+}, (app) => {});
+`,
+    );
+    migrateOk(database, ["up"]);
+    const reverted = migrateOk(database, ["down", "2"], "y\n");
+    assert.equal(reverted.status, 0);
+    const remaining = collectionNames(database.dataDir);
+    for (const name of SANDBOX_TABLES) {
+      assert.ok(!remaining.includes(name), `${name} is gone after down`);
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

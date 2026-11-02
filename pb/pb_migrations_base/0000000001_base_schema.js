@@ -731,6 +731,75 @@ migrate(
           "CREATE INDEX idx_jobs_lease ON scheduled_jobs (enabled, leaseUntil)",
         ],
       },
+      {
+        name: "sandboxes",
+        fields: [
+          { name: "sandboxId", type: "text", required: true, max: 100 },
+          { name: "workspaceId", type: "text", required: true, max: 100 },
+          { name: "pluginId", type: "text", required: true, max: 100 },
+          { name: "backend", type: "text", required: true, max: 40 },
+          {
+            name: "status",
+            type: "select",
+            required: true,
+            values: ["ready", "unavailable", "disabled"],
+          },
+          { name: "rootPath", type: "text", required: true, max: 1024 },
+          { name: "policyHash", type: "text", required: true, max: 128 },
+          { name: "maxBytes", type: "number", required: true },
+          { name: "maxFiles", type: "number", required: true },
+          { name: "maxProcesses", type: "number", required: true },
+          { name: "lastUsedAt", type: "date" },
+        ],
+        indexes: [
+          "CREATE UNIQUE INDEX idx_sandboxes_key ON sandboxes (workspaceId, pluginId)",
+        ],
+      },
+      {
+        name: "sandbox_files",
+        fields: [
+          { name: "sandboxId", type: "text", required: true, max: 100 },
+          { name: "path", type: "text", required: true, max: 1024 },
+          { name: "ownerNodeId", type: "text", max: 100 },
+          { name: "size", type: "number", required: true },
+          { name: "sha256", type: "text", required: true, max: 64 },
+          { name: "mime", type: "text", max: 255 },
+          { name: "createdByRunId", type: "text", max: 100 },
+          { name: "deletedAt", type: "date" },
+        ],
+        indexes: [
+          "CREATE UNIQUE INDEX idx_sandbox_files_path ON sandbox_files (sandboxId, path)",
+          "CREATE INDEX idx_sandbox_files_owner ON sandbox_files (ownerNodeId)",
+        ],
+      },
+      {
+        name: "sandbox_calls",
+        fields: [
+          { name: "sandboxId", type: "text", required: true, max: 100 },
+          { name: "runId", type: "text", required: true, max: 100 },
+          { name: "pluginId", type: "text", required: true, max: 100 },
+          { name: "workspaceId", type: "text", required: true, max: 100 },
+          { name: "capability", type: "text", required: true, max: 80 },
+          { name: "path", type: "text", max: 1024 },
+          { name: "executable", type: "text", max: 100 },
+          { name: "exitCode", type: "number" },
+          { name: "stdoutBytes", type: "number" },
+          { name: "stderrBytes", type: "number" },
+          {
+            name: "decision",
+            type: "select",
+            required: true,
+            values: ["allowed", "denied"],
+          },
+          { name: "errorCode", type: "text", max: 80 },
+          { name: "startedAt", type: "date", required: true },
+          { name: "durationMs", type: "number" },
+        ],
+        indexes: [
+          "CREATE INDEX idx_sandbox_calls_run ON sandbox_calls (runId)",
+          "CREATE INDEX idx_sandbox_calls_sandbox ON sandbox_calls (sandboxId, startedAt)",
+        ],
+      },
     ];
     for (const table of engineTables) {
       app.save(
@@ -746,6 +815,9 @@ migrate(
   },
   (app) => {
     for (const name of [
+      "sandbox_calls",
+      "sandbox_files",
+      "sandboxes",
       "scheduled_jobs",
       "automation_scope",
       "automations",
