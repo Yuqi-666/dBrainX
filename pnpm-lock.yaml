@@ -426,6 +426,9 @@ importers:
       '@microsoft/mxc-sdk':
         specifier: 1.0.1
         version: 1.0.1
+      '@workspace/domain':
+        specifier: workspace:*
+        version: link:../domain
     devDependencies:
       '@types/node':
         specifier: ^25.1.0
