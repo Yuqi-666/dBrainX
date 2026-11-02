@@ -2,13 +2,16 @@
 
 ## Environment
 
-| Tool             | Requirement                                                 |
-| ---------------- | ----------------------------------------------------------- |
-| Node             | The version in `.node-version`, currently 24.21.0           |
-| pnpm             | 9.0.0                                                       |
-| FFmpeg / FFprobe | The media functions                                         |
-| Docker Compose   | The container build and the deployment                      |
-| Rust             | The version in `rust-toolchain.toml`. The desktop app only. |
+| Tool             | Requirement                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| Node             | The version in `.node-version`, currently 24.21.0                                       |
+| pnpm             | 9.0.0                                                                                   |
+| FFmpeg / FFprobe | The media functions                                                                     |
+| C++ toolchain    | `python3`, `make`, and a C++ compiler, when pnpm builds `node-pty` or koffi from source |
+| Docker Compose   | The container build and the deployment                                                  |
+| Rust             | The version in `rust-toolchain.toml`. The desktop app only.                             |
+
+Node 24.21.0 is deliberate. The MXC sandbox SDK needs Node 24 or newer, and its native stdio path on Windows needs 24.21.0. `pnpm release:check` fails when a Dockerfile Node version drifts from `.node-version`.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -39,6 +42,33 @@ The ports come from the root `.env`. A shell variable of the same name has prior
 Development data goes to `pb/pb_data`.
 Run one package with `pnpm --filter <package> <script>`.
 
+## Packages
+
+The execution engine added five workspace packages. A node type or an operation belongs to the plugin package that owns it, not to `backend/domain` or `packages/interfaces`.
+
+| Package               | Content                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `backend/plugin-host` | Manifest gate, trust checks, dependency closure, contribution snapshot, worker bridge. |
+| `backend/sandbox`     | MXC execution, path and quota policy, sandbox lifecycle.                               |
+| `packages/plugin-sdk` | The contract a plugin compiles against: manifests, node types, operations, UI entries. |
+| `plugins/builtin`     | The built-in node types and operations that ship with the app.                         |
+| `plugins/counter`     | The signed test fixture. Its key is test-only.                                         |
+
+Only `apps/server` imports `plugins/**` in production code. A test may import a plugin package or a fixture directly to exercise it.
+
+## Sandbox
+
+`backend/sandbox` runs plugin code in an MXC container, not in the server process. `@microsoft/mxc-sdk` stays outside the esbuild bundle and ships with this platform's native helpers. A host without a usable backend does not fail: the sandbox answers `SANDBOX_UNAVAILABLE` with a named reason, and reading, writing, the graph, and the editor keep working.
+
+```bash
+node scripts/sandbox-probe.mjs
+pnpm sandbox:real
+```
+
+The probe exits 0 with or without a backend. It prints one row per backend, the host facts, and a `codes:` line for every capability this host lacks. `pnpm sandbox:real` runs only the negatives the host can enforce and skips the rest with a named reason. A skip is not a pass.
+
+Sandbox files live under `DBRAINX_SANDBOX_ROOT`, or `<upload spool>/sandbox-storage` when it is empty. The root must be absolute. A relative value disables the sandbox cleanup and prints a warning.
+
 ## Desktop app
 
 ```bash
@@ -56,6 +86,7 @@ sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev librsvg2-d
 
 The app finds PocketBase at `pb/pocketbase` and FFmpeg and FFprobe in PATH.
 Set `DBRAINX_POCKETBASE_PATH`, `FFMPEG_PATH`, or `FFPROBE_PATH` to other paths.
+The prepared runtime carries the backend bundle, the PocketBase hooks, the plugin manifests, and the MXC package with this platform's native helpers. Prepare it on the target platform, so the helpers and the runtime hashes match that machine. `prepare-runtime.mjs` verifies every hash before it exits.
 The installers are in `apps/desktop/src-tauri/target/release/bundle`.
 The release targets are Linux x64, Windows x64, and macOS x64 / arm64.
 
@@ -66,11 +97,16 @@ pnpm release:check
 pnpm check-types
 pnpm lint:gate
 pnpm test:release
+pnpm test:ui
+pnpm --filter @workspace/services test
 pnpm build
 pnpm smoke:server
+bash scripts/release/check-workflows.sh
 ```
 
 `pnpm lint:gate` blocks new diagnostics against the stored baseline.
+`pnpm test:release` runs the explicit list in [`test-manifest.mjs`](../scripts/release/test-manifest.mjs). A new test file that is neither in `testFiles` nor in `skippableTests` fails the gate, so add it to the manifest with its runner or its reason.
+`pnpm test:ui` compiles the JSX test files with esbuild. The services test bundles `packages/services/test`.
 The server smoke test needs isolated test data. Build before the smoke test.
 For a desktop change, also run the checks in [the desktop instructions](../apps/desktop/AGENTS.md).
 
@@ -103,8 +139,18 @@ See [CI/CD and releases](ci-cd.md).
 
 Keep this manual and `ci-cd.md` in step with `.github/workflows/ci.yml`.
 
+## Database migrations
+
+A schema change touches two files.
+
+1. Update `pb/pb_migrations_base/0000000001_base_schema.js`, so a new database starts with the new shape.
+2. Add one numbered file to `pb/pb_migrations_changes/`, so an existing database reaches the same shape.
+
+The base script runs once, when a database is created, and its sha256 is recorded in `.dbrainx-migration-origin`. An installed database upgrades through the change scripts alone. The highest released change is `0000000014_automation_timestamps.js`, so the next change starts at `0015`.
+
+Never edit a released change migration. PocketBase applies a migration by filename, so an edited file either does not run or runs differently from the database it already shaped. Test the upgrade against a copy of old data before you release the new file.
+
 ## Maintain the repository
 
 Update the lockfile with a dependency.
-Add a migration for a schema change. Do not edit a released migration.
 Test the native runtime and the backup and restore behavior on a changed platform.

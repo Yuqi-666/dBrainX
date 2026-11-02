@@ -94,10 +94,78 @@ Do not publish the PocketBase admin interface. For temporary admin access, use a
 | `DBRAINX_AUTO_UPDATE` | `true` enables the separate updater. The default is `false`. |
 | `DBRAINX_GITHUB_TOKEN` | Optional token for the updater. It raises the GitHub API limit. |
 | `DBRAINX_MEDIA_COOKIE_SECRET` | Required in a deployment. Encrypts the saved media-site logins. Keep it stable. A new value makes them unreadable. |
+| `DBRAINX_SECRET_KEY` | The key material for the plugin secret cipher, which seals with AES-256-GCM. The cipher refuses to build without it, and there is no plaintext fallback. Keep it stable: a new value makes the stored frames unreadable until they are sealed again. |
+| `DBRAINX_SANDBOX_ROOT` | The absolute directory for sandbox files. The default is `sandbox-storage` under the upload spool. A relative value disables the sandbox cleanup. |
+
+The server process needs `DBRAINX_ADMIN_EMAIL` together with `DBRAINX_ADMIN_PASSWORD` or `DBRAINX_ADMIN_PASSWORD_FILE` to compose the engine, the sandbox cleanup, and the plugin grant table.
+The bundled `docker-compose.yml` passes that pair to the PocketBase service only, and it does not pass the `DBRAINX_ENGINE_*` settings, `DBRAINX_SECRET_KEY`, or `DBRAINX_SANDBOX_ROOT` to the server service. The bundled container therefore composes none of them. Pass the same variables to the server service when a deployment needs them.
 
 Read the complete list from `.env.example` and `deploy/.env.example`.
 The storage limit variables use built-in defaults.
 A password file needs a Compose override that mounts the file into the PocketBase service only, read-only.
+
+## Operation engine
+
+The engine claims scheduled jobs and event deliveries, runs each operation handler, and writes one `operation_runs` row per attempt. It composes only in a process that has the PocketBase operator credential. The server prints one line at startup, so the effective policy is visible:
+
+```text
+[engine] enabled owner=<hostname>:<pid> poll=500ms idle=1000..30000ms drain=30000ms jobs=10/2 deliveries=20/2 lease=30000ms attempts=5 cleanup=3600000ms retention=604800000ms batch=100
+```
+
+Without the credential the line says `[engine] not composed: ...`, `run.engineStatus` answers `available: false`, and the desktop settings switch stays disabled. Reading, writing, the graph, and the editor do not need the engine. `DBRAINX_ENGINE_ENABLED=0` starts the server without claiming work, and a local backend can switch a running engine at `/settings/engine`.
+
+### Engine settings
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DBRAINX_ENGINE_ENABLED` | `1` | Start the worker. The local switch can turn it off at run time. |
+| `DBRAINX_ENGINE_WORKER_ID` | `<hostname>:<pid>` | The lease owner recorded on every claim and completion. |
+| `DBRAINX_ENGINE_POLL_MS` | `500` | Pause after a tick that claimed work. |
+| `DBRAINX_ENGINE_IDLE_BACKOFF_MS` | `1000` | First pause after a tick that claimed nothing. It doubles per idle tick. |
+| `DBRAINX_ENGINE_IDLE_BACKOFF_MAX_MS` | `30000` | The upper bound of the idle pause. |
+| `DBRAINX_ENGINE_DRAIN_MS` | `30000` | How long a shutdown waits for in-flight runs. The process exits 1 when the deadline expires with work still running. |
+| `DBRAINX_ENGINE_CONCURRENCY` | `2` | Job firings per tick, and workspace buckets per dispatch tick. |
+| `DBRAINX_ENGINE_LEASE_MS` | `30000` | The delivery and job lease. |
+| `DBRAINX_ENGINE_CLAIM_LIMIT` | `20` | Delivery rows one claim may take. |
+| `DBRAINX_ENGINE_JOB_LIMIT` | `10` | Jobs one tick may claim. |
+| `DBRAINX_ENGINE_MAX_ATTEMPTS` | `5` | Delivery attempts before the dead letter. |
+| `DBRAINX_ENGINE_CLEANUP_INTERVAL_MS` | `3600000` | Pause between retention runs. `0` turns the timer off and leaves `engine.cleanup` available. |
+| `DBRAINX_ENGINE_EVENT_RETENTION_MS` | `604800000` | A `done` event older than this is reclaimed. |
+| `DBRAINX_ENGINE_SANDBOX_IDLE_MS` | `604800000` | A ready sandbox unused this long expires. |
+| `DBRAINX_ENGINE_CLEANUP_BATCH` | `100` | Rows one cleanup stage may touch per run. |
+
+A malformed value stops the server at startup. An engine that silently runs with a 1 ms poll or a 0 ms drain deadline is worse than one that refuses to start.
+
+### Metrics
+
+`engine.metrics` is a tRPC query. The input is `{ workspaceId, windowMs?, scanLimit? }`. Any member of the workspace may read it, because the numbers describe a workspace the caller already reads. The result is `{ available: true, metrics }`, or `{ available: false, reason }` when this process composed no engine.
+
+| Field | Meaning |
+| --- | --- |
+| `events.pendingCount` | Events with a pending delivery, counted from the queue head. |
+| `events.pendingDeliveryCount` | Pending delivery rows. An exact count. |
+| `events.oldestPendingAgeMs` | How long the oldest claimable event has waited. `null` on an empty queue. |
+| `events.deadLetterCount` | Delivery rows in the dead letter. |
+| `events.cascadeDepth.distribution` | Runs by cascade depth, with `scanned` and `truncated`. |
+| `runs.successRate` | `succeeded / (succeeded + failed + dead)`. A running row is not in the denominator. |
+| `runs.latencyMs.p50`, `p95` | Nearest-rank latency. `null` on an empty sample. |
+| `runs.failuresByPlugin`, `failuresByOperation` | Failure counts, largest first. |
+| `runs.operationsPerPluginPerMinute` | Operation count and rate per plugin. |
+| `deliveries` | `pending`, `processing`, `done`, `failed`, `dead`. |
+
+`windowMs` and `scanLimit` are clamped to the service limits. The two distributions are bounded scans and set `truncated` when they stopped early. No number in this view comes from a log line.
+
+### Retention and cleanup
+
+Retention runs on its own timer, outside the worker loop, so a large batch never delays a claim. A batch that outlives the interval produces a skipped tick, not two runs on the same rows. Each run prints one JSON line with the run's own counters:
+
+```text
+{"event":"engine.cleanup","ok":true,"startedAt":"...","finishedAt":"...","retentionMs":604800000,"cutoff":"...","candidates":4,"deleted":2,"skipped":2,"deliveriesDeleted":3,"truncated":false,"scopeRowsDeleted":0,"sandboxesExpired":0,"sandboxFilesSoftDeleted":0,"failures":[]}
+```
+
+One run reclaims `done` events older than the retention period, removes automation-scope rows whose automation no longer exists, and expires a ready sandbox that was idle for the idle period. It skips an event that a delivery which is not `done` still references, and names the blocking status. It never deletes a soft-deleted node. A failed stage is reported in `failures` and does not report the run as clean.
+
+`engine.cleanup` is the same service as a tRPC mutation with the input `{ workspaceId }`. It answers `{ available: true, result }` or `{ available: false, reason }`. It is available only on a local backend (`DBRAINX_DESKTOP=1`, `DBRAINX_LOCAL_MODE=1`, or `NODE_ENV` other than `production`) and only to the workspace owner. A shared deployment runs retention on the timer, not on a user request.
 
 ## Check the service
 
@@ -144,6 +212,13 @@ The upgrade sequence has six steps.
 5. Start the stack and check the users, the attachments, and the media.
 6. Restore the traffic.
 
-A rollback needs the old data and the old image digest.
+## Database migrations and rollback
+
+PocketBase applies the files in `pb/pb_migrations_changes/` in filename order when it starts. The base script in `pb/pb_migrations_base/` runs only when a database is created, so an existing deployment upgrades through the change files alone. Never edit a released change file; a new shape is a new number.
+
+The migration runs during `update.sh`, after the script has copied the complete PocketBase volume to `backups/` and before the stack is healthy. A failed start leaves the stack stopped and prints the backup path.
+
+An older image does not reverse a migration. A rollback is a restore: stop the stack, restore the matching database backup into the volume, switch back to the old image digest, and start it. Some changes are one way by design. `0000000007_webpage_object_storage.js` moves an inline page source into the files collection, and a downgrade keeps the blob in the library instead of restoring it inline.
+
 Run a restore test with a separate project and volume before you operate on the production data.
 For the backup of the desktop personal data, see the [usage manual](usage.md).

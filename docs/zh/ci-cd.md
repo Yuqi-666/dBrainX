@@ -33,6 +33,19 @@ pnpm smoke:server
 bash scripts/release/check-workflows.sh
 ```
 
+发行门禁是显式清单，不是通配扫描。[`scripts/lib/test-manifest.test.mjs`](../../scripts/lib/test-manifest.test.mjs) 发现 `backend/`、`plugins/`、`packages/`、`apps/` 或 `scripts/` 下存在既不在 `testFiles`、也不在 `skippableTests` 中（带原因）的测试文件时，会失败。新增测试要在同一次改动里加入 [`test-manifest.mjs`](../../scripts/release/test-manifest.mjs)，写明运行它的命令或排除原因。不要放宽 `package.json` 里的命令。
+
+## 原生桌面资产
+
+桌面运行时会携带 Node、FFmpeg、带 native 辅助程序的 MXC 包，以及收集到的共享库。[`prepare-runtime.mjs`](../../apps/desktop/scripts/prepare-runtime.mjs) 写出 `runtime-manifest.json`，为每个随行资源记录哈希；运行时指纹把数据库输入和整个 MXC 目录折成一个值。Linux 包校验脚本根据清单哈希重新计算该指纹。它接受 linuxdeploy 对 `node`、FFmpeg、`.node` 插件以及 `node_modules/@microsoft/mxc-sdk/bin/` 下 MXC 辅助程序所做的 RPATH 改写。其他任何字节变化都会使检查失败。
+
+签名覆盖这些辅助程序，不只是应用外壳。
+
+- macOS：`install_name_tool` 之后，每个随行 Mach-O 目标都会重新签名。签名身份来自 `APPLE_SIGNING_IDENTITY`，未配置时做 ad-hoc 签名。`node` 保留 `node-entitlements.plist`，因为它运行 JavaScript 引擎。MXC 启动器与 `libmxc_ffi.dylib` 以 hardened runtime 签名，不带 JIT 权限。
+- Windows：签名覆盖 `.exe`、`.dll` 和 `.node`，其中包括 MXC 的 `wxc-exec.exe`、`wslcsdk.dll` 和 `mxc_ffi.dll`。工作流按证书指纹校验每个安装包，签名无效时构建失败。
+
+桌面目标缺少签名密钥时会被跳过，并在作业摘要中点名。其他目标和容器构建继续。只有没有任何产品可构建时，候选才失败。
+
 ## 版本与候选
 
 使用语义化版本。`fix` 通常增加 PATCH，兼容的 `feat` 增加 MINOR，破坏性改动增加 MAJOR。`0.x` 阶段的破坏性改动也可增加 MINOR，但必须在发行说明中写明。在 `develop` 上运行 `pnpm release:version VERSION`。它会同步 `scripts/release/release.json`、桌面包元数据、Tauri 配置与锁文件、`docker-compose.yml` 以及 `deploy/.env.example`。在 `release.json` 中声明所有目标桌面平台与容器平台。启用要发行的产品。运行 `pnpm release:check` 和相关测试。

@@ -33,6 +33,19 @@ pnpm smoke:server
 bash scripts/release/check-workflows.sh
 ```
 
+The release gate is an explicit list, not a glob. [`scripts/lib/test-manifest.test.mjs`](../scripts/lib/test-manifest.test.mjs) fails when a test file exists under `backend/`, `plugins/`, `packages/`, `apps/`, or `scripts/` and is neither in `testFiles` nor in `skippableTests` with a reason. Add a new test to [`test-manifest.mjs`](../scripts/release/test-manifest.mjs) in the same change, with its runner or its exclusion reason. Do not widen the command in `package.json`.
+
+## Native desktop assets
+
+The desktop runtime carries Node, FFmpeg, the MXC package with its native helpers, and the collected shared libraries. [`prepare-runtime.mjs`](../apps/desktop/scripts/prepare-runtime.mjs) writes `runtime-manifest.json` with a hash for every shipped resource, and the runtime fingerprint folds the database inputs and the whole MXC tree into one value. The Linux package verifier re-derives that fingerprint from the manifest hashes. It accepts the RPATH rewrites linuxdeploy makes to `node`, FFmpeg, `.node` addons, and the MXC helpers under `node_modules/@microsoft/mxc-sdk/bin/`. Any other changed byte fails the check.
+
+Signing covers those helpers, not only the application shell.
+
+- macOS: every packaged Mach-O target is re-signed after `install_name_tool`. The identity comes from `APPLE_SIGNING_IDENTITY`, otherwise the build signs ad hoc. `node` keeps `node-entitlements.plist` because it runs the JavaScript engine. The MXC launcher and `libmxc_ffi.dylib` are signed with the hardened runtime and no JIT rights.
+- Windows: the signing pass covers `.exe`, `.dll`, and `.node`, which includes the MXC `wxc-exec.exe`, `wslcsdk.dll`, and `mxc_ffi.dll`. The workflow verifies every installer against the certificate thumbprint and fails on an invalid signature.
+
+A desktop target whose signing secrets are missing is skipped and named in the job summary. The other targets and the container builds continue. The release candidate fails only when no product remains.
+
 ## Version and candidate
 
 Use semantic versions. A `fix` usually advances PATCH, a compatible `feat` advances MINOR, and a breaking change advances MAJOR. In `0.x`, a breaking change may advance MINOR if the release notes say so. Run `pnpm release:version VERSION` on `develop`. It synchronizes `scripts/release/release.json`, the desktop package metadata, the Tauri configuration and lockfile, `docker-compose.yml`, and `deploy/.env.example`. Declare every intended desktop target and container platform in `release.json`. Enable the products that you ship. Run `pnpm release:check` and the relevant tests.

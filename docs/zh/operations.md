@@ -94,10 +94,78 @@ DBRAINX_PORT=18080
 | `DBRAINX_AUTO_UPDATE` | `true` 启用独立更新容器。默认为 `false`。 |
 | `DBRAINX_GITHUB_TOKEN` | 可选，供更新容器使用的 token。它提高 GitHub API 上限。 |
 | `DBRAINX_MEDIA_COOKIE_SECRET` | 部署必填。加密保存的媒体站点登录信息。保持不变。换值会使它们不可读。 |
+| `DBRAINX_SECRET_KEY` | 插件密钥密钥的原始值，插件密钥以 AES-256-GCM 加密保存。没有它就无法构造该加密器，也不存在明文降级路径。请保持不变：换值会使已保存的密文无法读取，直到用新值重新加密。 |
+| `DBRAINX_SANDBOX_ROOT` | 沙箱文件的绝对目录。默认是上传暂存目录下的 `sandbox-storage`。相对路径会禁用沙箱清理。 |
+
+Server 进程需要 `DBRAINX_ADMIN_EMAIL` 以及 `DBRAINX_ADMIN_PASSWORD` 或 `DBRAINX_ADMIN_PASSWORD_FILE`，才能组装执行引擎、沙箱清理和插件授权表。
+随附的 `docker-compose.yml` 只把这对凭据传给 PocketBase 服务，也没有把 `DBRAINX_ENGINE_*` 设置、`DBRAINX_SECRET_KEY` 或 `DBRAINX_SANDBOX_ROOT` 传给 Server 服务。因此随附容器不会组装它们。部署需要这些功能时，请把同样的变量也传给 Server 服务。
 
 完整变量列表见 `.env.example` 与 `deploy/.env.example`。
 存储上限变量使用内置默认值。
 使用密码文件时，添加 Compose override，只把该文件只读挂载到 PocketBase 服务。
+
+## 执行引擎
+
+执行引擎认领计划任务与事件投递，运行每个操作处理器，并为每次尝试写入一行 `operation_runs`。它只在拥有 PocketBase 运维凭据的进程中组装。Server 启动时打印一行摘要，使生效策略可见：
+
+```text
+[engine] enabled owner=<hostname>:<pid> poll=500ms idle=1000..30000ms drain=30000ms jobs=10/2 deliveries=20/2 lease=30000ms attempts=5 cleanup=3600000ms retention=604800000ms batch=100
+```
+
+没有凭据时，这行会变成 `[engine] not composed: ...`，`run.engineStatus` 返回 `available: false`，桌面设置开关保持禁用。读取、写入、图和编辑器不需要引擎。`DBRAINX_ENGINE_ENABLED=0` 启动时不认领任务，本地后端可以在 `/settings/engine` 开关运行中的引擎。
+
+### 引擎设置
+
+| 变量 | 默认 | 用途 |
+| --- | --- | --- |
+| `DBRAINX_ENGINE_ENABLED` | `1` | 启动 worker。本地开关可以在运行时关闭它。 |
+| `DBRAINX_ENGINE_WORKER_ID` | `<hostname>:<pid>` | 记录在每次认领与完成上的租约所有者。 |
+| `DBRAINX_ENGINE_POLL_MS` | `500` | 认领到工作的 tick 之后的暂停。 |
+| `DBRAINX_ENGINE_IDLE_BACKOFF_MS` | `1000` | 未认领到工作的 tick 之后的首次暂停。每次空转翻倍。 |
+| `DBRAINX_ENGINE_IDLE_BACKOFF_MAX_MS` | `30000` | 空转暂停的上限。 |
+| `DBRAINX_ENGINE_DRAIN_MS` | `30000` | 停机等待在途运行的时间。截止时仍有运行时，进程以 1 退出。 |
+| `DBRAINX_ENGINE_CONCURRENCY` | `2` | 每 tick 的任务并发，以及每 dispatch tick 的工作区分桶数。 |
+| `DBRAINX_ENGINE_LEASE_MS` | `30000` | 投递与任务的租约。 |
+| `DBRAINX_ENGINE_CLAIM_LIMIT` | `20` | 一次投递认领可取的记录数。 |
+| `DBRAINX_ENGINE_JOB_LIMIT` | `10` | 一个 tick 可认领的任务数。 |
+| `DBRAINX_ENGINE_MAX_ATTEMPTS` | `5` | 进入死信前的投递尝试次数。 |
+| `DBRAINX_ENGINE_CLEANUP_INTERVAL_MS` | `3600000` | 两次保留期清理之间的暂停。`0` 关闭定时器，仍保留 `engine.cleanup`。 |
+| `DBRAINX_ENGINE_EVENT_RETENTION_MS` | `604800000` | 早于该时长的 `done` 事件会被回收。 |
+| `DBRAINX_ENGINE_SANDBOX_IDLE_MS` | `604800000` | 空闲超过该时长的 ready 沙箱会过期。 |
+| `DBRAINX_ENGINE_CLEANUP_BATCH` | `100` | 每次清理每个阶段最多处理的记录数。 |
+
+非法值会让 Server 在启动时失败。静默地以 1 ms 轮询或 0 ms 排空截止运行的引擎，比拒绝启动更糟。
+
+### 指标
+
+`engine.metrics` 是 tRPC 查询。输入为 `{ workspaceId, windowMs?, scanLimit? }`。工作区成员都可以读取，因为这些数字描述的正是调用者本来就能读的工作区。结果是 `{ available: true, metrics }`；本进程没有组装引擎时是 `{ available: false, reason }`。
+
+| 字段 | 含义 |
+| --- | --- |
+| `events.pendingCount` | 有 pending 投递的事件数，从队头开始统计。 |
+| `events.pendingDeliveryCount` | pending 投递行数。精确计数。 |
+| `events.oldestPendingAgeMs` | 最老的待认领事件已等待多久。空队列为 `null`。 |
+| `events.deadLetterCount` | 死信中的投递行数。 |
+| `events.cascadeDepth.distribution` | 按级联深度统计的运行数，附 `scanned` 与 `truncated`。 |
+| `runs.successRate` | `succeeded / (succeeded + failed + dead)`。运行中的行不进分母。 |
+| `runs.latencyMs.p50`、`p95` | 最近秩延迟。空样本为 `null`。 |
+| `runs.failuresByPlugin`、`failuresByOperation` | 失败计数，按数量降序。 |
+| `runs.operationsPerPluginPerMinute` | 每个插件的操作数与每分钟速率。 |
+| `deliveries` | `pending`、`processing`、`done`、`failed`、`dead`。 |
+
+`windowMs` 与 `scanLimit` 会被夹紧到服务上限。两个分布是有界扫描，提前停止时设置 `truncated`。这个视图里的数字没有一个来自日志文本。
+
+### 保留期与清理
+
+保留期清理运行在独立定时器上，位于 worker 循环之外，因此大批量不会推迟认领。超过间隔的批次会产生一次跳过的 tick，而不是两次同时处理同样的记录。每次运行打印一行带有自身计数的 JSON：
+
+```text
+{"event":"engine.cleanup","ok":true,"startedAt":"...","finishedAt":"...","retentionMs":604800000,"cutoff":"...","candidates":4,"deleted":2,"skipped":2,"deliveriesDeleted":3,"truncated":false,"scopeRowsDeleted":0,"sandboxesExpired":0,"sandboxFilesSoftDeleted":0,"failures":[]}
+```
+
+一次运行会回收早于保留期的 `done` 事件，删除自动化已不存在的 `automation_scope` 行，并让空闲超过期限的 ready 沙箱过期。仍有非 `done` 投递引用的事件会被跳过，并点名阻塞状态。它从不删除软删除的节点。失败的阶段记录在 `failures` 中，不会把本次运行报告为干净。
+
+`engine.cleanup` 与 tRPC mutation 是同一服务，输入为 `{ workspaceId }`。它返回 `{ available: true, result }` 或 `{ available: false, reason }`。它只在本地后端可用（`DBRAINX_DESKTOP=1`、`DBRAINX_LOCAL_MODE=1`，或 `NODE_ENV` 不是 `production`），且只允许工作区所有者。共享部署靠定时器做保留期清理，不接受用户请求触发。
 
 ## 检查服务
 
@@ -144,6 +212,13 @@ docker compose -p dbrainx start
 5. 启动并检查用户、附件和媒体。
 6. 恢复流量。
 
-回滚需要旧数据和旧镜像 digest。
+## 数据库迁移与回滚
+
+PocketBase 启动时按文件名顺序应用 `pb/pb_migrations_changes/` 中的文件。`pb/pb_migrations_base/` 中的 base 脚本只在创建数据库时运行，因此已有部署只通过变更文件升级。不得修改已发行的变更文件；新的结构使用新的编号。
+
+迁移在 `update.sh` 期间运行：脚本先把完整的 PocketBase 数据卷复制到 `backups/`，再启动新栈。启动失败时服务保持停止，脚本输出备份位置。
+
+旧镜像不能撤销迁移。回滚就是恢复：停止服务，把匹配的数据库备份恢复到数据卷，切回旧镜像 digest，然后启动。有些变更按设计只能单向。`0000000007_webpage_object_storage.js` 把内联页面源码移入 files 集合，降级会把 blob 留在资源库，而不会把它还原为内联内容。
+
 先在一个独立的 project 和卷上做恢复演练，再操作生产数据。
 桌面个人数据的备份见[使用手册](usage.md)。
