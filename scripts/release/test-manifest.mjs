@@ -148,8 +148,10 @@ export const testFiles = [
   "backend/sandbox/src/mxc-adapter.test.ts",
   "backend/sandbox/src/mxc-support.test.ts",
   "backend/sandbox/src/sandbox-file-store.test.ts",
+  "backend/sandbox/src/sandbox-lifecycle.test.ts",
   "backend/sandbox/src/sandbox-path.test.ts",
   "backend/sandbox/src/sandbox-policy.test.ts",
+  "backend/sandbox/src/sandbox-quota.test.ts",
 
   // Server and desktop entry points that run without PocketBase.
   "apps/server/src/desktop/security.test.ts",
