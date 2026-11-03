@@ -167,6 +167,59 @@ Server 进程需要 `DBRAINX_ADMIN_EMAIL` 以及 `DBRAINX_ADMIN_PASSWORD` 或 `D
 
 `engine.cleanup` 与 tRPC mutation 是同一服务，输入为 `{ workspaceId }`。它返回 `{ available: true, result }` 或 `{ available: false, reason }`。它只在本地后端可用（`DBRAINX_DESKTOP=1`、`DBRAINX_LOCAL_MODE=1`，或 `NODE_ENV` 不是 `production`），且只允许工作区所有者。共享部署靠定时器做保留期清理，不接受用户请求触发。
 
+## 错误码
+
+客户端按码字符串分支，不看 HTTP 状态。
+`operation.invoke` 把码放在 message 前缀里，同时设置 tRPC 码。
+`run.replay` 把拒绝作为数据返回：`{ kind: "refused", code, message }`。
+沙箱码出现在 `operation_runs.error` 与 `sandbox_calls.errorCode` 中。
+
+### 操作码
+
+| 码 | tRPC 码 | 服务端何时返回 |
+| --- | --- | --- |
+| `OPERATION_NOT_FOUND` | `NOT_FOUND` | 操作未注册，或不适用于该节点类型。 |
+| `TARGET_NOT_FOUND` | `NOT_FOUND` | target 不存在，或在别的工作区。 |
+| `FORBIDDEN` | `FORBIDDEN` | 用户角色、节点权限或系统操作拒绝了这次调用。 |
+| `CAPABILITY_DENIED` | `FORBIDDEN` | 没有任何 grant 覆盖所需能力。 |
+| `OUT_OF_SCOPE` | `FORBIDDEN` | node target 不在本次运行的作用域内。 |
+| `RATE_LIMITED` | `TOO_MANY_REQUESTS` | 高风险能力用完了自己的令牌桶。 |
+| `TARGET_KIND_UNSUPPORTED` | `NOT_IMPLEMENTED` | 本进程没有 edge 或 view target 的访问策略。 |
+| `CAPABILITY_POLICY_UNAVAILABLE` | `PRECONDITION_FAILED` | 本进程没有能力策略来源。 |
+| `SCHEMA_INVALID` | `BAD_REQUEST` | 输入不符合操作 schema。 |
+| `VERSION_CONFLICT` | `CONFLICT` | `expectedVersion` 不是记录当前版本。 |
+| `OPERATION_TIMEOUT` | `TIMEOUT` | handler 没有在超时内结束。 |
+| `OPERATION_FAILED` | `INTERNAL_SERVER_ERROR` | handler 抛错。读 `failureCode` 获得稳定原因。 |
+| `RUN_CONFLICT` | `CONFLICT` | 幂等键已指向一个本次调用不能继续的 run。 |
+| `AUDIT_FAILED` | `INTERNAL_SERVER_ERROR` | 服务端无法写入 run 行，或无法把它移到终态。 |
+
+### 重放拒绝码
+
+| 码 | `run.replay` 何时返回 |
+| --- | --- |
+| `RUN_NOT_FOUND` | run 不存在，或在别的工作区。 |
+| `RUN_ALREADY_SUCCEEDED` | run 已成功。重放会再次施加效果。 |
+| `RUN_IN_PROGRESS` | run 仍在运行。 |
+| `RUN_TERMINAL` | run 在死信里。该状态是终态。 |
+| `OPERATION_NOT_FOUND` | run 的操作已不再注册。 |
+| `OPERATION_NOT_IDEMPOTENT` | 操作没有声明 `idempotent: true`。 |
+| `REPLAY_UNAVAILABLE` | 本进程没有执行器。 |
+| `REPLAY_DENIED` | run 曾被拒绝，或网关拒绝了这次重放。 |
+
+### 沙箱码
+
+| 码 | 何时出现 |
+| --- | --- |
+| `SANDBOX_UNAVAILABLE` | 没有可用的 MXC 后端，或后端缺少所需策略。 |
+| `SANDBOX_POLICY_DENIED` | grant 不覆盖该路径、可执行文件或网络范围。 |
+| `SANDBOX_PATH_ESCAPE` | 路径或符号链接越出沙箱 root。 |
+| `SANDBOX_PATH_INVALID` | 路径格式非法，或目标不是普通文件。 |
+| `SANDBOX_PATH_RESERVED` | 路径段是 Windows 设备名。 |
+| `SANDBOX_QUOTA_EXCEEDED` | 文件、字节、进程或输出超过配额。 |
+| `SANDBOX_TIMEOUT` | 命令超过超时。 |
+| `SANDBOX_EXEC_FAILED` | 命令失败、MXC 没有启动，或结果无法解析。 |
+| `SANDBOX_OUTPUT_TRUNCATED` | 输出超过 `maxOutputBytes`，被截断。 |
+
 ## 检查服务
 
 ```bash

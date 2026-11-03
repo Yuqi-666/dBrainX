@@ -167,6 +167,59 @@ One run reclaims `done` events older than the retention period, removes automati
 
 `engine.cleanup` is the same service as a tRPC mutation with the input `{ workspaceId }`. It answers `{ available: true, result }` or `{ available: false, reason }`. It is available only on a local backend (`DBRAINX_DESKTOP=1`, `DBRAINX_LOCAL_MODE=1`, or `NODE_ENV` other than `production`) and only to the workspace owner. A shared deployment runs retention on the timer, not on a user request.
 
+## Error codes
+
+A client switches on the code string, not on the HTTP status.
+`operation.invoke` keeps the code in the message prefix and also sets a tRPC code.
+`run.replay` returns a refusal as data: `{ kind: "refused", code, message }`.
+A sandbox code appears in `operation_runs.error` and `sandbox_calls.errorCode`.
+
+### Operation codes
+
+| Code | tRPC code | When the server returns it |
+| --- | --- | --- |
+| `OPERATION_NOT_FOUND` | `NOT_FOUND` | The operation is not registered, or it does not apply to this node type. |
+| `TARGET_NOT_FOUND` | `NOT_FOUND` | The target is absent or in another workspace. |
+| `FORBIDDEN` | `FORBIDDEN` | The user role, the node permission, or a system operation refuses the call. |
+| `CAPABILITY_DENIED` | `FORBIDDEN` | No grant covers the required capability. |
+| `OUT_OF_SCOPE` | `FORBIDDEN` | A node target is outside the run's execution scope. |
+| `RATE_LIMITED` | `TOO_MANY_REQUESTS` | A high-risk capability used up its token bucket. |
+| `TARGET_KIND_UNSUPPORTED` | `NOT_IMPLEMENTED` | This process has no access policy for an edge or view target. |
+| `CAPABILITY_POLICY_UNAVAILABLE` | `PRECONDITION_FAILED` | This process has no capability policy source. |
+| `SCHEMA_INVALID` | `BAD_REQUEST` | The input does not match the operation schema. |
+| `VERSION_CONFLICT` | `CONFLICT` | `expectedVersion` is not the current record version. |
+| `OPERATION_TIMEOUT` | `TIMEOUT` | The handler did not finish within its timeout. |
+| `OPERATION_FAILED` | `INTERNAL_SERVER_ERROR` | The handler threw. Read `failureCode` for the stable cause. |
+| `RUN_CONFLICT` | `CONFLICT` | The idempotency key already names a run that this call cannot continue. |
+| `AUDIT_FAILED` | `INTERNAL_SERVER_ERROR` | The server could not write the run row or move it to its final state. |
+
+### Run replay refusals
+
+| Code | When `run.replay` returns it |
+| --- | --- |
+| `RUN_NOT_FOUND` | The run is absent or in another workspace. |
+| `RUN_ALREADY_SUCCEEDED` | The run succeeded. A replay would apply the effect again. |
+| `RUN_IN_PROGRESS` | The run is still running. |
+| `RUN_TERMINAL` | The run is in the dead letter. That state is final. |
+| `OPERATION_NOT_FOUND` | The run's operation is no longer registered. |
+| `OPERATION_NOT_IDEMPOTENT` | The operation does not declare `idempotent: true`. |
+| `REPLAY_UNAVAILABLE` | This process has no engine executor. |
+| `REPLAY_DENIED` | The run was denied, or the gate denied the replay. |
+
+### Sandbox codes
+
+| Code | When it appears |
+| --- | --- |
+| `SANDBOX_UNAVAILABLE` | No MXC backend is available, or the backend lacks the policy. |
+| `SANDBOX_POLICY_DENIED` | A grant does not cover the path, the executable, or the network range. |
+| `SANDBOX_PATH_ESCAPE` | A path or symlink leaves the sandbox root. |
+| `SANDBOX_PATH_INVALID` | A path is malformed, or it does not name a regular file. |
+| `SANDBOX_PATH_RESERVED` | A path segment is a Windows device name. |
+| `SANDBOX_QUOTA_EXCEEDED` | A file, byte, process, or output quota is over its limit. |
+| `SANDBOX_TIMEOUT` | The command passed its timeout. |
+| `SANDBOX_EXEC_FAILED` | The command failed, MXC did not start, or the result is unreadable. |
+| `SANDBOX_OUTPUT_TRUNCATED` | The output passed `maxOutputBytes` and was cut. |
+
 ## Check the service
 
 ```bash
