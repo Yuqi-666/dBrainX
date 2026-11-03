@@ -208,6 +208,10 @@ A sandbox code appears in `operation_runs.error` and `sandbox_calls.errorCode`.
 
 ### Sandbox codes
 
+The sandbox runtime is `@microsoft/mxc-sdk` **1.0.0**.
+Do not upgrade to 1.0.1 on arm64: its `libmxc_ffi.so` segfaults inside `mxc_sandbox_warnings_json` after a successful spawn, so every exec kills the process.
+Verify a host with `node scripts/release/sandbox-real.mjs`; it exits 0 when every runnable case passes.
+
 | Code | When it appears |
 | --- | --- |
 | `SANDBOX_UNAVAILABLE` | No MXC backend is available, or the backend lacks the policy. |

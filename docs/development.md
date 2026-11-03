@@ -130,15 +130,19 @@ Do not add it to `DBRAINX_PLUGIN_TRUSTED_KEYS`.
 A deployment supplies its own public keys in `DBRAINX_PLUGIN_TRUSTED_KEYS`, as a JSON object that maps a key id to a base64 public key.
 The signing key of a deployment stays outside this repository.
 
-## Planned plugin context contract
+## Plugin context contract
 
-This contract is planned, not implemented. The running code provides only what the second bullet lists.
+The executor assembles the full §4.4.2 contract for every handler, in-process and in a worker.
 
-- **Status.** Planned. Nothing described in this section is on `OperationContext` today, and the executor does not assemble it.
-- **Data envelope today.** [`OperationContext`](../backend/domain/src/ports/operation-context.ts) carries the data envelope only: `actor`, `effectsActor`, `workspaceId`, `scope`, `target`, `node`, `correlationId`, `runId`, `eventId`.
-- **Missing from the domain type.** `pluginId`, the `event` object with `eventId` / `eventType` / `payload` / `sourceNodeId`, the host ports `http`, `media`, `notify`, `sandbox`, `secret`, and the node methods `readNode`, `writeNode`, `invokeNode`, `createNode`, `deleteNode`, `emit`.
-- **Where the capability surface lives today.** Only on `PluginWorkerContext` in [`worker-context.ts`](../backend/plugin-host/src/worker-context.ts). An author who writes an `OperationRun` gets the domain `OperationContext`, so calling a capability through the SDK type needs a cast.
-- **Planned target.** The full §4.4.2 contract, published through `backend/domain` and re-exported from `packages/plugin-sdk`. The executor assembles it for both in-process and worker handlers. The worker keeps a `requestId` request/reply table: functions and `ExecutionScope.allows` never cross that boundary, and the worker rebuilds `allows` from the scope data it receives.
+- **Data envelope.** [`OperationContext`](../backend/domain/src/ports/operation-context.ts) carries `actor`, `effectsActor`, `pluginId`, `workspaceId`, `scope`, `target`, `node`, `correlationId`, `runId`, `eventId` and `event`.
+- **The event.** `event` is `eventId` / `eventType` / `payload` / `sourceNodeId`, present only when a delivery started the run. A handler reads what fired from it and does not query the event log again; `emit` uses its id as the cause.
+- **Host ports.** `http.request`, `media.fetch` / `media.transcode`, `notify.send`, the `SandboxPort` primitives (`readFile`, `writeFile`, `list`, `remove`, `exec`, `spawn`), and `secret(name)`.
+- **Node methods.** `readNode`, `writeNode`, `invokeNode`, `createNode`, `deleteNode`, `emit`.
+- **`NodeMutation` is the write surface.** `writeNode` accepts only the fields of [`NodeMutation`](../backend/domain/src/ports/operation-context.ts) — `title`, `abstract`, `icon`, `cover`, `permission`, `semanticId`, `tags`, `isPinned`, `stateData`, `content` — and only for the run's own target node. A wider write is a refusal, not a partial update.
+- **`secret` returns a handle, never plaintext.** It answers a `SecretHandle`; the host decrypts and injects the value into the request that needs it.
+- **Composition.** A capability the process did not compose refuses with `CAPABILITY_POLICY_UNAVAILABLE` instead of resolving to a no-op, so a missing port fails loudly.
+- **One check per call.** The worker keeps a `requestId` request/reply table, and an in-process handler goes through the same table entries: the stored grant is re-read, the scope is checked and one audit row is written. Functions and `ExecutionScope.allows` never cross the worker boundary; the worker rebuilds `allows` from the scope data it receives.
+- **SDK.** `packages/plugin-sdk` re-exports the domain types, so an author writes a handler against `OperationContext` and needs no cast.
 
 ## Release
 

@@ -208,6 +208,10 @@ Server 进程需要 `DBRAINX_ADMIN_EMAIL` 以及 `DBRAINX_ADMIN_PASSWORD` 或 `D
 
 ### 沙箱码
 
+沙箱运行时是 `@microsoft/mxc-sdk` **1.0.0**。
+不要在 arm64 上升级到 1.0.1：它的 `libmxc_ffi.so` 在 spawn 成功后于 `mxc_sandbox_warnings_json` 里段错误，每次 exec 都会杀掉进程。
+用 `node scripts/release/sandbox-real.mjs` 验证主机；可运行的用例全部通过时它退出 0。
+
 | 码 | 何时出现 |
 | --- | --- |
 | `SANDBOX_UNAVAILABLE` | 没有可用的 MXC 后端，或后端缺少所需策略。 |
