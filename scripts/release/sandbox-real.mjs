@@ -305,6 +305,22 @@ const policy = deriveSandboxPolicy([{
   scopeKey: "executable=echo",
   grantedBy: "sandbox-real",
   grantedAt: "1970-01-01T00:00:00.000Z",
+}, {
+  pluginId: "sandbox-real",
+  workspaceId: "sandbox-real",
+  capability: "sandbox.fs.read",
+  scope: ["path=nodes"],
+  scopeKey: "path=nodes",
+  grantedBy: "sandbox-real",
+  grantedAt: "1970-01-01T00:00:00.000Z",
+}, {
+  pluginId: "sandbox-real",
+  workspaceId: "sandbox-real",
+  capability: "sandbox.fs.write",
+  scope: ["path=nodes"],
+  scopeKey: "path=nodes",
+  grantedBy: "sandbox-real",
+  grantedAt: "1970-01-01T00:00:00.000Z",
 }], DEFAULT_SANDBOX_LIMITS);
 const plan = prepareSandboxInvocation(policy, report, { root: process.env.SANDBOX_REAL_ROOT });
 if (!plan.ok) {

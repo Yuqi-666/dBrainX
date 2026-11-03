@@ -433,8 +433,8 @@ importers:
   backend/sandbox:
     dependencies:
       '@microsoft/mxc-sdk':
-        specifier: 1.0.1
-        version: 1.0.1
+        specifier: 1.0.0
+        version: 1.0.0
       '@workspace/domain':
         specifier: workspace:*
         version: link:../domain
@@ -2383,8 +2383,8 @@ packages:
   '@mermaid-js/parser@1.1.0':
     resolution: {integrity: sha512-gxK9ZX2+Fex5zu8LhRQoMeMPEHbc73UKZ0FQ54YrQtUxE1VVhMwzeNtKRPAu5aXks4FasbMe4xB4bWrmq6Jlxw==}
 
-  '@microsoft/mxc-sdk@1.0.1':
-    resolution: {integrity: sha512-2cP925G5+lQyKzjBVha8uNtVd7XESgDBtgi1yCYYSo9M3xiFyZWtCO4SWPGTk509rdI6nqjyGcZxvEP3t6l8Hg==}
+  '@microsoft/mxc-sdk@1.0.0':
+    resolution: {integrity: sha512-7aVR+GHVKveIknZmUtkAEFwUBp61qgEmhJRe1ZyKHJ274yWlKWB/ZfDP/u/whfmDyck0wRNKZN49atlF+SZt2Q==}
     engines: {node: '>=24.0.0'}
 
   '@modelcontextprotocol/sdk@1.27.1':
@@ -9918,7 +9918,7 @@ snapshots:
     dependencies:
       langium: 4.2.3
 
-  '@microsoft/mxc-sdk@1.0.1':
+  '@microsoft/mxc-sdk@1.0.0':
     dependencies:
       koffi: 3.3.6
       node-pty: 1.1.0

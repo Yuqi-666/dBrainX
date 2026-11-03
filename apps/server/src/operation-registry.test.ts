@@ -26,6 +26,7 @@ import type {
   StoredAttachment,
 } from "../../../backend/domain/src/ports/stored-attachment.ts";
 import { createExecutionScope } from "../../../backend/domain/src/models/plugin/capability.ts";
+import { createTestOperationContext } from "../../../backend/domain/src/ports/operation-context.fixture.ts";
 import type { OperationContext } from "../../../backend/domain/src/ports/operation-context.ts";
 import {
   createLivePluginRegistries,
@@ -94,7 +95,7 @@ function graphStub(): GraphOperationPortProvider {
 }
 
 function nodeContext(content: unknown = {}): OperationContext {
-  return {
+  return createTestOperationContext({
     actor: { kind: "user", userId: "user_alice" },
     workspaceId: "ws_1",
     scope: createExecutionScope({ kind: "workspace", workspaceId: "ws_1" }),
@@ -114,17 +115,17 @@ function nodeContext(content: unknown = {}): OperationContext {
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     },
-  };
+  });
 }
 
 function workspaceContext(): OperationContext {
-  return {
+  return createTestOperationContext({
     actor: { kind: "user", userId: "user_alice" },
     workspaceId: "ws_1",
     scope: createExecutionScope({ kind: "workspace", workspaceId: "ws_1" }),
     target: { kind: "workspace", workspaceId: "ws_1" },
     correlationId: "corr_add",
-  };
+  });
 }
 
 function attachmentReader(

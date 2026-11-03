@@ -616,17 +616,17 @@ export async function createMonitorChain({
       writeNode: async (nodeId, patch) => {
         nodes.write(nodeId, patch.content);
       },
-      emit: async (eventType, payload, options) => {
+      emit: async (eventType, payload) => {
         const stored = await publisher.publish({
           eventType,
           aggregateType: "node",
           aggregateId: context.node.id,
           workspaceId: context.workspaceId,
           payload,
-          correlationId: options.correlationId,
-          causationId: context.eventId ?? run?.eventId ?? options.causationId,
+          correlationId: context.correlationId,
+          causationId: context.eventId ?? run?.eventId ?? null,
           producer: context.actor,
-          cascadeDepth: options.cascadeDepth,
+          cascadeDepth: 0,
         });
         return { eventId: stored.eventId };
       },

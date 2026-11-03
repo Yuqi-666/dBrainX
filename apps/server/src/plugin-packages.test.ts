@@ -19,6 +19,7 @@ import test from "node:test";
 import type { NodeOperationPort } from "../../../backend/application/src/commands/operation/node-operation-handlers.ts";
 import type { NodeDTO } from "../../../backend/application/src/dto/node.dto.ts";
 import { createExecutionScope } from "../../../backend/domain/src/models/plugin/capability.ts";
+import { createTestOperationContext } from "../../../backend/domain/src/ports/operation-context.fixture.ts";
 import type { OperationContext } from "../../../backend/domain/src/ports/operation-context.ts";
 import type { IPluginGrantRepository } from "../../../backend/domain/src/repositories/plugin-grant.repository.ts";
 import { createProcessPluginStore } from "../../../backend/adapter-front/src/di/plugin-install-store.ts";
@@ -180,7 +181,7 @@ function hostOver(
 }
 
 function nodeContext(): OperationContext {
-  return {
+  return createTestOperationContext({
     actor: { kind: "user", userId: "user_demo" },
     workspaceId: "ws_demo",
     scope: createExecutionScope({ kind: "workspace", workspaceId: "ws_demo" }),
@@ -200,7 +201,7 @@ function nodeContext(): OperationContext {
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     },
-  };
+  });
 }
 
 function servedDemo(live: LivePluginRegistries) {

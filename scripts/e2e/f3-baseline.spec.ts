@@ -163,17 +163,6 @@ async function rejectionMessage(
   return assert.fail("acme.b.run was allowed but should have been refused");
 }
 
-async function serverIsUp(): Promise<boolean> {
-  try {
-    const response = await fetch(`${SERVER_URL}/health`, {
-      signal: AbortSignal.timeout(2_000),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Write until the reconnected stream delivers the write it just caused.
  *
@@ -531,46 +520,27 @@ test.describe("F3 baseline", () => {
       await probe.grantCounterCapabilities(workspace.id);
       const nodeId = await addAcmeB(api, workspace.id);
 
-      let code: string | null = null;
-      try {
-        const result = await invokeOk(api, {
-          operationId: "acme.b.run",
-          target: { kind: "node", nodeId },
-          input: { sourceNodeId: nodeId },
-        });
-        expect(result.output?.exitCode).toBe(0);
-      } catch (error) {
-        const message = (error as Error).message;
-        if (isMissingBinding(message)) {
-          test.skip(
-            true,
-            "the acme.b.run binding was removed from the served registry, so operation.invoke no longer reaches the counter worker",
-          );
-        }
-        code = failureCodeOf(message);
-        if (code === null) {
-          if (!(await serverIsUp())) {
-            test.skip(
-              true,
-              `native sandbox failure: the MXC exec aborted the server before the guard answered (${message}). The pre-exec refusals pass in the previous scenario; this host's native bridge is recorded in task-67 evidence.`,
-            );
-          }
-          throw error;
-        }
-        expect(code).toMatch(/^SANDBOX_[A-Z_]+$/);
-      }
+      const result = await invokeOk(api, {
+        operationId: "acme.b.run",
+        target: { kind: "node", nodeId },
+        input: { sourceNodeId: nodeId },
+      });
+      expect(result.output?.exitCode).toBe(0);
 
       const lastRun = (await nodeContent(api, nodeId)).lastRun as
         | { readonly ok?: boolean; readonly errorCode?: string | null }
         | undefined;
-      if (code === null) {
-        expect(lastRun?.ok).toBe(true);
-      } else {
-        expect(lastRun).toMatchObject({ ok: false, errorCode: code });
-      }
+      expect(lastRun?.ok).toBe(true);
+
+      const calls = await probe.calls(workspace.id);
       expect(
-        (await probe.calls(workspace.id)).some(
+        calls.some(
           (call) => call.capability === "sandbox.fs.write" && call.decision === "allowed",
+        ),
+      ).toBe(true);
+      expect(
+        calls.some(
+          (call) => call.capability === "sandbox.exec" && call.decision === "allowed",
         ),
       ).toBe(true);
     } finally {

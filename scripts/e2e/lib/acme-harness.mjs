@@ -779,27 +779,63 @@ export async function createAcmeChain(options = {}) {
   });
 
   function hostPorts(context) {
+    const call = (method, payload) =>
+      sandboxService.call({
+        context,
+        pluginId: PLUGIN_ID,
+        operationId: "acme.b.run",
+        requestId: `request-${++requestSequence}`,
+        method,
+        payload,
+      });
     return {
       sandbox: {
-        invoke: (method, payload) =>
-          sandboxService.call({
-            context,
-            pluginId: PLUGIN_ID,
-            operationId: "acme.b.run",
-            requestId: `request-${++requestSequence}`,
-            method,
-            payload,
+        readFile: (path, options) =>
+          call("readFile", {
+            path: path.path,
+            ...(options?.maxBytes === undefined
+              ? {}
+              : { maxBytes: options.maxBytes }),
+          }),
+        writeFile: (path, data, options) =>
+          call("writeFile", {
+            path: path.path,
+            data,
+            ...(options?.expectedSha256 === undefined
+              ? {}
+              : { expectedSha256: options.expectedSha256 }),
+          }),
+        list: (path) => call("list", { path: path.path }),
+        remove: (path, options) =>
+          call("remove", {
+            path: path.path,
+            ...(options?.recursive === undefined
+              ? {}
+              : { recursive: options.recursive }),
+          }),
+        exec: (command) =>
+          call("exec", {
+            executable: command.executable,
+            argv: [...command.argv],
+            ...(command.cwd === undefined
+              ? {}
+              : { cwd: { path: command.cwd.path } }),
+            ...(command.timeoutMs === undefined
+              ? {}
+              : { timeoutMs: command.timeoutMs }),
+            ...(command.network === undefined
+              ? {}
+              : { network: command.network }),
           }),
       },
       writeNode: async (nodeId, patch) => {
         nodes.write(nodeId, patch.content);
       },
-      emit: async (eventType, payload, emitOptions) => {
-        // Chain metadata is host-owned (§4.5.2): the production worker context
-        // calls `emit(eventType, payload)` and the handler never supplies ids.
-        // The event that caused this one is the stored event that dispatched
-        // the run, which the handler cannot see, so the host reads it from the
-        // run row; the handler's `causationId` is only a fallback.
+      emit: async (eventType, payload) => {
+        // Chain metadata is host-owned (§4.5.2): the handler supplies the type
+        // and the payload only. The correlation id names the whole intent, and
+        // the cause is the stored event that dispatched this run, which the
+        // handler cannot see, so both are read here from the run row.
         const run =
           context.runId === undefined ? null : await runs.findById(context.runId);
         const stored = await handles.publisher.publish({
@@ -808,10 +844,10 @@ export async function createAcmeChain(options = {}) {
           aggregateId: context.node.id,
           workspaceId: context.workspaceId,
           payload,
-          correlationId: emitOptions.correlationId,
-          causationId: run?.eventId ?? emitOptions.causationId,
+          correlationId: run?.correlationId ?? context.correlationId,
+          causationId: run?.eventId ?? null,
           producer: context.actor,
-          cascadeDepth: emitOptions.cascadeDepth,
+          cascadeDepth: run?.eventId === undefined ? 0 : 1,
         });
         eventIds.push(stored.eventId);
         return { eventId: stored.eventId };
