@@ -61,7 +61,7 @@
       "reason": "acme.b.on-a-fired listens to acme.a.fired and counter.notifier.on-threshold listens to the monitor event"
     }
   ],
-  "checksum": "sha256:ac43d9703e13e920c43e965c7d56c801121fa245da25c9894f83b7db61793bfd",
+  "checksum": "sha256:07c4dd2d1513c100bc220d73a8e2fdb69c0a5cb65b2c74caf73955158a7ee70b",
   "publicKeyId": "dbrainx.test-key",
-  "signature": "ed25519:nzrGf3+7SiOu9knhzxs66xoLHWG2LRkermA59M4RTHWdujLhNoAgIKIApl/C8rzf/tpgev+FuQY10a1YxxfqBQ=="
+  "signature": "ed25519:w8SJiwWkllBMkeGQQtHzp5iBnrQyGR8qwNdJxK+eVDveL93HcWjKEvD201KyxbyHqJNBOYh+dzLQr4PZkfOLDQ=="
 }

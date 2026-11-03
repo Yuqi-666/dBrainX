@@ -64,9 +64,6 @@ export type {
   AcmeBContent,
   AcmeContext,
   AcmeLastRun,
-  AcmeSandboxCommand,
-  AcmeSandboxExecResult,
-  AcmeSandboxProxy,
 } from "./automation.ts";
 export {
   COUNTER_METRIC_THRESHOLD_CROSSED,

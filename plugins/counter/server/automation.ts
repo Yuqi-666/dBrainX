@@ -10,11 +10,11 @@
  * `nodes/<B>/script.py`, runs it with `python3 -I script.py` through
  * `ctx.sandbox`, writes `content.lastRun` back and emits `acme.b.executed`.
  *
- * The handler never runs a command itself. Its only execution surface is the
- * host proxy (`ctx.sandbox.invoke`), which in the server process is the
- * `SandboxService` over the `SandboxGuard`: grants are checked per call, the
- * path is parsed by the sandbox validator (an escape is `SANDBOX_PATH_ESCAPE`
- * before any byte is written), and the audit row lands in `sandbox_calls`.
+ * The handler never runs a command itself. Its only execution surface is
+ * `ctx.sandbox`, which in the server process is the `SandboxService` over the
+ * `SandboxGuard`: grants are checked per call, the path is parsed by the
+ * sandbox validator (an escape is `SANDBOX_PATH_ESCAPE` before any byte is
+ * written), and the audit row lands in `sandbox_calls`.
  *
  * `content.script` is untrusted user text. It is validated here, before the
  * first sandbox call: an empty or non-string body and a body above
@@ -25,6 +25,11 @@
 import type {
   JsonSchema,
   OperationDefinition,
+  SandboxCommand,
+  SandboxExecResult,
+  SandboxFileRef,
+  SandboxPath,
+  SandboxPort,
   TriggerDefinitionShape,
 } from "@workspace/plugin-sdk";
 import {
@@ -256,41 +261,13 @@ export const acmeTriggers = [acmeBTrigger];
 // ---------------------------------------------------------------------------
 
 /**
- * The `ctx.sandbox` proxy the worker host provides (§4.7.3).
+ * The `ctx.sandbox` surface the worker host provides (§4.7.3).
  *
- * The wire call is `invoke(method, payload)`; the host decodes the method into
- * the `SandboxPort` primitive of the same name. The handlers below call the
- * typed helpers {@link sandboxWriteFile} / {@link sandboxExec}, which produce
- * exactly the documented payloads (`{path, data}` / `{executable, argv, cwd}`).
+ * It is the domain `SandboxPort` itself: the host proxies each primitive over
+ * the request table, so a handler calls `sandbox.writeFile(path, data)` and
+ * `sandbox.exec(command)` with the same signatures it would see in-process.
+ * The helpers below are thin wrappers that keep the two call sites readable.
  */
-export interface AcmeSandboxProxy {
-  invoke<O = unknown>(method: string, payload?: unknown): Promise<O>;
-}
-
-export interface AcmeSandboxFileRef {
-  readonly path: { readonly path: string };
-  readonly sha256: string;
-  readonly size: number;
-}
-
-/** The result shape `SandboxPort.exec` returns, with its failure code. */
-export interface AcmeSandboxExecResult {
-  readonly stdout: string;
-  readonly stderr: string;
-  readonly exitCode: number;
-  readonly timedOut: boolean;
-  readonly killed: boolean;
-  readonly durationMs: number;
-  readonly outputTruncated: boolean;
-  readonly errorCode?: string;
-}
-
-export interface AcmeSandboxCommand {
-  readonly executable: string;
-  readonly argv: readonly string[];
-  readonly cwd?: { readonly path: string };
-  readonly timeoutMs?: number;
-}
 
 /** What one handler may see: the worker context plus its host ports. */
 export interface AcmeContext {
@@ -305,17 +282,9 @@ export interface AcmeContext {
    * is shared by every run of the chain.
    */
   readonly eventId?: string;
-  readonly sandbox: AcmeSandboxProxy;
+  readonly sandbox: SandboxPort;
   writeNode(nodeId: string, patch: { readonly content: unknown }): Promise<void>;
-  emit(
-    eventType: string,
-    payload: unknown,
-    options: {
-      readonly correlationId: string;
-      readonly causationId: string | null;
-      readonly cascadeDepth: number;
-    },
-  ): Promise<{ readonly eventId: string }>;
+  emit(eventType: string, payload: unknown): Promise<void>;
 }
 
 function nodeOf(context: AcmeContext) {
@@ -339,19 +308,19 @@ function contentOf(context: AcmeContext): Record<string, unknown> {
 
 /** One `writeFile` primitive call, in the exact `{path, data}` shape. */
 export function sandboxWriteFile(
-  sandbox: AcmeSandboxProxy,
-  path: string,
+  sandbox: SandboxPort,
+  path: SandboxPath,
   data: string,
-): Promise<AcmeSandboxFileRef> {
-  return sandbox.invoke<AcmeSandboxFileRef>("writeFile", { path, data });
+): Promise<SandboxFileRef> {
+  return sandbox.writeFile(path, data);
 }
 
 /** One `exec` primitive call, in the exact `{executable, argv, cwd}` shape. */
 export function sandboxExec(
-  sandbox: AcmeSandboxProxy,
-  command: AcmeSandboxCommand,
-): Promise<AcmeSandboxExecResult> {
-  return sandbox.invoke<AcmeSandboxExecResult>("exec", command);
+  sandbox: SandboxPort,
+  command: SandboxCommand,
+): Promise<SandboxExecResult> {
+  return sandbox.exec(command);
 }
 
 /** The error code a thrown sandbox refusal carries, when it carries one. */
@@ -448,22 +417,14 @@ async function recordLastRun(
 export async function acmeAFire(
   _input: unknown,
   context: AcmeContext,
-): Promise<{ eventId: string; nodeId: string }> {
+): Promise<{ nodeId: string }> {
   const node = nodeOf(context);
   const message = contentOf(context).message;
-  const published = await context.emit(
-    ACME_A_FIRED,
-    {
-      sourceNodeId: node.id,
-      message: typeof message === "string" ? message : "",
-    },
-    {
-      correlationId: context.correlationId,
-      causationId: null,
-      cascadeDepth: 0,
-    },
-  );
-  return { eventId: published.eventId, nodeId: node.id };
+  await context.emit(ACME_A_FIRED, {
+    sourceNodeId: node.id,
+    message: typeof message === "string" ? message : "",
+  });
+  return { nodeId: node.id };
 }
 
 /**
@@ -521,11 +482,15 @@ export async function acmeBRun(
     );
   }
 
-  const directory = { path: `nodes/${node.id}` };
+  const directory: SandboxPath = { path: `nodes/${node.id}` };
 
-  let written: AcmeSandboxFileRef;
+  let written: SandboxFileRef;
   try {
-    written = await sandboxWriteFile(context.sandbox, scriptPath, script);
+    written = await sandboxWriteFile(
+      context.sandbox,
+      { path: scriptPath },
+      script,
+    );
   } catch (error) {
     await recordLastRun(
       context,
@@ -536,7 +501,7 @@ export async function acmeBRun(
     throw error;
   }
 
-  let result: AcmeSandboxExecResult;
+  let result: SandboxExecResult;
   try {
     result = await sandboxExec(context.sandbox, {
       executable: "python3",
@@ -576,20 +541,12 @@ export async function acmeBRun(
     );
   }
 
-  await context.emit(
-    ACME_B_EXECUTED,
-    {
-      sourceNodeId,
-      nodeId: node.id,
-      exitCode: result.exitCode,
-      runId: context.runId ?? null,
-    },
-    {
-      correlationId: context.correlationId,
-      causationId: context.eventId ?? null,
-      cascadeDepth: 1,
-    },
-  );
+  await context.emit(ACME_B_EXECUTED, {
+    sourceNodeId,
+    nodeId: node.id,
+    exitCode: result.exitCode,
+    runId: context.runId ?? null,
+  });
 
   return {
     nodeId: node.id,

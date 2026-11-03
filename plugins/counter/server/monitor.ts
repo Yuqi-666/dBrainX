@@ -104,15 +104,7 @@ export interface MonitorContext {
   readonly correlationId: string;
   readonly runId?: string;
   writeNode(nodeId: string, patch: { readonly content: unknown }): Promise<void>;
-  emit(
-    eventType: string,
-    payload: unknown,
-    options: {
-      readonly correlationId: string;
-      readonly causationId: string | null;
-      readonly cascadeDepth: number;
-    },
-  ): Promise<{ readonly eventId: string }>;
+  emit(eventType: string, payload: unknown): Promise<void>;
 }
 
 export const monitorSchema: JsonSchema = {
@@ -350,21 +342,13 @@ export async function counterMonitorTick(
   });
 
   if (crossed) {
-    await context.emit(
-      COUNTER_METRIC_THRESHOLD_CROSSED,
-      {
-        sourceNodeId: node.id,
-        monitorId: node.id,
-        metric: sample,
-        threshold,
-        source: typeof content.source === "string" ? content.source : "",
-      },
-      {
-        correlationId: context.correlationId,
-        causationId: null,
-        cascadeDepth: 0,
-      },
-    );
+    await context.emit(COUNTER_METRIC_THRESHOLD_CROSSED, {
+      sourceNodeId: node.id,
+      monitorId: node.id,
+      metric: sample,
+      threshold,
+      source: typeof content.source === "string" ? content.source : "",
+    });
   }
 
   return { sampled: true, sample, crossed, cursor: nextCursor };

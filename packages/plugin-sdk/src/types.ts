@@ -12,7 +12,7 @@
  * Still missing from `domain`, and therefore not re-exported yet:
  * - `PluginManifest` / `PluginPermission` (plan todo 30)
  * - `TriggerDefinition` (plan todo 61)
- * - `EventEnvelope`, `Actor`, `CapabilityGrant`, `ExecutionScope`, `SandboxPort`
+ * - `EventEnvelope`, `Actor`, `CapabilityGrant`, `ExecutionScope`
  */
 
 export type {
@@ -34,4 +34,33 @@ export type {
   /** What a handler receives; the domain port, not a copy (§4.4.2). */
   OperationContext,
   OperationHandler,
+  /**
+   * The capability surface `OperationContext` exposes (§4.4.2).
+   *
+   * A plugin declares its handlers against these names, so they must be
+   * reachable from the SDK; re-exporting the domain shapes keeps a plugin from
+   * writing a look-alike port that the host would then refuse at runtime.
+   */
+  HttpMethod,
+  HttpPort,
+  HttpPortRequest,
+  HttpPortResult,
+  MediaFetchResult,
+  MediaPort,
+  MediaTranscodeRequest,
+  MediaTranscodeResult,
+  NotifyContext,
+  NotifyDelivery,
+  NotifyLevel,
+  NotifyPort,
+  NotifyRequest,
+  SecretHandle,
+  SandboxPort,
+  SandboxCommand,
+  SandboxEntry,
+  SandboxExecResult,
+  SandboxFileRef,
+  SandboxPath,
+  /** The write surface of `writeNode`: the fields a handler may change. */
+  NodeMutation,
 } from "@workspace/domain"

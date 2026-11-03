@@ -39,7 +39,7 @@ function validate(schema: unknown, input: unknown) {
 
 function fixtureContext(content: unknown, options: { failWrite?: boolean } = {}) {
   const writes: Array<{ nodeId: string; content: unknown }> = [];
-  const emitted: Array<{ eventType: string; payload: unknown; options: unknown }> = [];
+  const emitted: Array<{ eventType: string; payload: unknown }> = [];
   return {
     writes,
     emitted,
@@ -47,14 +47,12 @@ function fixtureContext(content: unknown, options: { failWrite?: boolean } = {})
       node: { id: "node-monitor", content },
       correlationId: "intent-1",
       runId: "run-1",
-      eventId: undefined,
       writeNode: async (nodeId: string, patch: { content: unknown }) => {
         if (options.failWrite === true) throw new Error("write refused");
         writes.push({ nodeId, content: patch.content });
       },
-      emit: async (eventType: string, payload: unknown, emitOptions: unknown) => {
-        emitted.push({ eventType, payload, options: emitOptions });
-        return { eventId: `event-${emitted.length}` };
+      emit: async (eventType: string, payload: unknown) => {
+        emitted.push({ eventType, payload });
       },
     },
   };
@@ -136,11 +134,6 @@ test("a crossing publishes the metric and threshold as data", async () => {
     metric: 91,
     threshold: 80,
     source: "simulated",
-  });
-  assert.deepEqual(emitted[0]?.options, {
-    correlationId: "intent-1",
-    causationId: null,
-    cascadeDepth: 0,
   });
 });
 
