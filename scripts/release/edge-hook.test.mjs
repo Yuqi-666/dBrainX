@@ -8,7 +8,7 @@ import { runInNewContext } from "node:vm";
 
 const scope = { module: { exports: {} }, BadRequestError: Error };
 runInNewContext(readFileSync(new URL("../../pb/pb_hooks/lib/edge.js", import.meta.url), "utf8"), scope);
-const { validateEdge, EDGE_SCOPE_CHECK } = scope.module.exports;
+const { validateEdge } = scope.module.exports;
 
 const T0 = "2026-11-02T00:00:00.000Z";
 const at = (seconds) => new Date(Date.parse(T0) + seconds * 1_000).toISOString();
@@ -101,8 +101,18 @@ function automationRun(overrides = {}) {
   };
 }
 
-test("the automation-scope switch is on", () => {
-  assert.equal(EDGE_SCOPE_CHECK, true);
+test("the edge hook refuses an out-of-scope automation edge and accepts an in-scope one", () => {
+  const automations = [automation({ triggerIds: ["trigger-1"] })];
+  const closureRows = [scopeRow("source", at(60)), scopeRow("target", at(60))];
+  const accepted = event({ runId: "run-1", run: automationRun(), automations, closureRows });
+  assert.equal(validateEdge(accepted), "saved");
+  const refused = event({
+    runId: "run-1",
+    run: automationRun(),
+    automations,
+    closureRows: [scopeRow("source", at(60))],
+  });
+  assert.throws(() => validateEdge(refused), /node target is outside automation auto-1/);
 });
 
 test("untyped edges validate both endpoints without looking up an empty semantic", () => {

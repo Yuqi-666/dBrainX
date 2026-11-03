@@ -2,12 +2,11 @@
 
 // Scope validation for an edge created by an automation run.
 //
-// The switch is on since plan item 64. An edge that names a `runId` must belong
-// to an automation whose materialised `automation_scope` closure contains both
-// endpoints and is newer than the automation and both endpoint records. A person
-// drawn edge (no `runId`) keeps the workspace checks only. Every lookup failure
-// is a BadRequestError: an unverifiable scope never falls back to "allow".
-var EDGE_SCOPE_CHECK = true;
+// An edge that names a `runId` must belong to an automation whose materialised
+// `automation_scope` closure contains both endpoints and is newer than the
+// automation and both endpoint records. A person-drawn edge (no `runId`) keeps
+// the workspace checks only. Every lookup failure is a BadRequestError: an
+// unverifiable scope never falls back to "allow".
 
 function scopeTime(value) {
   if (!value) return NaN;
@@ -161,7 +160,7 @@ function validateEdge(e) {
     const semantic = e.app.findRecordById("edge_semantics", semanticId);
     if (semantic.getString("workspaceId") !== workspace) throw new BadRequestError("Edge semantic must belong to its workspace");
   }
-  if (EDGE_SCOPE_CHECK) validateEdgeScope(e);
+  validateEdgeScope(e);
   return e.next();
 }
-module.exports = { validateEdge, validateEdgeScope, EDGE_SCOPE_CHECK };
+module.exports = { validateEdge, validateEdgeScope };
