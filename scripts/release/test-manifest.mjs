@@ -180,6 +180,7 @@ export const testFiles = [
   "backend/sandbox/src/sandbox-quota.test.ts",
 
   // Server and desktop entry points that run without PocketBase.
+  "apps/server/src/builtin-type-crud.test.ts",
   "apps/server/src/desktop/security.test.ts",
   "apps/server/src/desktop/upgrade-backup.test.ts",
   "apps/server/src/engine/config.test.ts",
