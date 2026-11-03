@@ -70,16 +70,16 @@ async function main() {
   const attachments = () => AppContainer.getInstance().storedAttachments;
   const pluginPackages = await createShippedPluginPackages(
     {
-      builtin: createServerOperationHandlers(
+      "dbrainx.builtin": createServerOperationHandlers(
         nodeOperations,
         graphOperations,
         attachments,
       ),
-      counter: createCounterOperationHandlers(nodeOperations),
+      "dbrainx.counter": createCounterOperationHandlers(nodeOperations),
     },
     // The counter fixture's automation handlers are plugin code: their exports
     // run in the package's worker, not in this process.
-    { counter: Object.keys(acmeHandlers()) },
+    { "dbrainx.counter": Object.keys(acmeHandlers()) },
   );
   await AppContainer.initialize(PB_URL, {
     pluginPackages,

@@ -199,17 +199,17 @@ async function served(
 ) {
   const packages = await createShippedPluginPackages(
     {
-      builtin: createServerOperationHandlers(
+      "dbrainx.builtin": createServerOperationHandlers(
         () => port,
         options.graph ?? graphStub(),
         options.attachments ?? (() => attachmentReader(null)),
       ),
-      counter: createCounterOperationHandlers(() => port),
+      "dbrainx.counter": createCounterOperationHandlers(() => port),
     },
     // The shipped server passes the counter fixture's exports to the worker;
     // the registry test must compose the same shape or it proves less than the
     // process it is modelling.
-    { counter: Object.keys(acmeHandlers()) },
+    { "dbrainx.counter": Object.keys(acmeHandlers()) },
   );
   const host = createPluginHost({
     packages,

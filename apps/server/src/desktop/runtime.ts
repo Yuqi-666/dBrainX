@@ -151,14 +151,14 @@ async function main() {
   const attachments = () => AppContainer.getInstance().storedAttachments;
   const pluginPackages = await createShippedPluginPackages(
     {
-      builtin: createServerOperationHandlers(
+      "dbrainx.builtin": createServerOperationHandlers(
         nodeOperations,
         graphOperations,
         attachments,
       ),
-      counter: createCounterOperationHandlers(nodeOperations),
+      "dbrainx.counter": createCounterOperationHandlers(nodeOperations),
     },
-    { counter: Object.keys(acmeHandlers()) },
+    { "dbrainx.counter": Object.keys(acmeHandlers()) },
   );
   await AppContainer.initialize(pbUrl, { pluginPackages });
   // The upload pipeline writes to the local PocketBase from this process with

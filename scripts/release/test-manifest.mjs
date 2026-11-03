@@ -187,6 +187,7 @@ export const testFiles = [
   "apps/server/src/engine/worker.test.ts",
   "apps/server/src/operation-contract.test.ts",
   "apps/server/src/operation-registry.test.ts",
+  "apps/server/src/plugin-packages.test.ts",
   "apps/server/src/origin.test.ts",
 ];
 

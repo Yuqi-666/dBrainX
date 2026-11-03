@@ -7,7 +7,31 @@
  * §4.10.2 describes.
  */
 
-export { builtinPluginId, nodeTypes } from "./node-types.ts";
-export { graphOperations } from "./graph-operations.ts";
-export { operations } from "./operations.ts";
-export { selfOperationIds, typeOperations } from "./type-operations.ts";
+import type { OperationDefinition } from "@workspace/plugin-sdk";
+
+import { graphOperations } from "./graph-operations.ts";
+import { builtinPluginId, nodeTypes } from "./node-types.ts";
+import { operations as metadataOperations } from "./operations.ts";
+import { selfOperationIds, typeOperations } from "./type-operations.ts";
+
+export {
+  builtinPluginId,
+  graphOperations,
+  nodeTypes,
+  selfOperationIds,
+  typeOperations,
+};
+
+/**
+ * Every operation the package contributes.
+ *
+ * The server entry is the package's contribution surface: discovery reads this
+ * one array, so a new operation group is added here, never to the server
+ * composition. `graphOperations` targets the workspace while the other two
+ * groups target nodes; the host registers all three from this list.
+ */
+export const operations: readonly OperationDefinition[] = [
+  ...metadataOperations,
+  ...typeOperations,
+  ...graphOperations,
+];
