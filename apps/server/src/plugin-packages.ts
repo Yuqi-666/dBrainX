@@ -95,7 +95,7 @@ interface ImportedContributions {
   readonly triggers: PackageTriggers;
 }
 
-/** The package directory `resolveShippedPluginDirectory` should search first. */
+/** The package directory named by `DBRAINX_BUILTIN_PLUGIN_DIR`, if set. */
 function configuredPluginDirectory(): string | undefined {
   const value = process.env[BUILTIN_DIRECTORY_VARIABLE]?.trim();
   return value === undefined || value === "" ? undefined : resolve(value);
@@ -118,31 +118,6 @@ function pluginSearchRoots(): readonly string[] {
     join(here, "../../../plugins"),
   ];
   return [...new Set(roots.map((root) => resolve(root)))];
-}
-
-/**
- * One shipped package directory, or `undefined` when this layout has none.
- *
- * Kept as a named lookup for callers that need one package rather than the
- * whole set (and for the directory override above); the composition itself
- * discovers every package.
- */
-export function resolveShippedPluginDirectory(
-  name: string,
-): string | undefined {
-  const configured = configuredPluginDirectory();
-  if (
-    name === "builtin" &&
-    configured !== undefined &&
-    existsManifest(configured)
-  ) {
-    return configured;
-  }
-  for (const root of pluginSearchRoots()) {
-    const directory = join(root, name);
-    if (existsManifest(directory)) return directory;
-  }
-  return undefined;
 }
 
 function existsManifest(directory: string): boolean {
