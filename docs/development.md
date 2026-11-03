@@ -130,6 +130,16 @@ Do not add it to `DBRAINX_PLUGIN_TRUSTED_KEYS`.
 A deployment supplies its own public keys in `DBRAINX_PLUGIN_TRUSTED_KEYS`, as a JSON object that maps a key id to a base64 public key.
 The signing key of a deployment stays outside this repository.
 
+## Planned plugin context contract
+
+This contract is planned, not implemented. The running code provides only what the second bullet lists.
+
+- **Status.** Planned. Nothing described in this section is on `OperationContext` today, and the executor does not assemble it.
+- **Data envelope today.** [`OperationContext`](../backend/domain/src/ports/operation-context.ts) carries the data envelope only: `actor`, `effectsActor`, `workspaceId`, `scope`, `target`, `node`, `correlationId`, `runId`, `eventId`.
+- **Missing from the domain type.** `pluginId`, the `event` object with `eventId` / `eventType` / `payload` / `sourceNodeId`, the host ports `http`, `media`, `notify`, `sandbox`, `secret`, and the node methods `readNode`, `writeNode`, `invokeNode`, `createNode`, `deleteNode`, `emit`.
+- **Where the capability surface lives today.** Only on `PluginWorkerContext` in [`worker-context.ts`](../backend/plugin-host/src/worker-context.ts). An author who writes an `OperationRun` gets the domain `OperationContext`, so calling a capability through the SDK type needs a cast.
+- **Planned target.** The full §4.4.2 contract, published through `backend/domain` and re-exported from `packages/plugin-sdk`. The executor assembles it for both in-process and worker handlers. The worker keeps a `requestId` request/reply table: functions and `ExecutionScope.allows` never cross that boundary, and the worker rebuilds `allows` from the scope data it receives.
+
 ## Release
 
 The owner commits to `develop` directly or through an internal `feature/*` or `fix/*` branch.

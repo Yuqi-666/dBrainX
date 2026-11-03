@@ -130,6 +130,16 @@ node scripts/plugin-sign.mjs --verify plugins/counter
 部署在 `DBRAINX_PLUGIN_TRUSTED_KEYS` 中提供自己的公钥，取值为 JSON 对象：密钥 id 映射到 base64 公钥。
 部署的签名私钥不放在本仓库。
 
+## 计划中的插件上下文契约
+
+这份契约只是计划，尚未实现。当前运行代码只提供第二条列出的内容。
+
+- **状态。** 计划中。本节描述的字段目前都不在 `OperationContext` 上，执行器也不会组装它们。
+- **今天的数据信封。** [`OperationContext`](../../backend/domain/src/ports/operation-context.ts) 只承载数据信封：`actor`、`effectsActor`、`workspaceId`、`scope`、`target`、`node`、`correlationId`、`runId`、`eventId`。
+- **域类型缺少的字段。** `pluginId`，带 `eventId` / `eventType` / `payload` / `sourceNodeId` 的 `event` 对象，宿主端口 `http`、`media`、`notify`、`sandbox`、`secret`，以及节点方法 `readNode`、`writeNode`、`invokeNode`、`createNode`、`deleteNode`、`emit`。
+- **能力面目前所在的位置。** 只在 [`worker-context.ts`](../../backend/plugin-host/src/worker-context.ts) 的 `PluginWorkerContext` 上。插件作者写 `OperationRun` 时拿到的是域里的 `OperationContext`，所以要通过 SDK 类型调用这些能力，必须做类型断言。
+- **计划目标。** 完整的 §4.4.2 契约，通过 `backend/domain` 发布，并从 `packages/plugin-sdk` 再导出。执行器为进程内 handler 与 worker handler 都组装它。worker 边界保留 `requestId` 请求/应答表：函数与 `ExecutionScope.allows` 永不跨过这条边界，worker 用收到的 scope 数据重建 `allows`。
+
 ## 发行
 
 所有者直接提交到 `develop`，或通过仓库内的 `feature/*`、`fix/*` 分支合并。
