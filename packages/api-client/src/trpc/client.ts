@@ -20,6 +20,7 @@ import { activeWorkspaceId } from "../active-workspace.ts";
 import { resolveBackendUrls } from "../backend-urls";
 import { getDesktopBackend } from "../desktop-backend";
 import { connectionParamsOf } from "./connection-params.ts";
+import { createReconnectGate, createReconnectQueue } from "./reconnect-gate.ts";
 
 const isDesktop = process.env.NEXT_PUBLIC_DBRAINX_PLATFORM === "desktop";
 
@@ -37,9 +38,17 @@ const wsClient: TRPCWebSocketClient = createWSClient({
   connectionParams: getConnectionParams,
 });
 
+/**
+ * Every outgoing request waits on an in-flight re-handshake (`reconnect-gate.ts`).
+ * A workspace switch closes the socket and immediately loads six models; without
+ * this the socket link answers those with `Active connection is not open`.
+ */
+const reconnects = createReconnectQueue();
+const reconnectGate = createReconnectGate<AppRouter>(reconnects);
+
 export function createClient() {
   return createTRPCClient<AppRouter>({
-    links: [wsLink({ client: wsClient, transformer: superjson })],
+    links: [reconnectGate, wsLink({ client: wsClient, transformer: superjson })],
   });
 }
 
@@ -48,9 +57,12 @@ export const trpcClient = createClient();
 /**
  * Close the underlying WebSocket so the next operation re-handshakes with the
  * freshly set/cleared cookie. Call after login/register/logout.
+ *
+ * Await it when more calls follow immediately (a workspace switch loads six
+ * models right after this); a caller that navigates away can ignore it.
  */
-export function reconnectTRPCClient(): void {
-  return void wsClient?.close();
+export function reconnectTRPCClient(): Promise<void> {
+  return reconnects.run(() => wsClient.close());
 }
 
 /**

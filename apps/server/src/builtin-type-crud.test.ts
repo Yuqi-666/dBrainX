@@ -123,6 +123,18 @@ const TITLE = "Regression title";
 const TAG = "regression";
 const STATE_DATA = { client: { x: 12, y: 34 }, server: { collapsed: false } };
 
+/** The body `text` / `rich-text` nodes write through their own operation. */
+const DOCUMENT_OPERATION: Readonly<Partial<Record<BuiltinType, string>>> = {
+  text: "text.setDocument",
+  "rich-text": "rich-text.setDocument",
+};
+const DOCS = {
+  type: "doc",
+  content: [
+    { type: "paragraph", content: [{ type: "text", text: "Written body" }] },
+  ],
+};
+
 /** A 1x1 PNG: the upload has real bytes, not only a made-up size. */
 const PNG_BYTES = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -621,6 +633,29 @@ describe("builtin type CRUD through operation.invoke", () => {
         STATE_DATA,
         `${type}: node.setStateData did not persist`,
       );
+
+      const documentOperation = DOCUMENT_OPERATION[type];
+      if (documentOperation !== undefined) {
+        const written = await step(
+          t,
+          harness,
+          type,
+          "5-write-document",
+          bodyFor(
+            documentOperation,
+            nodeId as string,
+            { docs: DOCS },
+            correlation("5-write-document"),
+          ),
+          documentOperation,
+        );
+        steps.push(documentOperation);
+        assert.deepEqual(
+          (written.node?.content as Record<string, unknown> | undefined)?.docs,
+          DOCS,
+          `${type}: ${documentOperation} did not persist the body`,
+        );
+      }
 
       if (attachOperation !== undefined) {
         const uploadId = `upload-${type}`;

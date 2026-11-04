@@ -74,6 +74,7 @@ export const testFiles = [
   // Shared package tests that need no DOM or browser globals.
   "packages/api-client/src/trpc/connection-params.test.ts",
   "packages/api-client/src/trpc/event-convergence.test.ts",
+  "packages/api-client/src/trpc/reconnect-gate.test.ts",
   "packages/hooks/src/graph-gestures.test.mjs",
   "packages/plugin-sdk/src/define-operation.test.ts",
   "packages/ui/src/components/node-content/registry.test.ts",

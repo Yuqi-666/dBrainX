@@ -270,9 +270,12 @@ test("loads the shipped packages through the host and binds every listed operati
   assert.ok(forCounter.includes("node.setTitle"));
   assert.ok(!forCounter.includes("node.add"));
 
+  // `text.setDocument` is bound (the text editor writes through it); the
+  // document, timeline, annotation and row operations that stay unbound refuse
+  // with the named code instead of running nothing.
   await assert.rejects(
-    registry.resolve("text.setDocument")(
-      { document: { type: "doc", content: [] }, expectedVersion: 1 },
+    registry.resolve("rich-text.insertBlock")(
+      { blockId: "b1", document: { type: "doc", content: [] } },
       nodeContext(),
     ),
     (error: unknown) =>
@@ -325,6 +328,36 @@ test("node.add takes the workspace and actor from the context, never from input"
       workspaceId: "ws_1",
       userId: "user_alice",
       correlationId: "corr_add",
+    },
+  ]);
+});
+
+test("the document operations write the body and nothing else", async () => {
+  const { port, recorded } = recorder();
+  const { registry } = await served(port);
+
+  await registry.resolve("text.setDocument")(
+    { docs: { type: "doc", content: [] } },
+    nodeContext({ docs: {} }),
+  );
+  await registry.resolve("rich-text.setDocument")(
+    { docs: { type: "doc", content: [] } },
+    nodeContext({ referencedNodes: ["node_2"], docs: {} }),
+  );
+  await registry.resolve("rich-text.setDocument")(
+    { docs: { type: "doc", content: [] }, referencedNodes: [] },
+    nodeContext({ referencedNodes: ["node_2"], docs: {} }),
+  );
+
+  const docs = { type: "doc", content: [] };
+  assert.deepEqual(recorded.updated, [
+    { id: "node_1", content: { docs }, userId: "user_alice", correlationId: "corr_1" },
+    { id: "node_1", content: { docs }, userId: "user_alice", correlationId: "corr_1" },
+    {
+      id: "node_1",
+      content: { docs, referencedNodes: [] },
+      userId: "user_alice",
+      correlationId: "corr_1",
     },
   ]);
 });

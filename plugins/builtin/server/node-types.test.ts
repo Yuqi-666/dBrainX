@@ -136,6 +136,28 @@ test("defaultContent() returns a fresh draft on every call", () => {
   }
 });
 
+test("the text and rich-text drafts carry a real document, not an empty object", () => {
+  // The editor seeds itself with whatever is stored, and ProseMirror refuses a
+  // document with no `type` (`RangeError: Unknown node type: undefined`), so a
+  // draft `docs: {}` warns on every new node and renders as an empty page.
+  for (const type of ["text", "rich-text"]) {
+    const definition = nodeTypes.find((candidate) => candidate.type === type);
+    assert.ok(definition, type);
+    const docs = (definition.defaultContent() as { docs?: unknown }).docs;
+    assert.equal(typeof docs, "object", `${type}: docs is not an object`);
+    assert.notEqual(docs, null, type);
+    assert.equal(
+      (docs as { type?: unknown }).type,
+      "doc",
+      `${type}: the draft docs carry no document type`,
+    );
+    assert.ok(
+      Array.isArray((docs as { content?: unknown }).content),
+      `${type}: the draft docs carry no content array`,
+    );
+  }
+});
+
 test("operations are non-empty, namespaced and unique across the plugin", () => {
   const seen = new Set<string>();
 

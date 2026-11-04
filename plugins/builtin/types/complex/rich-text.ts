@@ -28,7 +28,9 @@ export const richTextSchema: JsonSchema = {
   additionalProperties: false,
 };
 
-/** A rich-text node with no blocks and no references. */
 export function createRichTextContent(): RichTextContent {
-  return { referencedNodes: [], docs: {} };
+  return {
+    referencedNodes: [],
+    docs: { type: "doc", content: [{ type: "paragraph" }] },
+  };
 }

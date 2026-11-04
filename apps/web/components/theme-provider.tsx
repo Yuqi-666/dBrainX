@@ -70,7 +70,10 @@ function ThemeHotkey() {
         return;
       }
 
-      if (event.key.toLowerCase() !== "d") {
+      // A synthetic `keydown` (a library re-dispatching a gesture, a browser
+      // extension) need not carry `key`; reading `.toLowerCase()` off it threw
+      // and took the whole window listener down with it.
+      if (typeof event.key !== "string" || event.key.toLowerCase() !== "d") {
         return;
       }
 
