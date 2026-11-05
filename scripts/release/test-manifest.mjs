@@ -156,6 +156,7 @@ export const testFiles = [
   "backend/infrastructure/src/repositories/pocketbase-event-delivery.repository.test.ts",
   "backend/infrastructure/src/repositories/pocketbase-operation-run.repository.test.ts",
   "backend/infrastructure/src/repositories/pocketbase-plugin-grant.repository.test.ts",
+  "backend/infrastructure/src/repositories/pocketbase-plugin.repository.test.ts",
   "backend/infrastructure/src/repositories/pocketbase-scheduled-job.repository.test.ts",
   "backend/infrastructure/src/sandbox/pocketbase-sandbox-store.test.ts",
   "backend/infrastructure/src/security/plugin-secret-cipher.test.ts",
