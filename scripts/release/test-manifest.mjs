@@ -77,6 +77,7 @@ export const testFiles = [
   "packages/api-client/src/trpc/reconnect-gate.test.ts",
   "packages/hooks/src/graph-gestures.test.mjs",
   "packages/plugin-sdk/src/define-operation.test.ts",
+  "packages/plugin-sdk/src/types.test.ts",
   "packages/ui/src/components/node-content/registry.test.ts",
   "packages/ui/src/components/node-content/use-node-content-writer.test.ts",
   "packages/ui/src/lib/attribute-operations.test.ts",

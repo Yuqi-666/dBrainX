@@ -8,11 +8,6 @@
  * without a copy drifting (§4.1.2 boundary rule 5). This entry must stay
  * type-only and free of Node builtins — it is imported by browser bundles
  * through `./ui`.
- *
- * Still missing from `domain`, and therefore not re-exported yet:
- * - `PluginManifest` / `PluginPermission` (plan todo 30)
- * - `TriggerDefinition` (plan todo 61)
- * - `EventEnvelope`, `Actor`, `CapabilityGrant`, `ExecutionScope`
  */
 
 export type {
@@ -63,4 +58,16 @@ export type {
   SandboxPath,
   /** The write surface of `writeNode`: the fields a handler may change. */
   NodeMutation,
+  /**
+   * The contracts the host holds a plugin to (§4.4.1, §4.5.2, §4.6.2): what a
+   * plugin declares, what a trigger is, what a subscriber sees of an event, who
+   * acts, and what one execution may touch.
+   */
+  PluginManifest,
+  PluginPermission,
+  TriggerDefinition,
+  EventEnvelope,
+  Actor,
+  CapabilityGrant,
+  ExecutionScope,
 } from "@workspace/domain"
