@@ -422,6 +422,13 @@ importers:
         version: 5.9.3
 
   backend/plugin-host:
+    dependencies:
+      '@workspace/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@workspace/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
     devDependencies:
       '@types/node':
         specifier: ^25.1.0
