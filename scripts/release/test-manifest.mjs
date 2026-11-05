@@ -82,6 +82,7 @@ export const testFiles = [
   "packages/ui/src/components/node-content/use-node-content-writer.test.ts",
   "packages/ui/src/lib/attribute-operations.test.ts",
   "packages/ui/src/lib/media-attach.test.ts",
+  "packages/ui/src/plugin-kit/exports.test.ts",
   "packages/utils/src/node-content.test.ts",
   "packages/utils/src/resource-references.test.ts",
   "packages/utils/src/storage-limits.test.ts",
